@@ -1,0 +1,218 @@
+{
+  "entities": {
+    "Session": {
+      "title": "Session",
+      "description": "A workshop session",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "code": { "type": "string" },
+        "status": { "type": "string", "enum": ["Draft", "Opening", "ResourcesOnly", "Focus Areas", "Challenge Discovery", "Challenge Voting", "Published Challenges", "Challenge Selection Open", "Selection Locked", "Team Formation", "Team Assignment In Progress", "Team Naming Open", "Team Naming Locked", "Live", "Closed"] },
+        "preferredTeamSize": { "type": "number" },
+        "minTeamSize": { "type": "number" },
+        "maxTeamSize": { "type": "number" },
+        "displayMode": { "type": "string", "enum": ["Challenges", "Participants", "Teams", "Welcome", "Resources", "Randomiser", "Focus Areas", "Challenge Discovery", "Challenge Voting", "Published Challenges"] },
+        "randomiserSelectedTeamId": { "type": "string" },
+        "randomiserIsPicking": { "type": "boolean" },
+        "randomiserStrategy": { "type": "string" },
+        "randomiserLastChallengeId": { "type": "string" },
+        "enableChallengeDiscovery": { "type": "boolean" },
+        "activeWelcomeQuestion": { "type": "string" },
+        "enabledQuestionPacks": { "type": "array", "items": { "type": "string" } },
+        "ownerId": { "type": "string" },
+        "ownerEmail": { "type": "string" },
+        "adminEmails": { "type": "array", "items": { "type": "string" } },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["title", "code", "status", "preferredTeamSize", "minTeamSize", "maxTeamSize", "displayMode", "ownerId", "createdAt"]
+    },
+    "Challenge": {
+      "title": "Challenge",
+      "description": "A challenge statement",
+      "type": "object",
+      "properties": {
+        "sessionId": { "type": "string" },
+        "title": { "type": "string" },
+        "summary": { "type": "string" },
+        "docLink": { "type": "string" },
+        "isPublished": { "type": "boolean" },
+        "displayOrder": { "type": "number" }
+      },
+      "required": ["sessionId", "title", "summary", "docLink", "isPublished", "displayOrder"]
+    },
+    "Resource": {
+      "title": "Resource",
+      "description": "A session resource",
+      "type": "object",
+      "properties": {
+        "sessionId": { "type": "string" },
+        "title": { "type": "string" },
+        "summary": { "type": "string" },
+        "category": { "type": "string", "enum": ["Workshop Materials", "Prompt", "Guide", "Framework", "Example", "Reflection", "Scripture", "Tool", "Podcasts", "Videos"] },
+        "sheetLink": { "type": "string" },
+        "isPublished": { "type": "boolean" },
+        "displayOrder": { "type": "number" }
+      },
+      "required": ["sessionId", "title", "summary", "category", "sheetLink", "isPublished", "displayOrder"]
+    },
+    "Participant": {
+      "title": "Participant",
+      "description": "A workshop participant",
+      "type": "object",
+      "properties": {
+        "sessionId": { "type": "string" },
+        "passcode": { "type": "string" },
+        "name": { "type": "string" },
+        "phoneLast4": { "type": "string" },
+        "adjective": { "type": "string" },
+        "designThinkingProficiency": { "type": "string", "enum": ["Experienced", "Trained", "Some exposure", "New to it"] },
+        "selectedChallengeId": { "type": "string" },
+        "teamId": { "type": "string" },
+        "discoveryTeamId": { "type": "string" },
+        "discovery_team_id": { "type": "string" },
+        "solutioning_team_id": { "type": "string" },
+        "interestedFocusAreaId": { "type": "string" },
+        "interestedFocusAreaIds": { "type": "array", "items": { "type": "string" } },
+        "isAssigned": { "type": "boolean" },
+        "uid": { "type": "string" },
+        "archetypeScores": { "type": "object" },
+        "primaryArchetype": { "type": "string" },
+        "secondaryArchetype": { "type": "string" },
+        "persistedAnswers": { "type": "object" }
+      },
+      "required": ["sessionId", "passcode", "name", "phoneLast4", "adjective", "designThinkingProficiency", "selectedChallengeId", "isAssigned", "uid"]
+    },
+    "DiscoveryTeam": {
+      "title": "DiscoveryTeam",
+      "description": "A team of participants during discovery phase",
+      "type": "object",
+      "properties": {
+        "sessionId": { "type": "string" },
+        "name": { "type": "string" },
+        "code": { "type": "string" },
+        "leaderId": { "type": "string" },
+        "isOpenToMore": { "type": "boolean" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["sessionId", "name"]
+    },
+    "Team": {
+      "title": "Team",
+      "description": "A team of participants",
+      "type": "object",
+      "properties": {
+        "sessionId": { "type": "string" },
+        "challengeId": { "type": "string" },
+        "name": { "type": "string" },
+        "nameSubmittedBy": { "type": "string" },
+        "hasPresented": { "type": "boolean" }
+      },
+      "required": ["sessionId", "challengeId", "name"]
+    },
+    "WelcomeResponse": {
+      "title": "WelcomeResponse",
+      "description": "An anonymous response to a welcome question",
+      "type": "object",
+      "properties": {
+        "sessionId": { "type": "string" },
+        "participantId": { "type": "string" },
+        "uid": { "type": "string" },
+        "questionId": { "type": "string", "enum": ["q1", "q2"] },
+        "response": { "type": "string" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["sessionId", "participantId", "uid", "questionId", "response", "createdAt"]
+    },
+    "FocusArea": {
+      "title": "FocusArea",
+      "description": "A broad ministry or organisational theme",
+      "type": "object",
+      "properties": {
+        "sessionId": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "displayOrder": { "type": "number" }
+      },
+      "required": ["sessionId", "title", "displayOrder"]
+    },
+    "ProposedChallenge": {
+      "title": "ProposedChallenge",
+      "description": "A proposed challenge statement formulated by participants",
+      "type": "object",
+      "properties": {
+        "sessionId": { "type": "string" },
+        "focusAreaId": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "supportingContext": { "type": "string" },
+        "submitterName": { "type": "string" },
+        "uid": { "type": "string" },
+        "createdAt": { "type": "number" },
+        "discoveryTeamId": { "type": "string" },
+        "submitterParticipantId": { "type": "string" },
+        "submitterRealName": { "type": "string" },
+        "submitterProfileDescriptor": { "type": "string" },
+        "discoveryTeamName": { "type": "string" }
+      },
+      "required": ["sessionId", "focusAreaId", "title", "description", "uid", "createdAt"]
+    },
+    "ProposedChallengeVote": {
+      "title": "ProposedChallengeVote",
+      "description": "A vote cast by a participant for a proposed challenge",
+      "type": "object",
+      "properties": {
+        "sessionId": { "type": "string" },
+        "proposedChallengeId": { "type": "string" },
+        "uid": { "type": "string" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["sessionId", "proposedChallengeId", "uid", "createdAt"]
+    }
+  },
+  "firestore": {
+    "sessions/{sessionId}": {
+      "schema": { "$ref": "#/entities/Session" },
+      "description": "Workshop sessions"
+    },
+    "challenges/{challengeId}": {
+      "schema": { "$ref": "#/entities/Challenge" },
+      "description": "Challenges for a session"
+    },
+    "resources/{resourceId}": {
+      "schema": { "$ref": "#/entities/Resource" },
+      "description": "Resources for a session"
+    },
+    "participants/{participantId}": {
+      "schema": { "$ref": "#/entities/Participant" },
+      "description": "Participants in a session"
+    },
+    "teams/{teamId}": {
+      "schema": { "$ref": "#/entities/Team" },
+      "description": "Teams in a session"
+    },
+    "discoveryTeams/{teamId}": {
+      "schema": { "$ref": "#/entities/DiscoveryTeam" },
+      "description": "Discovery teams in a session"
+    },
+    "formingDiscoveryTeams/{teamId}": {
+      "schema": { "$ref": "#/entities/DiscoveryTeam" },
+      "description": "Forming discovery teams in a session"
+    },
+    "welcomeResponses/{responseId}": {
+      "schema": { "$ref": "#/entities/WelcomeResponse" },
+      "description": "Anonymous welcome responses"
+    },
+    "focusAreas/{focusAreaId}": {
+      "schema": { "$ref": "#/entities/FocusArea" },
+      "description": "Focus Areas for a session"
+    },
+    "proposedChallenges/{proposedChallengeId}": {
+      "schema": { "$ref": "#/entities/ProposedChallenge" },
+      "description": "Proposed challenges for a session"
+    },
+    "proposedChallengeVotes/{voteId}": {
+      "schema": { "$ref": "#/entities/ProposedChallengeVote" },
+      "description": "Votes on proposed challenges"
+    }
+  }
+}
