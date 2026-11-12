@@ -1,3 +1,4 @@
+import MemberHistory from './components/MemberHistory';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { GoogleAuthProvider, EmailAuthProvider, User, createUserWithEmailAndPassword, linkWithCredential, linkWithPopup, onIdTokenChanged, reload, sendEmailVerification, sendPasswordResetEmail, signInWithCredential, signInWithEmailAndPassword, signInWithPopup, signOut } from 'firebase/auth';
 import { collection, doc, getDocs, onSnapshot, query, setDoc, where } from 'firebase/firestore';
@@ -128,7 +129,7 @@ function ProfileForm({ profile }: { profile?: Profile }) {
       }}>Delete profile</button></>}
   </Panel>;
 }
-export function Account() { return <ProfileForm profile={useProfile()} />; }
+export function Account() { return <><ProfileForm profile={useProfile()} /><div className="bg-zinc-950 text-white p-6 max-w-3xl mx-auto"><MemberHistory /></div></>; }
 
 export function MemberProfile() {
   const { memberId } = useParams();
@@ -138,7 +139,7 @@ export function MemberProfile() {
     setMember(snapshot.exists() && snapshot.data().state === 'active' ? snapshot.data() as Profile : null);
     setMessage('Member unavailable.');
   }, () => { setMember(null); setMessage('Member unavailable.'); }), [memberId]);
-  return <Panel>{member ? <><h1 className="text-3xl">{member.name}</h1><p>Community member</p><MemberDetails memberId={memberId!} /><ConnectionPanel key={memberId} peerUid={memberId!} /></> : <p>{message}</p>}<Link to="/members">Community members</Link></Panel>;
+  return <Panel>{member ? <><h1 className="text-3xl">{member.name}</h1><p>Community member</p><MemberDetails memberId={memberId!} /><ConnectionPanel key={memberId} peerUid={memberId!} /><MemberHistory memberUid={memberId} /></> : <p>{message}</p>}<Link to="/members">Community members</Link></Panel>;
 }
 export function Members() {
   const [members, setMembers] = useState<{ memberId: string; name: string }[]>([]);

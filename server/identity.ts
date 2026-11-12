@@ -9,6 +9,9 @@ import { contactProjection } from '../shared/connections';
 import { identityDatabaseTarget } from './database-config';
 import { beginProfileDeletion, createProfileCleanup, releaseProfileDeletion } from './profile-cleanup';
 import { communityProjection, validateProfileEdit } from '../shared/profile';
+import { eventSnapshot } from '../shared/attendance';
+import { installAttendanceRoutes } from './attendance';
+import { cleanupAttendance } from './attendance-cleanup';
 
 // Emulator mode must be explicit and must never fall through to production.
 const target = identityDatabaseTarget();
@@ -38,6 +41,7 @@ router.use(async (req, res, next) => {
 
 router.use(connectionsRouter(identityDb));
 installParticipationRoutes(router, identityDb, identityAuth);
+installAttendanceRoutes(router, identityDb, identityAuth);
 
 router.post('/register', async (req, res) => {
   try {
@@ -65,7 +69,7 @@ router.post('/register', async (req, res) => {
       const participantRef = identityDb.collection('participants').doc();
       if ((await transaction.get(participantRef)).exists) throw fail(409, 'Registration conflict. Contact the event organizer.');
       transaction.create(participantRef, { sessionId, uid, memberId: uid, name: profile.data()!.name, adjective: adjective.trim(), designThinkingProficiency, teamId: null, solutioning_team_id: null, isAssigned: false });
-      transaction.create(registrationRef, { uid, sessionId, participantId: participantRef.id });
+      transaction.create(registrationRef, { uid, sessionId, participantId: participantRef.id, event: eventSnapshot(session.data()!) });
       transaction.set(identityDb.doc(`registrationDefaults/${uid}`), { adjective: adjective.trim(), designThinkingProficiency });
       return participantRef.id;
     });
@@ -99,7 +103,7 @@ router.post('/link-legacy', async (req, res) => {
       const { phoneLast4 } = participant.data()!;
       if (phoneLast4) transaction.set(identityDb.doc(`legacyParticipantSecrets/${participantId}`), { uid: memberUid, phoneLast4 });
       transaction.update(participantRef, { uid: memberUid, memberId: memberUid, phoneLast4: FieldValue.delete(), passcode: FieldValue.delete(), phone: FieldValue.delete(), phoneNumber: FieldValue.delete(), email: FieldValue.delete(), emailAddress: FieldValue.delete() });
-      transaction.create(identityDb.doc(`registrations/${registrationKey(sessionId, memberUid)}`), { uid: memberUid, sessionId, participantId, linkedBy: actor });
+      transaction.create(identityDb.doc(`registrations/${registrationKey(sessionId, memberUid)}`), { uid: memberUid, sessionId, participantId, linkedBy: actor, event: eventSnapshot(sessionData!) });
       transaction.set(identityDb.doc(`registrationDefaults/${memberUid}`), { adjective: participant.data()!.adjective || '', designThinkingProficiency: participant.data()!.designThinkingProficiency || 'New to it' });
       for (const record of [...welcome.docs, ...proposals.docs]) {
         if (record.data().sessionId !== sessionId) throw fail(409, 'Legacy workshop reference conflict. Contact the organizer.');
@@ -202,6 +206,7 @@ router.post('/delete-profile', async (_req, res) => {
     // Persist recovery keys BEFORE any identity fields or pointers are erased.
     const manifest = await beginProfileDeletion(identityDb, uid);
     attemptId = manifest.attemptId;
+    await cleanupAttendance(identityDb, uid, attemptId);
     const participantIds = manifest.participantIds;
     const ownedParticipants = participantIds.length ? await identityDb.getAll(...participantIds.map(participantId => identityDb.doc(`participants/${participantId}`))) : [];
     // Bounded, attempt-fenced transactions permit repeatable cleanup beyond a single write batch.
