@@ -1,5 +1,8 @@
 import { before, after, test } from 'node:test';
 import assert from 'node:assert/strict';
+import { pairKey } from '../server/connections';
+import { emptyDetails } from '../shared/profile';
+import { execFileSync } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
 import { assertSucceeds, assertFails, initializeTestEnvironment, type RulesTestEnvironment } from '@firebase/rules-unit-testing';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
@@ -246,4 +249,84 @@ test('profile state and module completion protect planning, mutation and parent 
   await assert.rejects(cleanupAttendance(fixtureDb, uid, attempt.attemptId), /superseded/);
   await assert.rejects(createProfileCleanup(fixtureDb, uid, attempt.attemptId).finish(), /superseded/);
   assert.deepEqual((await fixtureDb.doc(`profiles/${uid}`).get()).data(), { state: 'active', name: 'Protected profile' });
+});
+
+test('whole delete-profile partial failure retains shared plans and retries contacts/source/audit/verifier cleanup', async () => {
+  const uid = 'whole-deletion'; const peerUid = 'whole-peer'; const subjectUid = 'whole-subject';
+  for (const memberUid of [uid, peerUid, subjectUid]) { await createFixtureUser(memberUid); tokens[memberUid] = await signInFixture(memberUid); }
+  for (const memberUid of [uid, peerUid]) assert.equal((await callIdentity(tokens[memberUid], 'save-profile', { name: `Synthetic ${memberUid}`, ...emptyDetails(), professional: { title: 'Synthetic private source' }, communityFields: ['title'], contacts: { phone: '555-0199' }, connectionFields: ['phone'] })).status, 200);
+  const requested = await callIdentity(tokens[uid], 'connections/request', { peerUid });
+  assert.equal(requested.status, 200);
+  assert.equal((await callIdentity(tokens[peerUid], 'connections/accept', { peerUid: uid, generation: requested.data.generation })).status, 200);
+  for (const memberUid of [uid, subjectUid]) assert.equal((await callIdentity(tokens[memberUid], 'register', { sessionId: 'event-one' })).status, 200);
+  await fixtureDb.doc('sessionAccess/event-one').update({ adminEmails: [`${uid}@example.test`] });
+  assert.equal((await attend('organizer', { memberUid: uid })).status, 200);
+  assert.equal((await attend(uid, { memberUid: subjectUid, reason: 'Synthetic verifier private text', evidence: 'Synthetic verifier private evidence' })).status, 200);
+  await callIdentity(tokens[uid], 'history-visibility', { sessionId: 'event-one', visible: true });
+  // Deterministic real downstream failure: a malformed legacy publication path
+  // is encountered AFTER attendance scrub, before parent queued writes finish.
+  await fixtureDb.doc('proposedChallenges/whole-fault').set({ uid, sessionId: 'event-one', publishedChallengeId: 'invalid/path', submitterName: 'Synthetic whole-deletion' });
+  const first = await callIdentity(tokens[uid], 'delete-profile');
+  assert.equal(first.status, 500, JSON.stringify(first));
+  const jobRef = fixtureDb.doc(`profileDeletionJobs/${uid}`);
+  const interrupted = (await jobRef.get()).data()!;
+  assert.equal((await fixtureDb.doc(`profiles/${uid}`).get()).data()?.state, 'deleting');
+  assert.equal(interrupted.leaseUntil, 0);
+  assert.equal(interrupted.attendancePlan.completed, true);
+  assert.ok(interrupted.attendancePlan.targets.some((target: any) => target.path === `attendance/event-one~${uid}`));
+  assert.ok(interrupted.attendancePlan.targets.some((target: any) => target.path === `attendance/event-one~${subjectUid}`));
+  assert.equal((await fixtureDb.doc(`attendance/event-one~${uid}`).get()).exists, false);
+  assert.equal((await fixtureDb.doc(`attendance/event-one~${subjectUid}`).get()).data()?.verifiedBy, null);
+  const peerClient = environment.authenticatedContext(peerUid, { email: `${peerUid}@example.test`, email_verified: true, firebase: { sign_in_provider: 'password' } }).firestore();
+  await assertFails(getDoc(doc(peerClient, `connectionContacts/${uid}`)));
+  await assertFails(getDoc(doc(peerClient, `memberDetails/${uid}`)));
+  assert.equal((await callIdentity(tokens[peerUid], 'member-history', { memberUid: uid })).status, 404);
+  const stale = createProfileCleanup(fixtureDb, uid, interrupted.attemptId);
+  // Repair only malformed legacy fixture; successful retry is the actual route.
+  await fixtureDb.doc('proposedChallenges/whole-fault').update({ publishedChallengeId: '' });
+  assert.equal((await callIdentity(tokens[uid], 'delete-profile')).status, 200);
+  assert.equal((await jobRef.get()).exists, false);
+  for (const collectionName of ['profileDetails', 'memberDetails', 'connectionContacts']) assert.equal((await fixtureDb.doc(`${collectionName}/${uid}`).get()).exists, false);
+  assert.equal((await fixtureDb.doc(`connectionPairs/${pairKey(uid, peerUid)}`).get()).exists, false);
+  assert.equal((await fixtureDb.doc(`connectionViews/${peerUid}/peers/${uid}`).get()).exists, false);
+  assert.equal((await fixtureDb.collection('attendanceAudit').where('memberUid', '==', uid).get()).size, 0);
+  assert.equal((await fixtureDb.collection('attendanceAudit').where('staffUid', '==', uid).get()).size, 0);
+  const subjectHistory = await callIdentity(tokens[subjectUid], 'member-history');
+  assert.equal(subjectHistory.status, 200);
+  assert.equal(subjectHistory.data.entries[0].attendanceStatus, 'verified-attended');
+  assert.equal(subjectHistory.data.entries[0].audit[0].staffUid, null);
+  assert.equal(subjectHistory.data.entries[0].audit[0].evidence, '');
+  const ownClient = environment.authenticatedContext(uid, { email: `${uid}@example.test`, email_verified: true, firebase: { sign_in_provider: 'password' } }).firestore();
+  await assertSucceeds(setDoc(doc(ownClient, `profiles/${uid}`), { name: 'New whole profile', state: 'active' }));
+  assert.equal((await callIdentity(tokens[uid], 'register', { sessionId: 'event-one' })).status, 200);
+  assert.equal((await attend('organizer', { memberUid: uid })).status, 200);
+  assert.equal((await callIdentity(tokens[uid], 'save-profile', { name: 'New whole profile', ...emptyDetails(), professional: { title: 'Fresh preserved source' }, communityFields: ['title'], contacts: { phone: '555-0111' }, connectionFields: ['phone'] })).status, 200);
+  stale.delete(fixtureDb.doc(`profileDetails/${uid}`)); stale.delete(fixtureDb.doc(`attendance/event-one~${uid}`));
+  await assert.rejects(stale.finish(), /superseded/);
+  await assert.rejects(cleanupAttendance(fixtureDb, uid, interrupted.attemptId), /superseded/);
+  assert.equal((await fixtureDb.doc(`profileDetails/${uid}`).get()).data()?.professional.title, 'Fresh preserved source');
+  assert.deepEqual((await fixtureDb.doc(`memberDetails/${uid}`).get()).data(), { title: 'Fresh preserved source' });
+  assert.deepEqual((await fixtureDb.doc(`connectionContacts/${uid}`).get()).data(), { phone: '555-0111' });
+  assert.equal((await fixtureDb.collection('attendanceAudit').where('memberUid', '==', uid).get()).size, 1);
+  assert.equal((await callIdentity(tokens[uid], 'member-history')).data.entries[0].attendanceStatus, 'verified-attended');
+});
+
+test('optional metadata backfill uses parent database target, is dry-run/repeatable and never promotes attendance', async () => {
+  const uid = 'metadata-backfill';
+  await createFixtureUser(uid); const token = await signInFixture(uid);
+  const registered = await callIdentity(token, 'register', { sessionId: 'event-one' });
+  assert.equal(registered.status, 200);
+  const pointerRef = fixtureDb.doc(`registrations/event-one~${uid}`);
+  await pointerRef.set({ uid, sessionId: 'event-one', participantId: registered.data.participantId });
+  const beforeCount = (await fixtureDb.collection('attendance').get()).size;
+  const migrate = (apply: boolean) => JSON.parse(execFileSync(process.execPath, ['--import', 'tsx', 'scripts/snapshot-history.ts', ...(apply ? ['--apply'] : [])], { env: { ...process.env, GCLOUD_PROJECT: projectId }, encoding: 'utf8' }));
+  const dryRun = migrate(false); assert.equal(dryRun.mode, 'dry-run'); assert.ok(dryRun.metadataSnapshots >= 1);
+  assert.equal((await pointerRef.get()).data()?.event, undefined);
+  assert.ok(migrate(true).metadataSnapshots >= 1);
+  assert.deepEqual((await pointerRef.get()).data()?.event, { title: 'Synthetic Design Workshop', date: null });
+  assert.equal(migrate(true).metadataSnapshots, 0);
+  assert.equal((await fixtureDb.collection('attendance').get()).size, beforeCount);
+  const history = await callIdentity(token, 'member-history');
+  assert.equal(history.data.entries[0].attendanceStatus, 'not-verified');
+  assert.equal(history.data.entries[0].eventDate, null);
 });

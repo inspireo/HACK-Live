@@ -1,13 +1,14 @@
 import { initializeApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
+import { identityDatabaseTarget } from '../server/database-config';
 import { eventSnapshot } from '../shared/attendance';
 
 // Metadata-only, repeatable optional backfill. Never derives attendance from a
 // registration/createdAt, never changes profile/identity, dry run by default.
 const projectId = process.env.GCLOUD_PROJECT;
 if (!projectId) throw new Error('Set GCLOUD_PROJECT explicitly');
-if (process.env.FIRESTORE_EMULATOR_HOST && !projectId.startsWith('demo-')) throw new Error('Emulators require a demo project');
-const database = getFirestore(initializeApp({ projectId }), process.env.FIRESTORE_DATABASE_ID || '(default)');
+const target = identityDatabaseTarget();
+const database = getFirestore(initializeApp({ projectId: target.projectId }), target.databaseId);
 const applyChanges = process.argv.includes('--apply');
 const pointers = await database.collection('registrations').get();
 let candidates = 0;
