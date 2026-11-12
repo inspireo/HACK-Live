@@ -185,3 +185,23 @@ test('badge requires live profile/pointer/participation/event; projection has no
   for (const field of ['officialRoles', 'roleChallengeId', 'teamRoleLabels']) assert.equal(tombstone[field], undefined);
   assert.equal((await fixtureDb.doc('sessions/event-one').get()).exists, true);
 });
+
+test('legacy solution alias obeys canonical phase/eligibility gates and clearing both permits staff-only role change', async () => {
+  await createFixtureUser('alias-api');
+  const token = await signInFixture('alias-api');
+  const registered = await callIdentity(token, 'register', { sessionId: 'event-one' });
+  const participantId = registered.data.participantId;
+  const reference = fixtureDb.doc(`participants/${participantId}`);
+  await fixtureDb.doc('sessions/event-one').update({ status: 'Opening' });
+  await assertFails(updateDoc(doc(context('alias-api'), 'participants', participantId), { solutioning_team_id: 'locked-alias-team' }));
+  await assertFails(updateDoc(doc(context('alias-api'), 'participants', participantId), { teamId: 'locked-canonical-team', isAssigned: true }));
+  await reference.update({ teamId: null, solutioning_team_id: 'legacy-team', isAssigned: true });
+  assert.equal((await assign('alias-api', ['mentor'])).status, 409);
+  await fixtureDb.doc('sessions/event-one').update({ status: 'Team Formation' });
+  await assertSucceeds(updateDoc(doc(context('alias-api'), 'participants', participantId), { teamId: null, solutioning_team_id: null, isAssigned: false }));
+  assert.equal((await assign('alias-api', ['mentor'])).status, 200);
+  for (const actor of ['alias-api', 'organizer']) {
+    await assertFails(updateDoc(doc(context(actor), 'participants', participantId), { solutioning_team_id: 'staff-must-not-allocate' }));
+  }
+  assert.equal((await reference.get()).data()!.solutioning_team_id, null);
+});

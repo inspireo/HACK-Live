@@ -169,6 +169,7 @@ test('mixed participant mentor forms a real solution team and retains leadership
   await expect(page.getByRole('heading', { name: 'Your Solution Team', exact: true })).toBeVisible();
   const participant = (await fixtureDb.doc(`participants/${assigned.data.participantId}`).get()).data()!;
   expect((await fixtureDb.doc(`teams/${participant.teamId}`).get()).data()!.leaderId).toBe(assigned.data.participantId);
+  expect(participant.solutioning_team_id).toBe(participant.teamId);
   expect(participant.teamRoleLabels[`teams~${participant.teamId}`]).toBe('designer');
   await page.getByRole('link', { name: 'My badge', exact: true }).click();
   const badge = page.getByRole('article', { name: 'Personal event badge' });
@@ -176,4 +177,47 @@ test('mixed participant mentor forms a real solution team and retains leadership
   await expect(badge.getByText('mentor', { exact: true })).toBeVisible();
   await expect(badge.getByText('Team role: designer', { exact: true })).toBeVisible();
   await evidence(page, 'mixed-participant-team-label');
+});
+
+test('legacy solution aliases clear through member leave and admin removal before staff-only role change', async ({ page, browser }) => {
+  await createFixtureUser('alias-browser');
+  const memberToken = await signInFixture('alias-browser');
+  const staffToken = await signInFixture('organizer');
+  const registered = await callIdentity(memberToken, 'register', { sessionId: 'event-two' });
+  expect(registered.status).toBe(200);
+  const participantId = registered.data.participantId;
+  const reference = fixtureDb.doc(`participants/${participantId}`);
+  const rolePayload = { sessionId: 'event-two', memberUid: 'alias-browser', roles: ['mentor'] };
+  await fixtureDb.doc('sessions/event-two').update({ status: 'Team Formation' });
+  await fixtureDb.doc('teams/legacy-alias-team').set({ sessionId: 'event-two', name: 'Legacy Alias Team', challengeId: 'event-two-challenge', isOpenToMore: true });
+  await reference.update({ teamId: null, solutioning_team_id: 'legacy-alias-team', isAssigned: true, selectedChallengeId: 'event-two-challenge' });
+  expect((await callIdentity(staffToken, 'event-roles', rolePayload)).status).toBe(409);
+  await page.goto('/session/event-two'); await signIn(page, 'alias-browser');
+  await expect(page.getByRole('heading', { name: 'Your Solution Team', exact: true })).toBeVisible();
+  await expect(page.getByText('Legacy Alias Team', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Leave Solution Team', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Leave this solution team?', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Leave Solution Team', exact: true }).last().click();
+  await expect.poll(async () => { const row = (await reference.get()).data()!; return [row.teamId, row.solutioning_team_id, row.isAssigned]; }).toEqual([null, null, false]);
+  await expect(page.getByRole('heading', { name: 'Your Solution Team', exact: true })).toHaveCount(0);
+  expect((await callIdentity(staffToken, 'event-roles', rolePayload)).status).toBe(200);
+  await expect(page.getByText(/Your official roles do not include discovery or solution team allocation/)).toBeVisible();
+
+  // Reproduce a migrated row carrying BOTH aliases, then remove it through the
+  // actual admin TeamsTab action. Admin SDK only constructs the legacy fixture.
+  expect((await callIdentity(staffToken, 'event-roles', { ...rolePayload, roles: ['participant', 'mentor'] })).status).toBe(200);
+  await reference.update({ teamId: 'legacy-alias-team', solutioning_team_id: 'legacy-alias-team', isAssigned: true });
+  const adminContext = await browser.newContext();
+  const admin = await adminContext.newPage();
+  try {
+    await admin.goto('/admin/event-two'); await signIn(admin, 'organizer');
+    await admin.getByRole('button', { name: 'Collaboration', exact: true }).click();
+    await admin.getByRole('button', { name: 'Solution Teams', exact: true }).click();
+    const row = admin.getByRole('row').filter({ hasText: 'Synthetic alias-browser' });
+    await row.getByRole('button', { name: 'Remove from Solution Team', exact: true }).click();
+    await expect.poll(async () => { const current = (await reference.get()).data()!; return [current.teamId, current.solutioning_team_id, current.isAssigned]; }).toEqual([null, null, false]);
+    expect((await callIdentity(staffToken, 'event-roles', rolePayload)).status).toBe(200);
+    await expect(page.getByText(/Your official roles do not include discovery or solution team allocation/)).toBeVisible();
+    await evidence(page, 'legacy-alias-cleared');
+  } finally { await adminContext.close(); }
 });

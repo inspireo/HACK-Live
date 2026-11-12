@@ -1,5 +1,5 @@
 import TeamRoleEditor from '../../components/TeamRoleEditor';
-import { allocationEligible } from '../../../shared/participation';
+import { allocationEligible, solutionTeamId } from '../../../shared/participation';
 import React, { useState, useEffect } from 'react';
 import { signOut } from 'firebase/auth';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -434,6 +434,7 @@ export default function ParticipantDashboard() {
   useEffect(() => {
     if (!sessionId || !auth.currentUser) return;
 
+    let activeSolutionId: string | null = null;
     const subscriptions: (() => void)[] = [];
     const subscribe: typeof onSnapshot = ((...snapshotArgs: any[]) => {
       const unsubscribe = (onSnapshot as any)(...snapshotArgs);
@@ -496,16 +497,18 @@ export default function ParticipantDashboard() {
     if (localParticipantId) {
       const unsubParticipant = subscribe(doc(db, 'participants', localParticipantId), (docSnap) => {
         if (docSnap.exists()) {
-          const pData = { id: docSnap.id, ...docSnap.data() } as any;
+          const pData = { id: docSnap.id, ...docSnap.data(), teamId: solutionTeamId(docSnap.data()) } as any;
           if (pData.uid !== auth.currentUser?.uid || pData.memberId !== auth.currentUser?.uid || pData.sessionId !== sessionId) { setJoinError('Registration conflict. Contact the organizer.'); setLoading(false); return; }
           setParticipant(pData);
           setName(pData.name || '');
           setAdjective(pData.adjective || '');
           setProficiency(pData.designThinkingProficiency || 'New to it');
 
+          activeSolutionId = pData.teamId;
           if (pData.teamId) {
             // Fetch team
             subscribe(doc(db, 'teams', pData.teamId), (teamSnap) => {
+              if (activeSolutionId !== pData.teamId) return;
               if (teamSnap.exists()) {
                 setTeam({ id: teamSnap.id, ...teamSnap.data() });
                 setTeamName(teamSnap.data().name || '');
@@ -514,12 +517,14 @@ export default function ParticipantDashboard() {
               console.error('Team listener error:', error);
             });
             // Fetch teammates
-            subscribe(query(collection(db, 'participants'), where('teamId', '==', pData.teamId)), (matesSnap) => {
-              setTeammates(matesSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+            subscribe(query(collection(db, 'participants'), where('sessionId', '==', sessionId)), (matesSnap) => {
+              if (activeSolutionId !== pData.teamId) return;
+              setTeammates(matesSnap.docs.map(d => ({ id: d.id, ...d.data() } as any)).filter(member => solutionTeamId(member) === pData.teamId));
             }, (error) => {
               console.error('Teammates listener error:', error);
             });
           } else {
+            setTeam(null); setTeammates([]); setTeamName('');
             // Fetch forming team if any
             subscribe(query(collection(db, 'formingTeams'), where('memberIds', 'array-contains', localParticipantId)), (formingSnap) => {
               if (!formingSnap.empty) {
@@ -766,9 +771,9 @@ export default function ParticipantDashboard() {
         }
         
         // Check size
-        const membersQ = query(collection(db, 'participants'), where('teamId', '==', teamSnap.docs[0].id));
+        const membersQ = query(collection(db, 'participants'), where('sessionId', '==', sessionId));
         const membersSnap = await getDocs(membersQ);
-        if (session.maxTeamSize && membersSnap.size >= session.maxTeamSize) {
+        if (session.maxTeamSize && membersSnap.docs.filter(member => solutionTeamId(member.data()) === teamSnap.docs[0].id).length >= session.maxTeamSize) {
           setTeamJoinError('Team is full');
           setIsJoining(false);
           return;
@@ -777,6 +782,7 @@ export default function ParticipantDashboard() {
         // Join existing team
         await updateDoc(doc(db, 'participants', participant.id), {
           teamId: teamSnap.docs[0].id,
+          solutioning_team_id: teamSnap.docs[0].id,
           isAssigned: true
         });
         
@@ -814,15 +820,16 @@ export default function ParticipantDashboard() {
 
   const handleLeaveTeam = async () => {
     if (!participant) return;
-    if (participant.teamId && !enableParticipantTeamFormation) {
+    if (solutionTeamId(participant) && !enableParticipantTeamFormation) {
       showToast('Error', 'Participant-led team changes are currently disabled by the facilitator.', 'error');
       return;
     }
     setIsCancellingTeam(true);
     try {
-      if (participant.teamId) {
+      if (solutionTeamId(participant)) {
         await updateDoc(doc(db, 'participants', participant.id), {
           teamId: null,
+          solutioning_team_id: null,
           isAssigned: false
         });
         showToast('Success', 'Left the team.', 'success');

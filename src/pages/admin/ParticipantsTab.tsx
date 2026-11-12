@@ -1,4 +1,4 @@
-import { allocationEligible } from '../../../shared/participation';
+import { allocationEligible, solutionTeamId } from '../../../shared/participation';
 import EventRolesEditor from '../../components/EventRolesEditor';
 import { useState, useEffect } from 'react';
 import { updateDoc, doc, deleteDoc, collection, query, where, onSnapshot } from 'firebase/firestore';
@@ -84,7 +84,7 @@ export default function ParticipantsTab({
       const discTeam = discoveryTeams.find(dt => dt.id === p.discoveryTeamId || dt.id === p.discovery_team_id);
       const workgroupName = discTeam?.name || (discTeam?.code ? `Group ${discTeam.code}` : '');
 
-      const solTeam = teams.find(t => t.id === p.teamId);
+      const solTeam = teams.find(t => t.id === solutionTeamId(p));
       const teamName = solTeam?.name || (solTeam?.code ? `Team ${solTeam.code}` : '');
 
       return [
@@ -126,7 +126,7 @@ export default function ParticipantsTab({
       adjective: p.adjective,
       designThinkingProficiency: p.designThinkingProficiency,
       selectedChallengeId: p.selectedChallengeId || '',
-      teamId: p.teamId || '',
+      teamId: solutionTeamId(p) || '',
       interestedFocusAreaIds: existingIds
     });
   };
@@ -137,7 +137,7 @@ export default function ParticipantsTab({
       let newTeamId = editData.teamId;
       let newChallengeId = editData.selectedChallengeId || null;
 
-      if (p.teamId && !newChallengeId) {
+      if (solutionTeamId(p) && !newChallengeId) {
         if (!confirm("This will remove the participant from their current team. Continue?")) {
           return;
         }
@@ -154,6 +154,7 @@ export default function ParticipantsTab({
         designThinkingProficiency: editData.designThinkingProficiency,
         selectedChallengeId: newChallengeId,
         teamId: newTeamId || null,
+        solutioning_team_id: newTeamId || null,
         isAssigned,
         interestedFocusAreaIds: focusIds,
         interestedFocusAreaId: focusId
@@ -172,7 +173,7 @@ export default function ParticipantsTab({
 
     try {
       const p = participants.find(part => part.id === deletingParticipantId);
-      const wasInTeam = !!p?.teamId;
+      const wasInTeam = !!(p && solutionTeamId(p));
 
       await identityRequest('remove-registration', { participantId: deletingParticipantId, sessionId });
       
@@ -465,10 +466,10 @@ export default function ParticipantsTab({
                         )}
                       </td>
                       <td className="px-4 py-3">
-                        {p.isAssigned ? (
+                        {solutionTeamId(p) ? (
                           <div className="flex flex-col">
                             <span className="inline-flex items-center gap-1 text-emerald-400 text-xs font-semibold"><CheckCircle2 size={13} /> Assigned</span>
-                            <span className="text-[11px] text-zinc-500 mt-0.5">{teams.find((t: any) => t.id === p.teamId)?.name || 'Unnamed Team'}</span>
+                            <span className="text-[11px] text-zinc-500 mt-0.5">{teams.find((t: any) => t.id === solutionTeamId(p))?.name || 'Unnamed Team'}</span>
                           </div>
                         ) : p.selectedChallengeId ? (
                           <span className="inline-flex items-center gap-1 text-amber-400 text-xs font-semibold"><AlertCircle size={13} /> Unassigned</span>

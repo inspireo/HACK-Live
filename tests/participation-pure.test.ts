@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { allocationEligible, badgeMemberDetails, officialRoles, profileUrl, teamMembership } from '../shared/participation';
+import { allocationEligible, badgeMemberDetails, officialRoles, profileUrl, solutionTeamId, teamMembership } from '../shared/participation';
 
 test('allocation compatibility: historical participants and mixed official roles remain eligible in both allocation phases', () => {
   const historical = { name: 'Legacy workshop identity', primaryArchetype: 'mentor', title: 'Volunteer', teamRoleLabels: { 'teams~old': 'lead' } };
@@ -17,6 +17,9 @@ test('membership aliases resolve without using descriptive labels as membership/
   assert.equal(teamMembership({ id: 'p', discovery_team_id: 'd' }, 'discoveryTeams', 'd', {}), true);
   assert.equal(teamMembership({ id: 'p' }, 'formingDiscoveryTeams', 'd', { memberIds: ['p'] }), true);
   assert.equal(teamMembership({ id: 'p', teamRoleLabels: { 'teams~t': 'lead' } }, 'teams', 't', { leaderId: 'p' }), false);
+  assert.equal(solutionTeamId({ teamId: null, solutioning_team_id: 'legacy' }), 'legacy');
+  assert.equal(solutionTeamId({ teamId: 'canonical', solutioning_team_id: 'legacy' }), 'canonical');
+  assert.equal(solutionTeamId({ teamId: null, solutioning_team_id: null }), null);
 });
 
 test('badge optional profile seam projects only selected name-independent photo/title; rejects unsafe photos', () => {

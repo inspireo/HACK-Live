@@ -55,7 +55,7 @@ export function installParticipationRoutes(router: Router, database: Firestore, 
         if (participant.exists && !allocationEligible(changes)) await assertNoTeam(database, transaction, { ...participant.data(), id: participant.id });
         if (participant.exists) transaction.update(participantRef, changes);
         else {
-          transaction.create(participantRef, { sessionId, uid: memberUid, memberId: memberUid, name: profile.data()!.name, adjective: '', teamId: null, isAssigned: false, ...changes });
+          transaction.create(participantRef, { sessionId, uid: memberUid, memberId: memberUid, name: profile.data()!.name, adjective: '', teamId: null, solutioning_team_id: null, isAssigned: false, ...changes });
           transaction.create(pointerRef, { sessionId, uid: memberUid, participantId: participantRef.id });
         }
         return participantRef.id;

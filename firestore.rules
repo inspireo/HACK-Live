@@ -146,7 +146,7 @@ service cloud.firestore {
               get(/databases/$(database)/documents/sessions/$(resource.data.sessionId)).data.status == 'Challenge Selection Open'
             ) &&
             (
-              !request.resource.data.diff(resource.data).affectedKeys().hasAny(['teamId', 'isAssigned']) ||
+              !request.resource.data.diff(resource.data).affectedKeys().hasAny(['teamId', 'solutioning_team_id', 'isAssigned']) ||
               (
                 get(/databases/$(database)/documents/sessions/$(resource.data.sessionId)).data.status == 'Team Formation' ||
                 get(/databases/$(database)/documents/sessions/$(resource.data.sessionId)).data.status == 'Team Naming Open' ||

@@ -14,6 +14,9 @@ export function allocationEligible(member: { officialRoles?: string[]; participa
     (member.officialRoles === undefined || member.officialRoles.includes('participant'));
 }
 export function officialRoles(member: { officialRoles?: string[] }) { return member.officialRoles ?? ['participant']; }
+export function solutionTeamId(member: { teamId?: string | null; solutioning_team_id?: string | null }) {
+  return member.teamId || member.solutioning_team_id || null;
+}
 export function teamMembership(member: any, collectionName: string, teamId: string, team: any) {
   if (collectionName.startsWith('forming')) return Array.isArray(team.memberIds) && team.memberIds.includes(member.id);
   return collectionName === 'discoveryTeams'

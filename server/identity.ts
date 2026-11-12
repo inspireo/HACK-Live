@@ -64,7 +64,7 @@ router.post('/register', async (req, res) => {
       if (!legacy.empty) throw fail(409, 'Legacy registration needs organizer-assisted linking. Do not create a second registration.');
       const participantRef = identityDb.collection('participants').doc();
       if ((await transaction.get(participantRef)).exists) throw fail(409, 'Registration conflict. Contact the event organizer.');
-      transaction.create(participantRef, { sessionId, uid, memberId: uid, name: profile.data()!.name, adjective: adjective.trim(), designThinkingProficiency, teamId: null, isAssigned: false });
+      transaction.create(participantRef, { sessionId, uid, memberId: uid, name: profile.data()!.name, adjective: adjective.trim(), designThinkingProficiency, teamId: null, solutioning_team_id: null, isAssigned: false });
       transaction.create(registrationRef, { uid, sessionId, participantId: participantRef.id });
       transaction.set(identityDb.doc(`registrationDefaults/${uid}`), { adjective: adjective.trim(), designThinkingProficiency });
       return participantRef.id;
@@ -166,7 +166,7 @@ router.post('/finalize-team', async (req, res) => {
         const formingKey = `${discovery ? 'formingDiscoveryTeams' : 'formingTeams'}~${formingId}`;
         if (labels[formingKey]) labels[`${discovery ? 'discoveryTeams' : 'teams'}~${teamRef.id}`] = labels[formingKey];
         delete labels[formingKey];
-        transaction.update(participant.ref, { ...(discovery ? { discoveryTeamId: teamRef.id, discovery_team_id: teamRef.id } : { teamId: teamRef.id, isAssigned: true }), teamRoleLabels: labels });
+        transaction.update(participant.ref, { ...(discovery ? { discoveryTeamId: teamRef.id, discovery_team_id: teamRef.id } : { teamId: teamRef.id, solutioning_team_id: teamRef.id, isAssigned: true }), teamRoleLabels: labels });
       }
       transaction.delete(formingRef);
     });
@@ -209,7 +209,7 @@ router.post('/delete-profile', async (_req, res) => {
     cleanup = writer;
     await queueConnectionCleanup(identityDb, uid, writer);
     for (const participant of ownedParticipants) {
-      if (participant.exists) writer.update(participant.ref, { uid: null, memberId: null, identityState: 'deleted', officialRoles: FieldValue.delete(), roleChallengeId: FieldValue.delete(), participationState: 'inactive', teamRoleLabels: FieldValue.delete(), name: 'Deleted member', adjective: '', designThinkingProficiency: FieldValue.delete(), phone: FieldValue.delete(), phoneNumber: FieldValue.delete(), email: FieldValue.delete(), emailAddress: FieldValue.delete(), phoneLast4: FieldValue.delete(), passcode: FieldValue.delete(), persistedAnswers: FieldValue.delete(), archetypeScores: FieldValue.delete(), primaryArchetype: FieldValue.delete(), secondaryArchetype: FieldValue.delete(), teamId: null, isAssigned: false, discoveryTeamId: null, discovery_team_id: null, solutioning_team_id: null });
+      if (participant.exists) writer.update(participant.ref, { uid: null, memberId: null, identityState: 'deleted', officialRoles: FieldValue.delete(), roleChallengeId: FieldValue.delete(), participationState: 'inactive', teamRoleLabels: FieldValue.delete(), name: 'Deleted member', adjective: '', designThinkingProficiency: FieldValue.delete(), phone: FieldValue.delete(), phoneNumber: FieldValue.delete(), email: FieldValue.delete(), emailAddress: FieldValue.delete(), phoneLast4: FieldValue.delete(), passcode: FieldValue.delete(), persistedAnswers: FieldValue.delete(), archetypeScores: FieldValue.delete(), primaryArchetype: FieldValue.delete(), secondaryArchetype: FieldValue.delete(), teamId: null, solutioning_team_id: null, isAssigned: false, discoveryTeamId: null, discovery_team_id: null });
       writer.delete(identityDb.doc(`legacyParticipantSecrets/${participant.id}`));
       const responses = await identityDb.collection('welcomeResponses').where('participantId', '==', participant.id).get();
       for (const response of responses.docs) writer.delete(response.ref);
