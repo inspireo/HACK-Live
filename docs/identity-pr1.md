@@ -67,7 +67,7 @@ Prerequisites: Node 24, Java 21, npm, Chromium downloaded by Playwright. `npm ci
 
 The suite also covers real Firestore transaction NOT_FOUND failure and stale-worker lease-takeover fencing, persisted-manifest recovery after actual ownership/pointer erasure, cancellation of leaderless formations, sequential/concurrent assignment conflicts for both team kinds, and server/migration/rules database target agreement without production I/O. Browser regression publishes via both real single and bulk organizer UI paths, then verifies structured and legacy copied attribution is scrubbed from rendered projector content.
 
-After a successful suite, `node scripts/collect-demo.mjs` refreshes the committed demo files (and refuses failed browser runs).
+After a successful suite, `node scripts/collect-demo.mjs` refreshes the committed demo files (and refuses failed browser runs). It uses the already-installed Playwright ffmpeg (or FFMPEG_PATH) to stream-copy original frames with 4x timestamps, producing paced reviewer demos without starting app/emulators; unpaced originals remain in test-results/CI artifacts.
 
 Videos are recorded automatically in `test-results/**/video.webm`, including successful journeys. Failures retain screenshot/trace. CI uploads `test-results` plus `playwright-report` as `pr1-emulator-browser-evidence` for 14 days. The modest canonical recording in `docs/evidence/` is actual Chromium/emulator browser evidence and remains available through the PR repository. It is not real-device/mobile evidence. Reproduce it with the full emulator suite; the first test records signup → verification → profile → event registration → second-event prefill → fresh browser login → member view → profile deletion.
 
