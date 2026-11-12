@@ -1,5 +1,7 @@
 # PR7 preparation: official awards and historical achievements
 
+Current source-composition base: tested PR6 product `a15d38a9d37cd3cc94a63caedc3713c29b7a62fc`, on actual PR5 #5 head `370b46eac0a17e381e9c1d9491436c622eeaa8b6`. Only the PR7-owned range after `0cb0f504` was rebased. PR6 author reports upstream Node 24 typecheck/build, 21 pure, 48 API/rules and 12 Chromium tests passing. Those upstream results are not PR7 runtime validation. PR6 still owns all services for recording; final PR6 media/docs head and root runtime/publication release remain pending.
+
 HACKLIVE-9. Initial preparation base: immutable PR5 `a7e9fb7204305d844663d29d106d58f4aa03e25f` (PR1 ancestor `31be92c`). Root-authorized source integration rebases only the PR7 range onto coherent PR5 `3607e319b9a2089ea8a1295b986d6810838324e0`, which includes final PR1/2/3/4. The award-owned range is now composed onto coherent PR6 source `0cb0f50496f3a067bc0e67d4ba2307c9907e3fc8` (includes tested PR5 `6c73699` alias/phase fixes). The shared deletion helper file is adopted exactly from attendance author commit `52eaa21b20ae0c933636085a08d0abc8d5d8827e`; no old PR6 feature range is cherry-picked. This is source composition only, not the root-validated final PR6 publication base. Branch: `bb/prepare-pr7-historical-awards-and-wins-thr_6exdqasrz3`. This is a local prepared slice, not a publishable release. Root must supply the validated final PR6 base before rebase, cumulative tests, recording, push or actual PR7 creation.
 
 ## Behavior and audiences
@@ -78,9 +80,9 @@ Additive collection/schema rollout. Missing eventResults means no finalization a
 Executed in this managed worktree without starting/stopping services or touching shared fixtures:
 
 * `rtk npm ci` — success. Existing lockfile dependency audit reports 34 vulnerabilities and current Node 26 engine/deprecation warnings; no dependency changes made.
-* `rtk npm run typecheck` — passed after integration. The first attempt required refreshing dependencies to the new base lockfile (`jsqr` added upstream); `rtk npm ci` fixed the local missing dependency without changing the lockfile.
-* `rtk npm run build` — passed; Vite reports existing large bundle warning.
-* `rtk proxy node --import tsx --test --test-concurrency=1 tests/profile-pure.test.ts tests/eventInvitation.test.ts tests/connections-pure.test.ts tests/participation-pure.test.ts tests/attendance-pure.test.ts tests/awards-pure.test.ts` — 23/23 pass, including 2 award input/summary tests. Parent pure files are retained and run sequentially.
+* `rtk proxy env PATH=/opt/homebrew/opt/node@24/bin:$PATH npm run typecheck` — passed after the tested PR6 rebase. The first attempt required refreshing dependencies to the new base lockfile (`jsqr` added upstream); `rtk npm ci` fixed the local missing dependency without changing the lockfile.
+* `rtk proxy env PATH=/opt/homebrew/opt/node@24/bin:$PATH npm run build` — passed after the tested PR6 rebase; Vite reports existing large bundle warning.
+* `rtk proxy /opt/homebrew/opt/node@24/bin/node --import tsx --test --test-concurrency=1 tests/profile-pure.test.ts tests/eventInvitation.test.ts tests/connections-pure.test.ts tests/participation-pure.test.ts tests/attendance-pure.test.ts tests/awards-pure.test.ts` — 23/23 pass, including 2 award input/summary tests. Parent pure files are retained and run sequentially.
 * `rtk git diff --check` — passed.
 
 Auth/rules/API regressions are in `tests/awards.test.ts`, use existing `tests/fixtures.ts`, and append after all parent identity/connections/participation and attendance suites in `scripts/emulator-suite.mjs`; all suite calls stay sequential. They cover real unauthorized API/rule reads/writes; coadmin/platform authorization and label non-authority; cross-event and forged recipients; draft hiding; publication; invalid legacy attribution/missing pointer/disabled identity; multiple winners; profile privacy; coherent concurrent team edits and later membership changes; optimistic conflicts; draft discard/finalize/reopen/correct/revoke; deletion manifests, real partial failure/retry and stale fencing with preserved peer credit.
