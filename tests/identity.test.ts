@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
 import { beginProfileDeletion, createProfileCleanup, releaseProfileDeletion } from '../server/profile-cleanup';
+import { emptyDetails } from '../shared/profile';
 import { assertFails, assertSucceeds, initializeTestEnvironment, RulesTestEnvironment } from '@firebase/rules-unit-testing';
 import { collection, doc, getDoc, getDocs, setDoc, updateDoc } from 'firebase/firestore';
 import { identityDatabaseTarget } from '../server/database-config';
@@ -19,6 +20,77 @@ before(async () => {
   await seedEvents();
 });
 after(async () => { await environment?.cleanup(); });
+
+test('profile source is owner-only, generated projection exposes only selected professional fields', async () => {
+  await createFixtureUser('profile-owner');
+  const token = await signInFixture('profile-owner');
+  const registered = await callIdentity(token, 'register', { sessionId: 'event-one', adjective: 'Curious', designThinkingProficiency: 'Trained' });
+  assert.equal(registered.status, 200);
+  const priorParticipant = (await fixtureDb.doc(`participants/${registered.data.participantId}`).get()).data();
+  const payload = { name: 'Reusable member', ...emptyDetails(), professional: { title: 'Engineer', bio: 'Private biography', avatarUrl: 'https://example.test/avatar.png', github: 'https://github.com/synthetic' }, contacts: { contactEmail: 'separate@example.test', phone: '+65 1234 5678', signal: 'private-handle' }, communityFields: ['title', 'github'], connectionFields: ['contactEmail'] };
+  assert.equal((await callIdentity(token, 'save-profile', payload)).status, 200);
+  assert.deepEqual((await fixtureDb.doc('profiles/profile-owner').get()).data(), { name: payload.name, state: 'active' });
+  assert.equal((await fixtureAuth.getUser('profile-owner')).email, 'profile-owner@example.test');
+  assert.deepEqual((await fixtureDb.doc(`participants/${registered.data.participantId}`).get()).data(), priorParticipant);
+  assert.equal((await callIdentity(token, 'register', { sessionId: 'event-one' })).data.participantId, registered.data.participantId);
+  const projection = { title: 'Engineer', github: 'https://github.com/synthetic' };
+  assert.deepEqual((await fixtureDb.doc('memberDetails/profile-owner').get()).data(), projection);
+  assert.deepEqual((await getDoc(doc(memberContext('other'), 'memberDetails/profile-owner'))).data(), projection);
+  assert.equal((await getDoc(doc(memberContext('profile-owner'), 'profileDetails/profile-owner'))).data()!.contacts.contactEmail, 'separate@example.test');
+  for (const database of [memberContext('other'), environment.unauthenticatedContext().firestore(), memberContext('unverified', false), memberContext('anonymous', false, 'anonymous')]) {
+    await assertFails(getDoc(doc(database, 'profileDetails/profile-owner')));
+    await assertFails(getDoc(doc(database, 'connectionContacts/profile-owner')));
+  }
+  for (const database of [environment.unauthenticatedContext().firestore(), memberContext('unverified', false), memberContext('anonymous', false, 'anonymous')]) await assertFails(getDoc(doc(database, 'memberDetails/profile-owner')));
+  for (const database of [memberContext('profile-owner'), memberContext('other'), memberContext('platform-admin')]) {
+    for (const path of ['profileDetails/profile-owner', 'memberDetails/profile-owner', 'connectionContacts/profile-owner']) await assertFails(setDoc(doc(database, path), { phone: 'leak' }));
+  }
+  await assertFails(getDocs(collection(memberContext('profile-owner'), 'profileDetails')));
+  await assertFails(getDoc(doc(memberContext('profile-owner'), 'connectionContacts/profile-owner')));
+  assert.equal((await fixtureDb.doc('connectionContacts/profile-owner').get()).exists, false);
+  // Full replacement removes previously shared fields and keeps ONE global selection.
+  assert.equal((await callIdentity(token, 'save-profile', { ...payload, communityFields: [], connectionFields: ['phone', 'signal'] })).status, 200);
+  assert.deepEqual((await fixtureDb.doc('memberDetails/profile-owner').get()).data(), {});
+  assert.deepEqual((await fixtureDb.doc('profileDetails/profile-owner').get()).data()!.connectionFields, ['phone', 'signal']);
+});
+
+test('server rejects malicious fields/links without partial writes; token owns edits and authority is unchanged', async () => {
+  const token = await signInFixture('profile-owner');
+  const payload = { name: 'Safe name', ...emptyDetails() };
+  const beforeSource = (await fixtureDb.doc('profileDetails/profile-owner').get()).data();
+  await fixtureDb.doc('users/profile-owner').set({ role: 'admin' });
+  await fixtureDb.doc('registrationDefaults/profile-owner').set({ adjective: 'Curious', designThinkingProficiency: 'Trained' });
+  const originalOther = (await fixtureDb.doc('profiles/other').get()).data();
+  for (const mutation of [{ uid: 'other' }, { role: 'admin' }, { state: 'deleted' }, { eventRoles: ['organizer'] }, { awards: ['winner'] }, { professional: { phone: 'leak' } }, { contacts: { password: 'secret' } }, { communityFields: ['contactEmail'] }, { connectionFields: { other: ['phone'] } }, { professional: { avatarUrl: 'javascript:alert(1)' } }, { professional: { portfolio: 'http://example.test' } }, { professional: { linkedin: 'https://evil.test' } }, { contacts: { contactEmail: 'invalid' } }]) assert.equal((await callIdentity(token, 'save-profile', { ...payload, ...mutation })).status, 400);
+  assert.deepEqual((await fixtureDb.doc('profileDetails/profile-owner').get()).data(), beforeSource);
+  assert.deepEqual((await fixtureDb.doc('profiles/other').get()).data(), originalOther);
+  assert.equal((await callIdentity(undefined, 'save-profile', payload)).status, 401);
+  assert.equal((await callIdentity(await signInFixture('unverified'), 'save-profile', payload)).status, 403);
+  assert.equal((await callIdentity(token, 'save-profile', payload)).status, 200);
+  assert.deepEqual((await fixtureDb.doc('users/profile-owner').get()).data(), { role: 'admin' });
+  assert.deepEqual((await fixtureDb.doc('registrationDefaults/profile-owner').get()).data(), { adjective: 'Curious', designThinkingProficiency: 'Trained' });
+});
+
+test('name-only compatibility and delete/retry clear private source and photo projection without Auth/role loss', async () => {
+  await createFixtureUser('profile-delete');
+  const token = await signInFixture('profile-delete');
+  assert.equal((await getDoc(doc(memberContext('other'), 'memberDetails/profile-delete'))).exists(), false);
+  const payload = { name: 'Existing name only', ...emptyDetails(), professional: { avatarUrl: 'https://example.test/photo.png', title: 'Designer' }, communityFields: ['avatarUrl'], contacts: { phone: '+65 1234 5678' }, connectionFields: ['phone'] };
+  assert.equal((await callIdentity(token, 'save-profile', payload)).status, 200);
+  assert.deepEqual((await fixtureDb.doc('memberDetails/profile-delete').get()).data(), { avatarUrl: 'https://example.test/photo.png' });
+  await fixtureDb.doc('users/profile-delete').set({ role: 'admin' });
+  await fixtureDb.doc('profiles/profile-delete').update({ state: 'deleting' });
+  await assertFails(getDoc(doc(memberContext('other'), 'memberDetails/profile-delete')));
+  assert.equal((await callIdentity(token, 'save-profile', payload)).status, 409);
+  assert.equal((await callIdentity(token, 'delete-profile')).status, 200);
+  for (const collectionName of ['profileDetails', 'memberDetails']) assert.equal((await fixtureDb.doc(`${collectionName}/profile-delete`).get()).exists, false);
+  assert.equal((await fixtureAuth.getUser('profile-delete')).emailVerified, true);
+  assert.equal((await fixtureDb.doc('users/profile-delete').get()).data()!.role, 'admin');
+  assert.equal((await callIdentity(token, 'save-profile', payload)).status, 409);
+  assert.equal((await callIdentity(token, 'delete-profile')).status, 200);
+  await assertSucceeds(setDoc(doc(memberContext('profile-delete'), 'profiles/profile-delete'), { name: 'Recreated name', state: 'active' }));
+  assert.equal((await getDoc(doc(memberContext('profile-delete'), 'profileDetails/profile-delete'))).exists(), false);
+});
 
 test('registered members only: unauthenticated, anonymous and unverified identities denied', async () => {
   for (const database of [environment.unauthenticatedContext().firestore(), memberContext('anonymous', false, 'anonymous'), memberContext('unverified', false)]) {

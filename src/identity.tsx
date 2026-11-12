@@ -3,6 +3,7 @@ import { GoogleAuthProvider, EmailAuthProvider, User, createUserWithEmailAndPass
 import { collection, doc, getDocs, onSnapshot, query, setDoc, where } from 'firebase/firestore';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { auth, db } from './firebase';
+import { MemberDetails, ProfileEditor } from './profile-details';
 
 export const isRegisteredMember = (user: User | null) => !!user && !user.isAnonymous && user.emailVerified;
 type Profile = { name: string; state: string };
@@ -106,11 +107,11 @@ function ProfileForm({ profile }: { profile?: Profile }) {
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
   return <Panel><h1 className="text-3xl font-bold">{profile ? 'Your profile' : 'Create your profile'}</h1>
-    <p>Your name is visible to signed-in community members. Contact details are not requested. Creating a profile does not register you for an event.</p>
-    <form className="space-y-4" onSubmit={async event => {
+    <p>Creating a profile does not register you for an event.</p>
+    {profile ? <ProfileEditor uid={auth.currentUser!.uid} name={name} onNameChange={setName} save={payload => identityRequest('save-profile', payload)} onSaved={setMessage} /> : <form className="space-y-4" onSubmit={async event => {
       event.preventDefault(); setBusy(true);
       try { await setDoc(doc(db, 'profiles', auth.currentUser!.uid), { name: name.trim(), state: 'active' }); setMessage('Profile saved.'); } catch (issue: any) { setMessage(issue.message); } finally { setBusy(false); }
-    }}><label>Name<input className={inputClass} value={name} onChange={event => setName(event.target.value)} required maxLength={100} /></label><button disabled={busy || !name.trim()} className={buttonClass}>Save profile</button></form>
+    }}><label>Name<input className={inputClass} value={name} onChange={event => setName(event.target.value)} required maxLength={100} /></label><button disabled={busy || !name.trim()} className={buttonClass}>Save profile</button></form>}
     <p role="status">{message}</p>
     {profile && <><Link to="/">Find an event</Link><button className="block" onClick={() => signOut(auth)}>Sign out</button>
       <p>Deleting removes your social profile and reusable details. Workshop contributions retain a deleted-member label. Your sign-in and event administrator permissions remain. You can create a new social profile later.</p>
@@ -132,7 +133,7 @@ export function MemberProfile() {
     setMember(snapshot.exists() && snapshot.data().state === 'active' ? snapshot.data() as Profile : null);
     setMessage('Member unavailable.');
   }, () => { setMember(null); setMessage('Member unavailable.'); }), [memberId]);
-  return <Panel>{member ? <><h1 className="text-3xl">{member.name}</h1><p>Community member</p></> : <p>{message}</p>}<Link to="/members">Community members</Link></Panel>;
+  return <Panel>{member ? <><h1 className="text-3xl">{member.name}</h1><p>Community member</p><MemberDetails memberId={memberId!} /></> : <p>{message}</p>}<Link to="/members">Community members</Link></Panel>;
 }
 export function Members() {
   const [members, setMembers] = useState<{ memberId: string; name: string }[]>([]);

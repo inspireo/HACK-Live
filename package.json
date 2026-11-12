@@ -11,6 +11,7 @@
     "lint": "tsc --noEmit",
     "start": "tsx server.ts",
     "typecheck": "tsc --noEmit",
+    "test:profile": "node --import tsx --test tests/profile-pure.test.ts",
     "test:emulators": "firebase emulators:exec --config firebase.emulators.json --project demo-hack-live --only auth,firestore \"node scripts/emulator-suite.mjs\"",
     "test:browser": "playwright test",
     "migrate:identity": "tsx scripts/migrate-identity.ts"
