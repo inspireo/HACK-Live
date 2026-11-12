@@ -9,6 +9,9 @@ test('recipient selectors and metadata reject malformed input', () => {
   assert.equal(awardTarget('team', { collectionName: 'formingTeams', teamId: 'team' }), false);
   assert.equal(awardTarget('individual', { participantId: 'p', memberId: 'arbitrary' }), false);
   assert.equal(awardTarget('individual', { participantId: 'p' }), true);
+  assert.equal(awardTarget('individual', { participantId: 'past-event~legacy-member' }), true);
+  assert.equal(awardTarget('individual', { participantId: 'p'.repeat(257) }), false);
+  assert.equal(awardTarget('individual', { participantId: 'past-event/legacy-member' }), false);
   assert.equal(awardTarget('team', { collectionName: 'teams', teamId: 'team' }), true);
 });
 test('community summary has an exact allowlist with no contact, personal reference or audit data', () => {

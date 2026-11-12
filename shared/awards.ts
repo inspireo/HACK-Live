@@ -9,10 +9,12 @@ export type AwardSnapshot = {
 };
 export type AwardSummary = { id: string; sessionId: string; eventName: string; eventDate: string | null; categoryName: string; teamName: string | null; publishedAt: string; recipientNames: string[] };
 export const awardId = (value: unknown): value is string => typeof value === 'string' && /^[\w-]{1,128}$/.test(value);
+// Existing organizer-linked legacy participant IDs share PR1/PR6's format.
+const awardParticipantId = (value: unknown): value is string => typeof value === 'string' && /^[\w~-]{1,256}$/.test(value);
 export function awardName(value: unknown): value is string { return typeof value === 'string' && value.trim().length > 0 && value.trim().length <= 100; }
 export function awardTarget(kind: AwardKind, target: any): target is AwardTarget {
   return !!target && typeof target === 'object' && (kind === 'individual'
-    ? Object.keys(target).length === 1 && awardId(target.participantId)
+    ? Object.keys(target).length === 1 && awardParticipantId(target.participantId)
     : Object.keys(target).length === 2 && ['teams', 'discoveryTeams'].includes(target.collectionName) && awardId(target.teamId));
 }
 // Private audit, identity references and arbitrary profile fields never enter summaries.

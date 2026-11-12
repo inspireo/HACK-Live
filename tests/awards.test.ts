@@ -138,8 +138,8 @@ test('legacy solution-team alias credits the linked recipient; conflicting nonem
 });
 
 test('legacy mutable uid, missing pointer and disabled account never confer personal award credit; multiple winners supported', async () => {
-  await fixtureDb.doc('participants/legacy-award').set({ sessionId: 'event-one', uid: 'legacy', name: 'Untrusted legacy name', passcode: 'not-proof' });
-  const legacyAward = (await succeed('draft', { categoryId: individualCategory, target: { participantId: 'legacy-award' } })).id;
+  await fixtureDb.doc('participants/legacy~award').set({ sessionId: 'event-one', uid: 'legacy', name: 'Untrusted legacy name', passcode: 'not-proof' });
+  const legacyAward = (await succeed('draft', { categoryId: individualCategory, target: { participantId: 'legacy~award' } })).id;
   await succeed('publish', { resultId: legacyAward });
   assert.equal((await memberAwards('legacy')).awards.length, 0);
   assert.equal((await fixtureDb.doc(`awardResults/${legacyAward}`).get()).data()!.snapshot.recipients[0].credit, 'unlinked');
@@ -184,7 +184,7 @@ test('concurrent staff edits use expected revision; finalize, correct, revoke an
 
 test('historical unlinked/deleted/ineligible team recipients stay explicit; empty surviving team receives no personal credit', async () => {
   await fixtureDb.doc('teams/historical-team').set({ sessionId: 'event-one', name: 'Historical team' });
-  await fixtureDb.doc('participants/legacy-award').update({ teamId: 'historical-team' });
+  await fixtureDb.doc('participants/legacy~award').update({ teamId: 'historical-team' });
   await fixtureDb.doc('participants/historical-deleted').set({ sessionId: 'event-one', teamId: 'historical-team', memberId: null, uid: null, identityState: 'deleted', name: 'Deleted member' });
   await fixtureDb.doc(`participants/${participantIds.judge}`).update({ teamId: 'historical-team' });
   const resultId = (await succeed('draft', { categoryId: teamCategory, target: { collectionName: 'teams', teamId: 'historical-team' } })).id;
