@@ -13,6 +13,7 @@ import { eventSnapshot } from '../shared/attendance';
 import { installAttendanceRoutes } from './attendance';
 import { queueSharedContentCleanup } from './shared-content-cleanup';
 import { cleanupAttendance } from './attendance-cleanup';
+import { installAwardRoutes } from './awards';
 
 // Emulator mode must be explicit and must never fall through to production.
 const target = identityDatabaseTarget();
@@ -43,6 +44,7 @@ router.use(async (req, res, next) => {
 router.use(connectionsRouter(identityDb));
 installParticipationRoutes(router, identityDb, identityAuth);
 installAttendanceRoutes(router, identityDb, identityAuth);
+installAwardRoutes(router, identityDb, identityAuth);
 
 router.post('/register', async (req, res) => {
   try {

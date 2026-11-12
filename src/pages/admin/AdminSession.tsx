@@ -12,6 +12,7 @@ import ParticipantsTab from './ParticipantsTab';
 import TeamsTab from './TeamsTab';
 import RandomiserTab from './RandomiserTab';
 import DiscoveryTab from './DiscoveryTab';
+import AwardsTab from './AwardsTab';
 import { Folder, ArrowUp, ArrowDown, Lightbulb, Flame, Globe, HelpCircle, Compass, Network, Shuffle } from 'lucide-react';
 
 const getAdminStatusLabel = (status: string) => {
@@ -136,6 +137,7 @@ export default function AdminSession() {
       discovery: 'Challenge Discovery',
       challenges: 'Challenges',
       resources: 'Resources',
+      awards: 'Official Awards',
       participants: 'Participants',
       teams: 'Collaboration',
       display: 'Display Mode'
@@ -443,6 +445,7 @@ export default function AdminSession() {
                 ...(session?.enableChallengeDiscovery ? [{ id: 'discovery', label: 'Challenge Discovery', icon: Compass }] : []),
                 { id: 'challenges', label: 'Challenges', icon: Target },
                 { id: 'resources', label: 'Resources', icon: FileText },
+                { id: 'awards', label: 'Official Awards', icon: Award },
               ]
             },
             {
@@ -1500,6 +1503,7 @@ export default function AdminSession() {
               proposedChallenges={proposedChallenges}
             />
           )}
+          {activeTab === 'awards' && <AwardsTab sessionId={sessionId!} />}
           {activeTab === 'resources' && <ResourcesTab sessionId={sessionId!} resources={resources} />}
           {activeTab === 'participants' && (
             <ParticipantsTab 

@@ -1810,7 +1810,7 @@ export default function ParticipantDashboard() {
     <div className="min-h-screen bg-zinc-950 text-zinc-100 pb-20">
       <header className="bg-zinc-900 border-b border-zinc-800 py-3 px-4 sticky top-0 z-10">
         <div className="max-w-md mx-auto flex flex-col gap-1.5">
-          <h1 className="text-base font-bold text-white truncate leading-snug">{session.title}</h1><a className="text-sm underline" href={`/badge?event=${sessionId}`}>My badge</a>
+          <h1 className="text-base font-bold text-white truncate leading-snug">{session.title}</h1><a className="text-sm underline" href={`/badge?event=${sessionId}`}>My badge</a><a className="text-sm underline" href={`/results/${sessionId}`}>Official event results</a>
           <div className="flex items-center">
             <span className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 bg-zinc-850 text-zinc-300 rounded-full border border-zinc-800">
               <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
