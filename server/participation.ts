@@ -31,7 +31,6 @@ export function installParticipationRoutes(router: Router, database: Firestore, 
       if (!validId(sessionId) || !validId(memberUid) || !Array.isArray(roles) || !roles.length || roles.length > EVENT_ROLES.length || new Set(roles).size !== roles.length || roles.some(role => !EVENT_ROLES.includes(role)) || !['active', 'inactive'].includes(participationState) || (challengeId !== null && (!validId(challengeId) || !roles.includes('challenge owner')))) throw fail(400, 'Invalid event roles.');
       const participantId = await database.runTransaction(async transaction => {
         if (!await staff(database, transaction, sessionId, res.locals.uid, res.locals.claims.email)) throw fail(403, 'Only event staff can issue official roles.');
-        if (memberUid === res.locals.uid) throw fail(403, 'Ask another event administrator to issue your official roles.');
         const account = await accounts.getUser(memberUid).catch(issue => {
           if (issue.code === 'auth/user-not-found') throw fail(404, 'Registered member unavailable.');
           throw issue;

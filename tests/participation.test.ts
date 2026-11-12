@@ -23,11 +23,20 @@ before(async () => {
 });
 after(async () => { await environment?.cleanup(); });
 
-test('official roles use existing owner/coadmin/platform checks and never self-issued labels as permission', async () => {
+test('official role assignment including self-target requires existing owner/coadmin/platform authority', async () => {
   assert.equal((await callIdentity(undefined, 'event-roles', { sessionId: 'event-one', memberUid: 'mentor', roles: ['mentor'] })).status, 401);
   assert.equal((await callIdentity(await signInFixture('unverified-role'), 'event-roles', { sessionId: 'event-one', memberUid: 'mentor', roles: ['mentor'] })).status, 403);
   assert.equal((await assign('ordinary', ['organizer/facilitator'], {}, 'ordinary')).status, 403);
-  assert.equal((await assign('organizer', ['organizer/facilitator'])).status, 403);
+  for (const actor of ['organizer', 'coadmin', 'platform']) {
+    const self = await assign(actor, ['organizer/facilitator', 'mentor'], {}, actor);
+    assert.equal(self.status, 200, JSON.stringify(self));
+    const again = await assign(actor, ['organizer/facilitator', 'mentor'], {}, actor);
+    assert.equal(again.data.participantId, self.data.participantId);
+    assert.equal((await fixtureDb.collection('participants').where('sessionId', '==', 'event-one').where('memberId', '==', actor).get()).size, 1);
+    const badges = await callIdentity(tokens[actor], 'my-badges');
+    assert.deepEqual(badges.data.badges.find((badge: any) => badge.sessionId === 'event-one').roles, ['organizer/facilitator', 'mentor']);
+  }
+  assert.equal((await assign('event-two-owner', ['organizer/facilitator'], {}, 'event-two-owner')).status, 403);
   assert.equal((await assign('mentor', ['mentor'], {}, 'event-two-owner')).status, 403);
   assert.equal((await assign('unverified-role', ['mentor'])).status, 409);
   const mentor = await assign('mentor', ['mentor', 'volunteer']);
@@ -35,6 +44,7 @@ test('official roles use existing owner/coadmin/platform checks and never self-i
   const mixed = await assign('mixed', ['participant', 'mentor'], {}, 'coadmin');
   assert.equal(mixed.status, 200);
   assert.equal((await assign('ordinary', ['organizer/facilitator'], {}, 'platform')).status, 200);
+  assert.equal((await assign('ordinary', ['participant', 'mentor'], {}, 'ordinary')).status, 403);
   assert.equal((await assign('outsider', ['judge'], {}, 'ordinary')).status, 403);
   await assertFails(updateDoc(doc(context('ordinary'), 'sessions/event-one'), { title: 'Role is not administration' }));
   await assertFails(updateDoc(doc(context('ordinary'), 'participants', mentor.data.participantId), { officialRoles: ['participant'] }));
