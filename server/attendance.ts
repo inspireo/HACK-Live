@@ -30,12 +30,15 @@ export function installAttendanceRoutes(router: Router, database: Firestore, acc
       if (Date.parse(occurrence) > Date.now() + 60000) throw fail(400, 'Attendance cannot occur in the future.');
       if ((action === 'correct' || method === 'manual_evidence' || Date.parse(now) - Date.parse(occurrence) > 86400000) && (occurredAt === null || !evidence.trim())) throw fail(400, 'Manual or past attendance and corrections require an explicit date and evidence.');
       if (memberUid === res.locals.uid) throw fail(403, 'Another staff member must verify your attendance.');
-      const account = await accounts.getUser(memberUid).catch(() => { throw fail(409, 'A verified member is required.'); });
-      if (!account.emailVerified || account.disabled || !account.providerData.length) throw fail(409, 'A verified member is required.');
       const attendanceId = `${sessionId}~${memberUid}`;
       const fingerprint = createHash('sha256').update(JSON.stringify({ sessionId, memberUid, action, method, occurredAt, evidence, reason, expectedRevision, status })).digest('hex');
       const result = await database.runTransaction(async transaction => {
         const event = await attendanceStaff(database, transaction, sessionId, res.locals.uid, res.locals.claims.email);
+        const account = await accounts.getUser(memberUid).catch(issue => {
+          if (issue.code === 'auth/user-not-found') throw fail(409, 'A verified member is required.');
+          throw issue;
+        });
+        if (!account.emailVerified || account.disabled || !account.providerData.length) throw fail(409, 'A verified member is required.');
         const knownEvent = eventSnapshot(event.data()!);
         if ((event.data()?.status === 'Closed' || (knownEvent.date && Date.parse(now) - Date.parse(knownEvent.date) > 86400000)) && (occurredAt === null || !evidence.trim())) throw fail(400, 'Past events require an explicit attendance date and evidence.');
         const attendanceRef = database.doc(`attendance/${attendanceId}`);

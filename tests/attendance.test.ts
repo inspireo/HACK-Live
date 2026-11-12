@@ -1,9 +1,10 @@
 import { before, after, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { assertFails, initializeTestEnvironment, type RulesTestEnvironment } from '@firebase/rules-unit-testing';
+import { assertSucceeds, assertFails, initializeTestEnvironment, type RulesTestEnvironment } from '@firebase/rules-unit-testing';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { cleanupAttendance } from '../server/attendance-cleanup';
+import { beginProfileDeletion, createProfileCleanup, releaseProfileDeletion, withProfileDeletionFence } from '../server/profile-cleanup';
+import { planAttendanceCleanup, applyAttendanceCleanupTarget, cleanupAttendance } from '../server/attendance-cleanup';
 import { callIdentity, clearFixtures, createFixtureUser, fixtureAuth, fixtureDb, projectId, seedEvents, signInFixture } from './fixtures';
 
 let environment: RulesTestEnvironment;
@@ -26,7 +27,7 @@ after(async () => { await environment?.cleanup(); });
 test('rules hide attendance, raw audits, visibility and deletion manifests from every client actor', async () => {
   for (const actor of ['attendee', 'organizer', 'coadmin', 'platform', 'unrelated', 'anonymous', undefined]) {
     const database = actor ? environment.authenticatedContext(actor, { email: `${actor}@example.test`, email_verified: true, firebase: { sign_in_provider: actor === 'anonymous' ? 'anonymous' : 'password' } }).firestore() : environment.unauthenticatedContext().firestore();
-    for (const path of ['attendance/event-one~attendee', 'attendanceAudit/private', 'historyVisibility/event-one~attendee', 'attendanceCleanup/attendee/items/private']) {
+    for (const path of ['attendance/event-one~attendee', 'attendanceAudit/private', 'historyVisibility/event-one~attendee', 'profileDeletionJobs/attendee']) {
       await assertFails(getDoc(doc(database, path))); await assertFails(setDoc(doc(database, path), { uid: actor || 'fake', status: 'attended' }));
     }
   }
@@ -137,17 +138,32 @@ test('deletion races fence check-in/visibility and retry removes subject and ver
   for (const [collectionName, field] of [['attendance', 'uid'], ['attendanceAudit', 'memberUid'], ['historyVisibility', 'uid']]) assert.equal((await fixtureDb.collection(collectionName).where(field, '==', 'deleting').get()).size, 0);
   assert.equal((await callIdentity(tokens.unrelated, 'member-history', { memberUid: 'deleting' })).status, 404);
   assert.equal((await attend('organizer', { memberUid: 'deleting' })).status, 409);
-  // A persisted manifest survives a prior partial pass after search keys vanished.
-  await fixtureDb.doc('profiles/verifier').update({ state: 'deleting' });
+  // The shared persisted plan survives partial scrub and lease takeover.
   await fixtureDb.doc('attendance/orphan').set({ sessionId: 'event-one', verifiedBy: 'verifier', uid: 'mentor' });
-  await fixtureDb.doc('attendanceCleanup/verifier/items/recovery').set({ path: 'attendance/orphan', kind: 'verifier' });
   await fixtureDb.doc('attendanceAudit/orphan').set({ memberUid: 'mentor', staffUid: 'verifier', evidence: 'Private verifier text', reason: 'Private verifier text' });
-  await fixtureDb.doc('attendance/orphan').update({ verifiedBy: null });
-  await cleanupAttendance(fixtureDb, 'verifier'); await cleanupAttendance(fixtureDb, 'verifier');
+  const first = await beginProfileDeletion(fixtureDb, 'verifier');
+  const saved = await planAttendanceCleanup(fixtureDb, 'verifier', first.attemptId);
+  const reference = saved.targets.find(target => target.path === 'attendance/orphan')!;
+  assert.ok(reference);
+  await applyAttendanceCleanupTarget(fixtureDb, 'verifier', first.attemptId, reference);
   assert.equal((await fixtureDb.doc('attendance/orphan').get()).data()?.verifiedBy, null);
+  // Independent module namespace must coexist through retries.
+  await withProfileDeletionFence(fixtureDb, 'verifier', first.attemptId, async (transaction, job) => {
+    transaction.update(job.ref, { awardPlan: { targets: ['preserved-award-key'], completed: true } });
+  });
+  await releaseProfileDeletion(fixtureDb, 'verifier', first.attemptId);
+  const second = await beginProfileDeletion(fixtureDb, 'verifier');
+  assert.deepEqual((await fixtureDb.doc('profileDeletionJobs/verifier').get()).data()?.awardPlan, { targets: ['preserved-award-key'], completed: true });
+  assert.deepEqual(await planAttendanceCleanup(fixtureDb, 'verifier', second.attemptId), saved);
+  await assert.rejects(cleanupAttendance(fixtureDb, 'verifier', first.attemptId), /superseded/);
+  await cleanupAttendance(fixtureDb, 'verifier', second.attemptId);
+  await cleanupAttendance(fixtureDb, 'verifier', second.attemptId);
   assert.equal((await fixtureDb.doc('attendanceAudit/orphan').get()).data()?.staffUid, null);
   assert.equal((await fixtureDb.doc('attendanceAudit/orphan').get()).data()?.evidence, '');
-  assert.equal((await fixtureDb.collection('attendanceCleanup/verifier/items').get()).size, 0);
+  assert.deepEqual((await fixtureDb.doc('profileDeletionJobs/verifier').get()).data()?.attendancePlan.targets, saved.targets);
+  assert.equal((await fixtureDb.doc('profiles/verifier').get()).data()?.state, 'deleting');
+  await createProfileCleanup(fixtureDb, 'verifier', second.attemptId).finish();
+  assert.equal((await fixtureDb.doc('profileDeletionJobs/verifier').get()).exists, false);
   assert.equal((await fixtureAuth.getUser('deleting')).emailVerified, true);
   assert.equal((await fixtureDb.doc('sessions/event-one').get()).data()?.ownerId, 'organizer');
 });
@@ -163,4 +179,71 @@ test('verifier deletion racing a correction preserves the new verifier and clear
   assert.equal((await fixtureDb.doc('attendance/event-one~race-member').get()).data()?.verifiedBy, 'organizer');
   assert.equal((await fixtureDb.collection('attendanceAudit').where('staffUid', '==', 'erasable-staff').get()).size, 0);
   assert.equal((await fixtureDb.doc('sessions/event-one').get()).data()?.ownerId, 'organizer');
+});
+
+test('actual delete-profile takeover protects recreated attendance/history from every stale worker write', async () => {
+  const uid = 'attendance-takeover';
+  await createFixtureUser(uid); tokens[uid] = await signInFixture(uid);
+  assert.equal((await callIdentity(tokens[uid], 'register', { sessionId: 'event-one' })).status, 200);
+  assert.equal((await attend('organizer', { memberUid: uid })).status, 200);
+  const first = await beginProfileDeletion(fixtureDb, uid);
+  const saved = await planAttendanceCleanup(fixtureDb, uid, first.attemptId);
+  const paused = createProfileCleanup(fixtureDb, uid, first.attemptId);
+  const subject = saved.targets.find(target => target.path === `attendance/event-one~${uid}`)!;
+  assert.ok(subject);
+  await releaseProfileDeletion(fixtureDb, uid, first.attemptId);
+  assert.equal((await callIdentity(tokens[uid], 'delete-profile')).status, 200);
+  const client = environment.authenticatedContext(uid, { email: `${uid}@example.test`, email_verified: true, firebase: { sign_in_provider: 'password' } }).firestore();
+  await assertSucceeds(setDoc(doc(client, `profiles/${uid}`), { name: 'Recreated attendance member', state: 'active' }));
+  const fresh = await callIdentity(tokens[uid], 'register', { sessionId: 'event-one' });
+  assert.equal(fresh.status, 200);
+  assert.equal((await attend('organizer', { memberUid: uid, requestId: 'new-generation' })).status, 200);
+  assert.equal((await callIdentity(tokens[uid], 'history-visibility', { sessionId: 'event-one', visible: true })).status, 200);
+  const attendanceRef = fixtureDb.doc(`attendance/event-one~${uid}`);
+  const visibilityRef = fixtureDb.doc(`historyVisibility/event-one~${uid}`);
+  const freshAttendance = (await attendanceRef.get()).data();
+  const freshVisibility = (await visibilityRef.get()).data();
+  paused.delete(attendanceRef); paused.delete(visibilityRef);
+  // Stale planning, module mutation, lease renewal, bulk queue and completion.
+  await assert.rejects(planAttendanceCleanup(fixtureDb, uid, first.attemptId), /superseded/);
+  await assert.rejects(applyAttendanceCleanupTarget(fixtureDb, uid, first.attemptId, subject), /superseded/);
+  await assert.rejects(cleanupAttendance(fixtureDb, uid, first.attemptId), /superseded/);
+  await assert.rejects(withProfileDeletionFence(fixtureDb, uid, first.attemptId, async (transaction, job) => { transaction.update(job.ref, { attendancePlan: saved }); }), /superseded/);
+  await assert.rejects(paused.finish(), /superseded/);
+  assert.deepEqual((await attendanceRef.get()).data(), freshAttendance);
+  assert.deepEqual((await visibilityRef.get()).data(), freshVisibility);
+  assert.equal((await fixtureDb.doc(`profileDeletionJobs/${uid}`).get()).exists, false);
+  const history = await callIdentity(tokens[uid], 'member-history');
+  assert.equal(history.status, 200); assert.equal(history.data.entries[0].attendanceStatus, 'verified-attended');
+  assert.equal(history.data.entries[0].visible, true);
+  assert.equal(history.data.entries[0].audit.length, 1);
+  // A newer pending deletion is also safe from old-generation planning writes.
+  const next = await beginProfileDeletion(fixtureDb, uid);
+  const currentJob = (await fixtureDb.doc(`profileDeletionJobs/${uid}`).get()).data();
+  await assert.rejects(planAttendanceCleanup(fixtureDb, uid, first.attemptId), /superseded/);
+  await assert.rejects(applyAttendanceCleanupTarget(fixtureDb, uid, first.attemptId, subject), /superseded/);
+  assert.deepEqual((await fixtureDb.doc(`profileDeletionJobs/${uid}`).get()).data(), currentJob);
+  await releaseProfileDeletion(fixtureDb, uid, next.attemptId);
+  assert.equal((await callIdentity(tokens[uid], 'delete-profile')).status, 200);
+});
+
+test('profile state and module completion protect planning, mutation and parent finish', async () => {
+  const uid = 'attendance-module-gate';
+  await createFixtureUser(uid);
+  const attempt = await beginProfileDeletion(fixtureDb, uid);
+  await withProfileDeletionFence(fixtureDb, uid, attempt.attemptId, async (transaction, job) => {
+    transaction.update(job.ref, { awardPlan: { targets: [], completed: false } });
+  });
+  await planAttendanceCleanup(fixtureDb, uid, attempt.attemptId);
+  await assert.rejects(createProfileCleanup(fixtureDb, uid, attempt.attemptId).finish(), /module incomplete/);
+  assert.equal((await fixtureDb.doc(`profiles/${uid}`).get()).data()?.state, 'deleting');
+  await cleanupAttendance(fixtureDb, uid, attempt.attemptId);
+  await assert.rejects(createProfileCleanup(fixtureDb, uid, attempt.attemptId).finish(), /awardPlan/);
+  await withProfileDeletionFence(fixtureDb, uid, attempt.attemptId, async (transaction, job) => { transaction.update(job.ref, { 'awardPlan.completed': true }); });
+  // Even a matching job attempt cannot mutate when the profile fence is gone.
+  await fixtureDb.doc(`profiles/${uid}`).set({ state: 'active', name: 'Protected profile' });
+  await assert.rejects(planAttendanceCleanup(fixtureDb, uid, attempt.attemptId), /superseded/);
+  await assert.rejects(cleanupAttendance(fixtureDb, uid, attempt.attemptId), /superseded/);
+  await assert.rejects(createProfileCleanup(fixtureDb, uid, attempt.attemptId).finish(), /superseded/);
+  assert.deepEqual((await fixtureDb.doc(`profiles/${uid}`).get()).data(), { state: 'active', name: 'Protected profile' });
 });

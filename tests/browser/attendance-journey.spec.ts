@@ -32,7 +32,7 @@ test('real staff check-in, member history selection, community view and correcti
   const history = memberPage.getByRole('region', { name: 'Event history', exact: true });
   await expect(history).toContainText('Registered · Verified attended');
   await expect(history).toContainText('Event date: Unknown');
-  const selection = memberPage.getByRole('checkbox', { name: 'Share Synthetic Design Workshop with community', exact: true });
+  const selection = memberPage.getByRole('checkbox', { name: 'Show Synthetic Design Workshop on profile', exact: true });
   await expect(selection).not.toBeChecked();
 
   const viewerContext = await browser.newContext({ recordVideo: { dir: 'test-results/attendance-viewer', size: { width: 1100, height: 760 } } });
