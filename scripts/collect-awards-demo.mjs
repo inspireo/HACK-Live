@@ -2,7 +2,7 @@ import { copyFile, mkdir, readFile, readdir, stat, writeFile } from 'node:fs/pro
 import { execFileSync } from 'node:child_process';
 
 const run = JSON.parse(await readFile('test-results/.last-run.json', 'utf8'));
-if (run.status !== 'passed') throw new Error('Collect only a passed cumulative browser run');
+if (run.status !== 'passed') throw new Error('Collect only a passed browser capture after cumulative validation');
 const demo = JSON.parse(await readFile('test-results/pr7-demo.json', 'utf8'));
 if (demo.mode !== 'paced-real-emulator-browser' || demo.authMocks !== false || demo.securityMocks !== false || demo.syntheticData !== true || !/^[a-f0-9]{40}$/.test(demo.sourceRevision || '')) throw new Error('Real synthetic Firebase capture and immutable product revision required');
 const output = 'docs/evidence';

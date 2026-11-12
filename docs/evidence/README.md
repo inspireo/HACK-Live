@@ -13,3 +13,7 @@ Reproduce: `npm ci`, `npx playwright install chromium`, `npm run typecheck`, `np
 ## Verified attendance and history (PR6)
 
 [Actual paced staff → member → viewer video](pr6-attendance-history.webm) · [full recordings, screenshots and provenance](attendance-pr6.md). The real synthetic Firebase journey covers staff verification, owner history, Show on profile selection, protected community summaries, correction/private audit and revocation. The capture run passed21 pure/48 real API-rules/12 Chromium journeys; a later backend-only audit follow-up adds six shared-content races for54 real API/rules tests. UI/video capture bytes and provenance remain unchanged. Event rosters/results may independently show participation; this control selects the new profile history only.
+
+## Official awards and historical achievements (PR7)
+
+[Actual paced staff → member → viewer video](pr7-official-awards.webm) · [full recordings, 18 screenshots and source/timestamp provenance](awards-pr7.md). Final normal cumulative validation passed **23 pure / 67 real API-rules / 13 Chromium**; the evidence-only actual awards journey passed1/1. The real synthetic Firebase journey covers individual/team draft/publish/finalize, private owner records/profile selection versus official event results, later team removal preserving credit, correction and revocation. No authentication/security mocks or production data.

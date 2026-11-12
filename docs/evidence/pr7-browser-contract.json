@@ -1,0 +1,124 @@
+{
+  "sourceRevision": "a1c5fdc73998e30e061cf48151730d034ef3a0f7",
+  "mode": "paced-real-emulator-browser",
+  "authMocks": false,
+  "securityMocks": false,
+  "syntheticData": true,
+  "nodeVersion": "v24.22.2",
+  "browserVersion": "158.0.8127.18",
+  "videos": {
+    "staff": "pr7-staff-full.webm",
+    "member": "pr7-member-full.webm",
+    "viewer": "pr7-viewer-full.webm"
+  },
+  "clips": [
+    {
+      "role": "staff",
+      "stage": "individual-draft",
+      "start": 4.172,
+      "end": 7.714
+    },
+    {
+      "role": "staff",
+      "stage": "individual-published",
+      "start": 8.089,
+      "end": 11.622
+    },
+    {
+      "role": "staff",
+      "stage": "team-published",
+      "start": 12.487,
+      "end": 16.03
+    },
+    {
+      "role": "staff",
+      "stage": "results-finalized",
+      "start": 16.421,
+      "end": 19.953
+    },
+    {
+      "role": "member",
+      "stage": "private-owner-achievements",
+      "start": 1.193,
+      "end": 4.732
+    },
+    {
+      "role": "viewer",
+      "stage": "profile-unselected-hidden",
+      "start": 1.111,
+      "end": 4.638
+    },
+    {
+      "role": "member",
+      "stage": "profile-selection",
+      "start": 9.762,
+      "end": 13.291
+    },
+    {
+      "role": "viewer",
+      "stage": "selected-profile-summary",
+      "start": 8.999,
+      "end": 12.516
+    },
+    {
+      "role": "viewer",
+      "stage": "official-results-independent-audience",
+      "start": 12.78,
+      "end": 16.298
+    },
+    {
+      "role": "staff",
+      "stage": "later-team-removal",
+      "start": 41.87,
+      "end": 45.403
+    },
+    {
+      "role": "member",
+      "stage": "snapshot-credit-preserved",
+      "start": 25.745,
+      "end": 29.276
+    },
+    {
+      "role": "staff",
+      "stage": "category-corrected",
+      "start": 50.169,
+      "end": 53.707
+    },
+    {
+      "role": "member",
+      "stage": "correction-keeps-profile-choice",
+      "start": 34.044,
+      "end": 37.575
+    },
+    {
+      "role": "viewer",
+      "stage": "corrected-safe-profile",
+      "start": 33.319,
+      "end": 36.835
+    },
+    {
+      "role": "staff",
+      "stage": "team-award-revoked",
+      "start": 62.005,
+      "end": 65.536
+    },
+    {
+      "role": "member",
+      "stage": "revocation-removes-team-credit",
+      "start": 45.86,
+      "end": 49.395
+    },
+    {
+      "role": "viewer",
+      "stage": "revoked-result-removed",
+      "start": 45.203,
+      "end": 48.724
+    },
+    {
+      "role": "staff",
+      "stage": "authorized-private-audit",
+      "start": 73.887,
+      "end": 77.422
+    }
+  ]
+}

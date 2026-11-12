@@ -15,6 +15,11 @@ try {
     await new Promise(resolve => setTimeout(resolve, 200));
   }
   if (!healthy) throw new Error('App did not start');
+  // Evidence-only reruns keep the exact real app/emulator/fixture lifecycle.
+  // Default CI/normal execution below always retains the full serial suite.
+  if (process.env.AWARDS_DEMO === 'true' && process.env.AWARDS_RECORD_ONLY === 'true') {
+    await run('npx', ['playwright', 'test', 'tests/browser/awards-journey.spec.ts']);
+  } else {
   await run('node', ['--import', 'tsx', '--test', 'tests/profile-pure.test.ts']);
   await run('node', ['--import', 'tsx', '--test', 'tests/eventInvitation.test.ts']);
   await run('node', ['--import', 'tsx', '--test', 'tests/connections-pure.test.ts']);
@@ -26,5 +31,6 @@ try {
   await run('node', ['--import', 'tsx', '--test', 'tests/awards-pure.test.ts']);
   await run('node', ['--import', 'tsx', '--test', 'tests/awards.test.ts']);
   await run('npx', ['playwright', 'test']);
+  }
 } catch (issue) { console.error(issue); process.exitCode = 1; }
 finally { server.kill('SIGTERM'); }
