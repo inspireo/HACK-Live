@@ -16,12 +16,12 @@ export default function EventResults() {
     catch (issue: any) { if (requestId === requestSequence.current) setMessage(issue.message); }
   }, [sessionId]);
   useEffect(() => { refresh(); return () => { requestSequence.current++; }; }, [refresh]);
-  return <main className="max-w-3xl mx-auto p-6 text-zinc-100 space-y-4"><h1 className="text-3xl font-bold">Official event results</h1>
+  return <main className="min-h-screen bg-zinc-950 text-zinc-100 p-6"><div className="max-w-3xl mx-auto space-y-4"><h1 className="text-3xl font-bold">Official event results</h1>
     <p>Published awards are available to verified signed-in community members, independently of each recipient’s profile selections.</p>
     {data && <p>{data.finalized ? 'Results finalized. Staff corrections remain possible with an audit trail.' : 'Results are not yet finalized.'} An absent award does not indicate participation or a loss.</p>}
     <button className="underline" onClick={refresh}>Refresh results</button>
     {data?.awards.map(award => <article key={award.id}><AwardCard award={award} /><p className="text-sm text-zinc-400">Recipients at issue: {award.recipientNames.join(', ') || 'Team award only; no recorded personal credit.'}</p></article>)}
     {data?.awards.length === 0 && <p>No published awards recorded.</p>}
     {message && <p role="alert">{message}</p>}
-  </main>;
+  </div></main>;
 }
