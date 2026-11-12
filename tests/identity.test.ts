@@ -79,9 +79,12 @@ test('name-only compatibility and delete/retry clear private source and photo pr
   assert.equal((await callIdentity(token, 'save-profile', payload)).status, 200);
   assert.deepEqual((await fixtureDb.doc('memberDetails/profile-delete').get()).data(), { avatarUrl: 'https://example.test/photo.png' });
   await fixtureDb.doc('users/profile-delete').set({ role: 'admin' });
-  await fixtureDb.doc('profiles/profile-delete').update({ state: 'deleting' });
+  const manifest = await beginProfileDeletion(fixtureDb, 'profile-delete');
+  const paused = createProfileCleanup(fixtureDb, 'profile-delete', manifest.attemptId);
   await assertFails(getDoc(doc(memberContext('other'), 'memberDetails/profile-delete')));
   assert.equal((await callIdentity(token, 'save-profile', payload)).status, 409);
+  // A crashed request's lease expires; the next attempt owns all queued mutations.
+  await fixtureDb.doc('profileDeletionJobs/profile-delete').update({ leaseUntil: 0 });
   assert.equal((await callIdentity(token, 'delete-profile')).status, 200);
   for (const collectionName of ['profileDetails', 'memberDetails']) assert.equal((await fixtureDb.doc(`${collectionName}/profile-delete`).get()).exists, false);
   assert.equal((await fixtureAuth.getUser('profile-delete')).emailVerified, true);
@@ -90,6 +93,10 @@ test('name-only compatibility and delete/retry clear private source and photo pr
   assert.equal((await callIdentity(token, 'delete-profile')).status, 200);
   await assertSucceeds(setDoc(doc(memberContext('profile-delete'), 'profiles/profile-delete'), { name: 'Recreated name', state: 'active' }));
   assert.equal((await getDoc(doc(memberContext('profile-delete'), 'profileDetails/profile-delete'))).exists(), false);
+  assert.equal((await callIdentity(token, 'save-profile', { ...payload, name: 'Fresh details', professional: { title: 'Fresh title' }, communityFields: ['title'] })).status, 200);
+  await assert.rejects(paused.finish(), /superseded/);
+  assert.equal((await fixtureDb.doc('profileDetails/profile-delete').get()).data()!.professional.title, 'Fresh title');
+  assert.deepEqual((await fixtureDb.doc('memberDetails/profile-delete').get()).data(), { title: 'Fresh title' });
 });
 
 test('registered members only: unauthenticated, anonymous and unverified identities denied', async () => {

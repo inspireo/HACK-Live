@@ -38,7 +38,7 @@ export function ProfileEditor({ uid, name, onNameChange, save, onSaved }: { uid:
     return () => { current = false; };
   }, [uid]);
   const inputClass = 'block w-full p-3 bg-zinc-900 border border-zinc-600 rounded-lg';
-  if (!ready) return <p role="alert">{error || 'Loading profile details…'}</p>;
+  if (!ready) return error ? <p role="alert">{error}</p> : <p>Loading profile details…</p>;
   return <><form className="space-y-5" onSubmit={async event => {
     event.preventDefault(); setBusy(true); setError('');
     try { const validated = validateProfileEdit({ name, ...details }); await save({ name: validated.name, ...validated.details }); setDetails(validated.details); onSaved('Profile saved.'); }
@@ -48,7 +48,7 @@ export function ProfileEditor({ uid, name, onNameChange, save, onSaved }: { uid:
     <p>Your name is visible to members. Every optional field starts private. Choose which professional details members can see.</p>
     <p className="text-sm">Photo: paste a public HTTPS image URL you control. No upload is provided. External image hosts receive image requests. Clear the URL and save to remove it from your profile; the original stays with its host.</p>
     <fieldset className="space-y-4"><legend className="font-bold">Professional details</legend>{professionalFields.map(field => <div key={field}>
-      <label className="block">{fieldLabels[field]}<textarea rows={field === 'bio' || field === 'work' ? 3 : 1} className={inputClass} value={details.professional[field] || ''} maxLength={field === 'bio' || field === 'work' ? 2000 : 500} onChange={event => setDetails(previous => ({ ...previous, professional: { ...previous.professional, [field]: event.target.value } }))} /></label>
+      <label className="block" htmlFor={`professional-${field}`}>{fieldLabels[field]}</label><textarea id={`professional-${field}`} rows={field === 'bio' || field === 'work' ? 3 : 1} className={inputClass} value={details.professional[field] || ''} maxLength={field === 'bio' || field === 'work' ? 2000 : 500} onChange={event => setDetails(previous => ({ ...previous, professional: { ...previous.professional, [field]: event.target.value } }))} />
       <label><input type="checkbox" checked={details.communityFields.includes(field)} onChange={event => setDetails(previous => ({ ...previous, communityFields: event.target.checked ? [...previous.communityFields, field] : previous.communityFields.filter(value => value !== field) }))} /> Show {fieldLabels[field]} to members</label>
     </div>)}</fieldset>
     <fieldset className="space-y-4"><legend className="font-bold">Private contact details</legend>
