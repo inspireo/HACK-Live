@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-const suiteEnv = { ...process.env, IDENTITY_EMULATORS: 'true', VITE_IDENTITY_EMULATORS: 'true', GCLOUD_PROJECT: 'demo-hack-live' };
+const suiteEnv = { ...process.env, IDENTITY_EMULATORS: 'true', VITE_IDENTITY_EMULATORS: 'true', DISABLE_HMR: 'true', GCLOUD_PROJECT: 'demo-hack-live' };
 if (!suiteEnv.FIRESTORE_EMULATOR_HOST || !suiteEnv.FIREBASE_AUTH_EMULATOR_HOST) throw new Error('Run via npm run test:emulators');
 const server = spawn('node', ['--import', 'tsx', 'server.ts'], { env: suiteEnv, stdio: 'inherit' });
 async function run(command, args) {

@@ -50,6 +50,7 @@ service cloud.firestore {
       allow write: if false;
     }
     match /legacyParticipantSecrets/{participantId} { allow read, write: if false; }
+    match /profileDeletionJobs/{memberId} { allow read, write: if false; }
 
     match /users/{userId} {
       allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());

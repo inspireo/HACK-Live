@@ -2,9 +2,10 @@ import { after, before, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
-import { createProfileCleanup } from '../server/profile-cleanup';
+import { beginProfileDeletion, createProfileCleanup, releaseProfileDeletion } from '../server/profile-cleanup';
 import { assertFails, assertSucceeds, initializeTestEnvironment, RulesTestEnvironment } from '@firebase/rules-unit-testing';
 import { collection, doc, getDoc, getDocs, setDoc, updateDoc } from 'firebase/firestore';
+import { identityDatabaseTarget } from '../server/database-config';
 import { callIdentity, clearFixtures, createFixtureUser, fixtureAuth, fixtureDb, projectId, seedEvents, signInFixture } from './fixtures';
 
 let environment: RulesTestEnvironment;
@@ -132,7 +133,9 @@ test('deletion removes social identity, private defaults, welcome answers, propo
   const participant = (await fixtureDb.doc(`participants/${participantId}`).get()).data()!;
   assert.equal(participant.name, 'Deleted member'); assert.equal(participant.uid, null); assert.equal(participant.memberId, null);
   for (const collectionName of ['teams', 'discoveryTeams', 'formingTeams', 'formingDiscoveryTeams']) {
-    const team = (await fixtureDb.doc(`${collectionName}/delete-team`).get()).data()!;
+    const snapshot = await fixtureDb.doc(`${collectionName}/delete-team`).get();
+    if (collectionName.startsWith('forming')) { assert.equal(snapshot.exists, false); continue; }
+    const team = snapshot.data()!;
     assert.deepEqual(team.memberIds, ['retained']); assert.ok(!('leaderId' in team) && !('nameSubmittedBy' in team));
   }
   await assertFails(getDoc(doc(memberContext('other'), 'profiles/deleting')));
@@ -183,20 +186,21 @@ test('repeatable migration strips participant contacts/passcodes and makes sessi
 });
 
 
-test('actual BulkWriter failure retains deleting state; authenticated retry finishes cleanup', async () => {
+test('actual Firestore cleanup write failure retains deleting state; authenticated retry finishes cleanup', async () => {
   await createFixtureUser('retry-deletion');
   const token = await signInFixture('retry-deletion');
   const registered = await callIdentity(token, 'register', { sessionId: 'event-two' });
   assert.equal(registered.status, 200);
-  await fixtureDb.doc('profiles/retry-deletion').set({ state: 'deleting', name: 'Pending deletion' });
-  const cleanup = createProfileCleanup(fixtureDb, 'retry-deletion');
-  // Real SDK + emulator NOT_FOUND write failure, no mocked authorization or SDK.
+  const manifest = await beginProfileDeletion(fixtureDb, 'retry-deletion');
+  const cleanup = createProfileCleanup(fixtureDb, 'retry-deletion', manifest.attemptId);
+  // Real SDK transaction + emulator NOT_FOUND failure, no mocked authorization or SDK.
   cleanup.update(fixtureDb.doc('participants/nonexistent-cleanup-target'), { name: 'Deleted member' });
   cleanup.delete(fixtureDb.doc('registrationDefaults/retry-deletion'));
   await assert.rejects(cleanup.finish());
   assert.equal((await fixtureDb.doc('profiles/retry-deletion').get()).data()!.state, 'deleting');
   await assertFails(setDoc(doc(memberContext('retry-deletion'), 'profiles/retry-deletion'), { state: 'active', name: 'Cannot revive during cleanup' }));
   assert.equal((await callIdentity(token, 'register', { sessionId: 'event-two' })).status, 409);
+  await releaseProfileDeletion(fixtureDb, 'retry-deletion', manifest.attemptId);
   assert.equal((await callIdentity(token, 'delete-profile')).status, 200);
   assert.deepEqual((await fixtureDb.doc('profiles/retry-deletion').get()).data(), { state: 'deleted' });
   assert.equal((await fixtureDb.doc(`participants/${registered.data.participantId}`).get()).data()!.memberId, null);
@@ -213,4 +217,111 @@ test('organizer registration removal cleans unique pointer and permits deliberat
   const rejoin = await callIdentity(token, 'register', { sessionId: 'event-two' });
   assert.equal(rejoin.status, 200);
   assert.notEqual(rejoin.data.participantId, first.data.participantId);
+});
+
+
+test('interrupted deletion resumes persisted participant/proposal IDs after ownership and pointer erasure', async () => {
+  await createFixtureUser('interrupted-member');
+  const token = await signInFixture('interrupted-member');
+  const registered = await callIdentity(token, 'register', { sessionId: 'event-two' });
+  const participantId = registered.data.participantId;
+  await fixtureDb.doc('proposedChallenges/interrupted-proposal').set({ uid: 'interrupted-member', sessionId: 'event-two', submitterParticipantId: participantId, submitterName: 'Interrupted Person', publishedChallengeId: 'legacy-published' });
+  await fixtureDb.doc('challenges/legacy-published').set({ sessionId: 'event-two', proposedChallengeId: 'interrupted-proposal', summary: '<p>Keep this workshop content</p><p><em>Proposed by: Interrupted Person</em></p>' });
+  await fixtureDb.doc('welcomeResponses/interrupted-answer').set({ participantId, response: 'Remove private answer', sessionId: 'event-two' });
+  await fixtureDb.doc('teams/interrupted-team').set({ sessionId: 'event-two', memberIds: [participantId, 'retained'], nameSubmittedBy: 'interrupted-member', name: 'Keep shared team' });
+  const manifest = await beginProfileDeletion(fixtureDb, 'interrupted-member');
+  assert.deepEqual(manifest.participantIds, [participantId]);
+  await assertFails(getDoc(doc(memberContext('interrupted-member'), 'profileDeletionJobs/interrupted-member')));
+  // Deterministic crash boundary: commit the first cleanup writes, leave later
+  // dependent records in place, and model the expired process lease in fixtures.
+  await fixtureDb.doc(`participants/${participantId}`).update({ uid: null, memberId: null, name: 'Deleted member' });
+  await fixtureDb.doc('registrations/event-two~interrupted-member').delete();
+  await fixtureDb.doc('proposedChallenges/interrupted-proposal').update({ uid: null, submitterParticipantId: null });
+  assert.equal((await callIdentity(token, 'delete-profile')).status, 409); // concurrent request is serialized
+  await fixtureDb.doc('profileDeletionJobs/interrupted-member').update({ leaseUntil: 0 });
+  assert.equal((await callIdentity(token, 'delete-profile')).status, 200);
+  assert.equal((await fixtureDb.doc('welcomeResponses/interrupted-answer').get()).exists, false);
+  assert.deepEqual((await fixtureDb.doc('teams/interrupted-team').get()).data()!.memberIds, ['retained']);
+  const published = (await fixtureDb.doc('challenges/legacy-published').get()).data()!;
+  assert.ok(!published.summary.includes('Interrupted Person'));
+  assert.ok(published.summary.includes('Keep this workshop content'));
+  assert.equal((await fixtureDb.doc('profileDeletionJobs/interrupted-member').get()).exists, false);
+  assert.deepEqual((await fixtureDb.doc('profiles/interrupted-member').get()).data(), { state: 'deleted' });
+});
+
+test('deleting a forming leader cancels both team kinds so another member can form again', async () => {
+  for (const uid of ['forming-leader', 'forming-survivor']) { await createFixtureUser(uid); await callIdentity(await signInFixture(uid), 'register', { sessionId: 'event-two' }); }
+  const leaderId = (await fixtureDb.doc('registrations/event-two~forming-leader').get()).data()!.participantId;
+  const survivorId = (await fixtureDb.doc('registrations/event-two~forming-survivor').get()).data()!.participantId;
+  for (const collectionName of ['formingTeams', 'formingDiscoveryTeams']) await fixtureDb.doc(`${collectionName}/CANCELLED`).set({ sessionId: 'event-two', leaderId, memberIds: [leaderId, survivorId], isOpenToMore: true });
+  assert.equal((await callIdentity(await signInFixture('forming-leader'), 'delete-profile')).status, 200);
+  for (const collectionName of ['formingTeams', 'formingDiscoveryTeams']) {
+    assert.equal((await fixtureDb.doc(`${collectionName}/CANCELLED`).get()).exists, false);
+    await assertSucceeds(setDoc(doc(memberContext('forming-survivor'), `${collectionName}/RECOVERED`), { sessionId: 'event-two', leaderId: survivorId, memberIds: [survivorId], isOpenToMore: true }));
+  }
+});
+
+test('competing solution and discovery finalizations never overwrite an established assignment, sequentially or concurrently', async () => {
+  for (const kind of ['solution', 'discovery']) for (const concurrent of [false, true]) {
+    const suffix = `${kind}-${concurrent}`;
+    const uids = [`lead-a-${suffix}`, `lead-b-${suffix}`, `shared-${suffix}`];
+    const participantIds: string[] = [];
+    for (const uid of uids) { await createFixtureUser(uid); const registered = await callIdentity(await signInFixture(uid), 'register', { sessionId: 'event-two' }); participantIds.push(registered.data.participantId); }
+    for (const participantId of participantIds) await fixtureDb.doc(`participants/${participantId}`).update({ selectedChallengeId: 'event-two-challenge' });
+    await fixtureDb.doc('sessions/event-two').update({ status: kind === 'solution' ? 'Team Formation' : 'Discovery Team Formation' });
+    const collectionName = kind === 'solution' ? 'formingTeams' : 'formingDiscoveryTeams';
+    const codes = [`A_${suffix.toUpperCase()}`, `B_${suffix.toUpperCase()}`];
+    for (let position = 0; position < 2; position++) {
+      await assertSucceeds(setDoc(doc(memberContext(uids[position]), `${collectionName}/${codes[position]}`), { sessionId: 'event-two', leaderId: participantIds[position], memberIds: [participantIds[position]], challengeId: 'event-two-challenge', isOpenToMore: true }));
+      await assertSucceeds(updateDoc(doc(memberContext(uids[2]), `${collectionName}/${codes[position]}`), { memberIds: [participantIds[position], participantIds[2]] }));
+    }
+    const finalize = async (position: number) => callIdentity(await signInFixture(uids[position]), 'finalize-team', { kind, formingId: codes[position] });
+    const outcomes = concurrent ? await Promise.all([finalize(0), finalize(1)]) : [await finalize(0), await finalize(1)];
+    assert.deepEqual(outcomes.map(outcome => outcome.status).sort(), [200, 409], JSON.stringify(outcomes));
+    const winner = outcomes.find(outcome => outcome.status === 200)!;
+    const shared = (await fixtureDb.doc(`participants/${participantIds[2]}`).get()).data()!;
+    assert.equal(kind === 'solution' ? shared.teamId : shared.discoveryTeamId, winner.data.teamId);
+  }
+});
+
+test('server, migration and deployment agree on the named database; emulator config stays synthetic default', async () => {
+  const config = JSON.parse(await readFile('firebase-applet-config.json', 'utf8'));
+  const production = identityDatabaseTarget({});
+  assert.equal(production.databaseId, config.firestoreDatabaseId);
+  assert.equal(production.projectId, config.projectId);
+  assert.equal(identityDatabaseTarget({ IDENTITY_EMULATORS: 'true', GCLOUD_PROJECT: projectId, FIRESTORE_EMULATOR_HOST: '127.0.0.1:8080', FIREBASE_AUTH_EMULATOR_HOST: '127.0.0.1:9099' }).databaseId, '(default)');
+  assert.throws(() => identityDatabaseTarget({ IDENTITY_EMULATORS: 'true', GCLOUD_PROJECT: config.projectId }));
+  const deployment = JSON.parse(await readFile('firebase.json', 'utf8'));
+  assert.equal(deployment.firestore[0].database, production.databaseId);
+  const emulatorConfig = JSON.parse(await readFile('firebase.emulators.json', 'utf8'));
+  assert.equal(emulatorConfig.firestore.database, undefined);
+});
+
+
+test('a paused deletion attempt cannot mutate recreated profile data after lease takeover completes', async () => {
+  const uid = 'lease-takeover';
+  await createFixtureUser(uid);
+  const token = await signInFixture(uid);
+  await callIdentity(token, 'register', { sessionId: 'event-two' });
+  const first = await beginProfileDeletion(fixtureDb, uid);
+  const paused = createProfileCleanup(fixtureDb, uid, first.attemptId);
+  // A remains alive with an old generation; B takes over an expired lease.
+  await fixtureDb.doc(`profileDeletionJobs/${uid}`).update({ leaseUntil: 0 });
+  assert.equal((await callIdentity(token, 'delete-profile')).status, 200);
+  await assertSucceeds(setDoc(doc(memberContext(uid), `profiles/${uid}`), { name: 'Fresh profile', state: 'active' }));
+  const fresh = await callIdentity(token, 'register', { sessionId: 'event-two', adjective: 'Keep fresh defaults' });
+  assert.equal(fresh.status, 200);
+  await fixtureDb.doc('proposedChallengeVotes/fresh-after-takeover').set({ uid, sessionId: 'event-two' });
+  // A resumes UID-wide queries after recreation. Even newly discovered targets
+  // are protected because the attempt token is checked inside EVERY write batch.
+  paused.delete(fixtureDb.doc(`registrations/event-two~${uid}`));
+  paused.delete(fixtureDb.doc(`registrationDefaults/${uid}`));
+  paused.delete(fixtureDb.doc('proposedChallengeVotes/fresh-after-takeover'));
+  paused.update(fixtureDb.doc(`participants/${fresh.data.participantId}`), { name: 'Must never write this' });
+  await assert.rejects(paused.finish(), /superseded/);
+  assert.equal((await fixtureDb.doc(`registrations/event-two~${uid}`).get()).exists, true);
+  assert.equal((await fixtureDb.doc(`registrationDefaults/${uid}`).get()).data()!.adjective, 'Keep fresh defaults');
+  assert.equal((await fixtureDb.doc('proposedChallengeVotes/fresh-after-takeover').get()).exists, true);
+  assert.equal((await fixtureDb.doc(`participants/${fresh.data.participantId}`).get()).data()!.name, 'Fresh profile');
+  assert.deepEqual((await fixtureDb.doc(`profiles/${uid}`).get()).data(), { name: 'Fresh profile', state: 'active' });
 });

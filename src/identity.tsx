@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { GoogleAuthProvider, EmailAuthProvider, User, createUserWithEmailAndPassword, linkWithCredential, linkWithPopup, onIdTokenChanged, reload, sendEmailVerification, sendPasswordResetEmail, signInWithEmailAndPassword, signInWithPopup, signOut } from 'firebase/auth';
+import { GoogleAuthProvider, EmailAuthProvider, User, createUserWithEmailAndPassword, linkWithCredential, linkWithPopup, onIdTokenChanged, reload, sendEmailVerification, sendPasswordResetEmail, signInWithCredential, signInWithEmailAndPassword, signInWithPopup, signOut } from 'firebase/auth';
 import { collection, doc, getDocs, onSnapshot, query, setDoc, where } from 'firebase/firestore';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { auth, db } from './firebase';
@@ -28,6 +28,8 @@ export function MemberGate({ children }: { children: React.ReactNode }) {
   const [authRevision, setAuthRevision] = useState(0);
   const [profile, setProfile] = useState<Profile | null | undefined>(undefined);
   const [error, setError] = useState('');
+  const [deletionMessage, setDeletionMessage] = useState('');
+  const [deletionBusy, setDeletionBusy] = useState(false);
   useEffect(() => onIdTokenChanged(auth, current => { setUser(current); setAuthRevision(revision => revision + 1); setReady(true); }), []);
   useEffect(() => {
     setProfile(undefined); setError('');
@@ -43,7 +45,10 @@ export function MemberGate({ children }: { children: React.ReactNode }) {
   if (location.pathname.startsWith('/admin') || location.pathname.startsWith('/display/')) return <>{children}</>;
   if (error) return <Panel><p role="alert">{error}</p><button onClick={() => signOut(auth)}>Sign out</button></Panel>;
   if (profile === undefined) return <Panel>Loading profile…</Panel>;
-  if (profile?.state === 'deleting') return <Panel><p>Profile deletion is in progress.</p><button className={buttonClass} onClick={() => identityRequest('delete-profile').catch(issue => setError(issue.message))}>Retry deletion</button><button onClick={() => signOut(auth)}>Sign out</button></Panel>;
+  if (profile?.state === 'deleting') return <Panel><p>Profile deletion is in progress. If a previous request was interrupted, retry below. After a server interruption, cleanup may remain locked for up to five minutes.</p><button disabled={deletionBusy} className={buttonClass} onClick={async () => {
+    setDeletionBusy(true); setDeletionMessage('');
+    try { await identityRequest('delete-profile'); } catch (issue: any) { setDeletionMessage(issue.message); } finally { setDeletionBusy(false); }
+  }}>Retry deletion</button><p role="status">{deletionMessage}</p><button onClick={() => signOut(auth)}>Sign out</button></Panel>;
   if (!profile || profile.state === 'deleted') return <ProfileForm />;
   return <ProfileContext.Provider value={profile}><div className="bg-zinc-900 text-white px-5 py-2 flex justify-between"><Link to="/">#HACK Live</Link><Link to="/account">Account · {profile.name}</Link></div>{children}</ProfileContext.Provider>;
 }
@@ -66,8 +71,16 @@ function SignIn({ user }: { user: User | null }) {
   </Panel>;
   return <Panel><h1 className="text-3xl font-bold">Sign in to #HACK Live</h1><p>Join the community with a permanent account. Event registration is a separate step.</p>
     <button disabled={busy} className={buttonClass} onClick={() => attempt(async () => {
-      if (auth.currentUser?.isAnonymous) await linkWithPopup(auth.currentUser, new GoogleAuthProvider());
-      else await signInWithPopup(auth, new GoogleAuthProvider());
+      if (auth.currentUser?.isAnonymous) {
+        try { await linkWithPopup(auth.currentUser, new GoogleAuthProvider()); }
+        catch (issue: any) {
+          // An existing permanent Google account wins over an anonymous device
+          // session. This authenticates the account but never claims legacy data.
+          const credential = GoogleAuthProvider.credentialFromError(issue);
+          if (issue.code !== 'auth/credential-already-in-use' || !credential) throw issue;
+          await signInWithCredential(auth, credential);
+        }
+      } else await signInWithPopup(auth, new GoogleAuthProvider());
     })}>Continue with Google</button>
     <form className="space-y-4" onSubmit={event => { event.preventDefault(); attempt(async () => {
       if (signup) {

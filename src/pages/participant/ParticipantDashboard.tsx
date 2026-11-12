@@ -2438,6 +2438,7 @@ export default function ParticipantDashboard() {
                     <div key={c.id} className="bg-zinc-900 border border-zinc-800 p-5 rounded-2xl">
                       <h3 className="font-bold text-lg text-emerald-400">{c.title}</h3>
                       <SafeHtml html={c.summary} className="text-sm text-zinc-400 mt-2 leading-relaxed" />
+                      {c.submitterName && <p className="text-sm text-zinc-400 italic">Proposed by: {c.submitterName}</p>}
                       {c.docLink && (
                         <a href={c.docLink} target="_blank" rel="noreferrer" className="inline-block mt-3 text-sm text-emerald-500 hover:underline">
                           View Google Doc &rarr;
@@ -2691,6 +2692,7 @@ export default function ParticipantDashboard() {
                       <div key={c.id} className={`bg-zinc-900 border ${isSelected ? 'border-emerald-500' : 'border-zinc-800'} p-5 rounded-2xl transition-colors`}>
                         <h3 className="font-semibold text-lg text-emerald-400">{c.title}</h3>
                         <SafeHtml html={c.summary} className="text-sm text-zinc-400 mt-2" />
+                      {c.submitterName && <p className="text-sm text-zinc-400 italic">Proposed by: {c.submitterName}</p>}
                         {c.docLink && (
                           <a href={c.docLink} target="_blank" rel="noreferrer" className="inline-block mt-3 text-sm text-emerald-500 hover:underline">View Google Doc &rarr;</a>
                         )}

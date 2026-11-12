@@ -2,18 +2,16 @@ import { applicationDefault, getApps, initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 import { Router } from 'express';
-import firebaseConfig from '../firebase-applet-config.json';
-import { createProfileCleanup } from './profile-cleanup';
+import { identityDatabaseTarget } from './database-config';
+import { beginProfileDeletion, createProfileCleanup, releaseProfileDeletion } from './profile-cleanup';
 
 // Emulator mode must be explicit and must never fall through to production.
-const emulator = process.env.IDENTITY_EMULATORS === 'true';
-if (emulator && (!process.env.FIRESTORE_EMULATOR_HOST || !process.env.FIREBASE_AUTH_EMULATOR_HOST || !process.env.GCLOUD_PROJECT?.startsWith('demo-'))) {
-  throw new Error('Identity emulators require both emulator hosts and a demo- project');
-}
+const target = identityDatabaseTarget();
+const emulator = target.emulator;
 const identityApp = getApps()[0] || initializeApp(emulator
-  ? { projectId: process.env.GCLOUD_PROJECT }
-  : { credential: applicationDefault(), projectId: process.env.GCLOUD_PROJECT || firebaseConfig.projectId });
-export const identityDb = getFirestore(identityApp, emulator ? '(default)' : process.env.FIRESTORE_DATABASE_ID || firebaseConfig.firestoreDatabaseId);
+  ? { projectId: target.projectId }
+  : { credential: applicationDefault(), projectId: target.projectId });
+export const identityDb = getFirestore(identityApp, target.databaseId);
 const identityAuth = getAuth(identityApp);
 const router = Router();
 const fail = (status: number, message: string) => Object.assign(new Error(message), { status });
@@ -142,8 +140,9 @@ router.post('/finalize-team', async (req, res) => {
       ]);
       if (profile.data()?.state !== 'active' || registration.data()?.participantId !== team.leaderId) throw fail(403, 'Only the registered forming-team leader can finalize it.');
       const sessionData = session.data()!;
+      const formationEnabled = discovery ? sessionData.enableParticipantWgFormation ?? sessionData.enableParticipantTeamFormation : sessionData.enableParticipantTeamFormation;
       const phases = discovery ? ['Focus Areas', 'Discovery Team Formation', 'Challenge Drafting', 'Challenge Discovery', 'Challenge Proposing', 'Challenge Voting'] : ['Team Formation'];
-      if (!phases.includes(sessionData.status)) throw fail(409, 'Team formation is not open.');
+      if (!formationEnabled || !phases.includes(sessionData.status)) throw fail(409, 'Team formation is not open.');
       const maximum = discovery ? sessionData.maxWgSize || sessionData.maxTeamSize : sessionData.maxTeamSize;
       const minimum = discovery ? sessionData.minWgSize || sessionData.minTeamSize : sessionData.minTeamSize;
       if (!Array.isArray(team.memberIds) || !team.memberIds.includes(team.leaderId) || new Set(team.memberIds).size !== team.memberIds.length || team.memberIds.length > (maximum || 100) || (team.memberIds.length < (minimum || 1) && !team.isOpenToMore)) throw fail(409, 'Invalid team size.');
@@ -151,6 +150,7 @@ router.post('/finalize-team', async (req, res) => {
       for (const participant of participants) {
         const member = participant.data();
         if (!member?.memberId || member.memberId !== member.uid || member.sessionId !== team.sessionId || (!discovery && member.selectedChallengeId !== team.challengeId)) throw fail(409, 'All team members must have linked registrations for this event and challenge.');
+        if (discovery ? member.discoveryTeamId || member.discovery_team_id : member.teamId || member.isAssigned) throw fail(409, 'A member is already assigned to another team. Refresh and resolve the stale forming team.');
       }
       transaction.create(teamRef, { sessionId: team.sessionId, name: discovery ? `Discovery Team ${formingId}` : '', code: formingId, isOpenToMore: team.isOpenToMore, isParticipantCreated: true, createdAt: Date.now(), ...(discovery ? { leaderId: team.leaderId } : { challengeId: team.challengeId }) });
       for (const participant of participants) transaction.update(participant.ref, discovery ? { discoveryTeamId: teamRef.id, discovery_team_id: teamRef.id } : { teamId: teamRef.id, isAssigned: true });
@@ -161,17 +161,21 @@ router.post('/finalize-team', async (req, res) => {
 });
 
 router.post('/delete-profile', async (_req, res) => {
+  let attemptId: string | undefined;
+  let cleanup: ReturnType<typeof createProfileCleanup> | undefined;
+  const uid = res.locals.uid as string;
   try {
-    const uid = res.locals.uid as string;
     if (Date.now() / 1000 - res.locals.claims.auth_time > 300) throw fail(401, 'Sign out and sign in again before deleting your profile.');
-    // Durable deletion state prevents new registrations/edits during cleanup.
-    await identityDb.doc(`profiles/${uid}`).set({ state: 'deleting' }, { merge: true });
-    const ownedParticipants = await identityDb.collection('participants').where('memberId', '==', uid).get();
-    // BulkWriter permits a repeatable cleanup beyond Firestore's 500-write limit.
-    const writer = createProfileCleanup(identityDb, uid);
-    const participantIds = ownedParticipants.docs.map(participant => participant.id);
-    for (const participant of ownedParticipants.docs) {
-      writer.update(participant.ref, { uid: null, memberId: null, identityState: 'deleted', name: 'Deleted member', adjective: '', designThinkingProficiency: FieldValue.delete(), phone: FieldValue.delete(), phoneNumber: FieldValue.delete(), email: FieldValue.delete(), emailAddress: FieldValue.delete(), phoneLast4: FieldValue.delete(), passcode: FieldValue.delete(), persistedAnswers: FieldValue.delete(), archetypeScores: FieldValue.delete(), primaryArchetype: FieldValue.delete(), secondaryArchetype: FieldValue.delete(), teamId: null, isAssigned: false, discoveryTeamId: null, discovery_team_id: null, solutioning_team_id: null });
+    // Persist recovery keys BEFORE any identity fields or pointers are erased.
+    const manifest = await beginProfileDeletion(identityDb, uid);
+    attemptId = manifest.attemptId;
+    const participantIds = manifest.participantIds;
+    const ownedParticipants = participantIds.length ? await identityDb.getAll(...participantIds.map(participantId => identityDb.doc(`participants/${participantId}`))) : [];
+    // Bounded, attempt-fenced transactions permit repeatable cleanup beyond a single write batch.
+    const writer = createProfileCleanup(identityDb, uid, attemptId);
+    cleanup = writer;
+    for (const participant of ownedParticipants) {
+      if (participant.exists) writer.update(participant.ref, { uid: null, memberId: null, identityState: 'deleted', name: 'Deleted member', adjective: '', designThinkingProficiency: FieldValue.delete(), phone: FieldValue.delete(), phoneNumber: FieldValue.delete(), email: FieldValue.delete(), emailAddress: FieldValue.delete(), phoneLast4: FieldValue.delete(), passcode: FieldValue.delete(), persistedAnswers: FieldValue.delete(), archetypeScores: FieldValue.delete(), primaryArchetype: FieldValue.delete(), secondaryArchetype: FieldValue.delete(), teamId: null, isAssigned: false, discoveryTeamId: null, discovery_team_id: null, solutioning_team_id: null });
       writer.delete(identityDb.doc(`legacyParticipantSecrets/${participant.id}`));
       const responses = await identityDb.collection('welcomeResponses').where('participantId', '==', participant.id).get();
       for (const response of responses.docs) writer.delete(response.ref);
@@ -180,8 +184,21 @@ router.post('/delete-profile', async (_req, res) => {
       const records = await identityDb.collection(collectionName).where('uid', '==', uid).get();
       for (const record of records.docs) writer.delete(record.ref);
     }
-    const proposals = await identityDb.collection('proposedChallenges').where('uid', '==', uid).get();
-    for (const proposal of proposals.docs) writer.update(proposal.ref, { uid: null, submitterName: 'Deleted member', submitterRealName: FieldValue.delete(), submitterProfileDescriptor: FieldValue.delete(), submitterParticipantId: FieldValue.delete() });
+    for (const proposalId of manifest.proposalIds) {
+      const proposal = await identityDb.doc(`proposedChallenges/${proposalId}`).get();
+      if (proposal.exists) writer.update(proposal.ref, { uid: null, submitterName: 'Deleted member', submitterRealName: FieldValue.delete(), submitterProfileDescriptor: FieldValue.delete(), submitterParticipantId: FieldValue.delete() });
+      const published = await identityDb.collection('challenges').where('proposedChallengeId', '==', proposalId).get();
+      const publishedRefs = published.docs.map(challenge => challenge.ref);
+      if (proposal.data()?.publishedChallengeId) publishedRefs.push(identityDb.doc(`challenges/${proposal.data()!.publishedChallengeId}`));
+      for (const reference of publishedRefs) {
+        const challenge = await reference.get();
+        if (!challenge.exists) continue;
+        // Existing single/bulk publisher generated this exact attribution slot.
+        // Keep editable workshop prose while anonymizing known copied identity.
+        const summary = typeof challenge.data()!.summary === 'string' ? challenge.data()!.summary.replace(/<p><em>Proposed by:[\s\S]*?<\/em><\/p>/gi, '<p><em>Proposed by: Deleted member</em></p>') : '';
+        writer.update(reference, { summary, submitterName: 'Deleted member' });
+      }
+    }
     // Existing team records contain participant-id references, including forming
     // teams and name-submission attribution. Preserve workshop content while
     // removing the deleted person's membership and attribution snapshots.
@@ -189,6 +206,7 @@ router.post('/delete-profile', async (_req, res) => {
       const records = await identityDb.collection(collectionName).get();
       for (const record of records.docs) {
         const team = record.data();
+        if (collectionName.startsWith('forming') && participantIds.includes(team.leaderId)) { writer.delete(record.ref); continue; }
         const changes: Record<string, unknown> = {};
         if (Array.isArray(team.memberIds) && team.memberIds.some((member: string) => participantIds.includes(member))) changes.memberIds = team.memberIds.filter((member: string) => !participantIds.includes(member));
         for (const field of ['leaderId', 'createdBy', 'nameSubmittedBy']) if (team[field] === uid || participantIds.includes(team[field])) changes[field] = FieldValue.delete();
@@ -200,7 +218,11 @@ router.post('/delete-profile', async (_req, res) => {
     // Retain a private tombstone. Auth and platform authorization deliberately
     // survive social-profile deletion; workshop event ownership is unchanged.
     res.json({ deleted: true });
-  } catch (error) { res.status((error as any).status || 500).json({ error: (error as Error).message }); }
+  } catch (error) {
+    await cleanup?.abort();
+    if (attemptId) await releaseProfileDeletion(identityDb, uid, attemptId).catch(() => {});
+    res.status((error as any).status || 500).json({ error: (error as Error).message });
+  }
 });
 
 export default router;

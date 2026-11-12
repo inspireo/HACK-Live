@@ -1,5 +1,5 @@
 {
-  "firestore": { "rules": "firestore.rules", "indexes": "firestore.indexes.json" },
+  "firestore": [{ "database": "ai-studio-77006262-ac3f-4677-b26e-188608eb0487", "rules": "firestore.rules", "indexes": "firestore.indexes.json" }],
   "emulators": {
     "auth": { "host": "127.0.0.1", "port": 9099 },
     "firestore": { "host": "127.0.0.1", "port": 8080 },

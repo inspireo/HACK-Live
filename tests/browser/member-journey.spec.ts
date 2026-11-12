@@ -127,3 +127,42 @@ test('event code join, team and projector regression; deleted social profile ret
   await page.goto('/admin/event-one');
   await expect(page.getByRole('button', { name: /Participants/ }).first()).toBeVisible();
 });
+
+test('single and bulk publication keep attribution separate and profile deletion scrubs published views', async ({ page }) => {
+  await createFixtureUser('published-author');
+  await fixtureDb.doc('sessions/event-one').update({ enableChallengeDiscovery: true, status: 'Published Challenges' });
+  const { callIdentity, signInFixture } = await import('../fixtures');
+  const registration = await callIdentity(await signInFixture('published-author'), 'register', { sessionId: 'event-one' });
+  for (const proposalId of ['single-pitch', 'bulk-pitch']) await fixtureDb.doc(`proposedChallenges/${proposalId}`).set({ uid: 'published-author', submitterParticipantId: registration.data.participantId, submitterName: 'Synthetic Published Author', submitterRealName: 'Synthetic Published Author', submitterProfileDescriptor: 'Curious', sessionId: 'event-one', title: proposalId === 'single-pitch' ? 'Single Published Challenge' : 'Bulk Published Challenge', description: 'Keep this shared workshop description', supportingContext: '', createdAt: proposalId === 'single-pitch' ? 1 : 2 });
+  await page.goto('/admin/event-one'); await signIn(page, 'organizer');
+  await page.getByRole('button', { name: 'Challenge Discovery', exact: true }).click();
+  await page.getByRole('button', { name: /Proposed Challenges \(/ }).click();
+  await page.getByTestId('proposal-single-pitch').getByRole('button', { name: 'Publish', exact: true }).click();
+  await page.getByRole('button', { name: 'Approve and Publish', exact: true }).click();
+  await expect.poll(async () => (await fixtureDb.collection('challenges').where('proposedChallengeId', '==', 'single-pitch').get()).size).toBe(1);
+  await page.getByTestId('proposal-bulk-pitch').getByRole('checkbox').check();
+  await page.getByRole('button', { name: 'Publish Selected (1)', exact: true }).click();
+  await expect.poll(async () => (await fixtureDb.collection('challenges').where('proposedChallengeId', '==', 'bulk-pitch').get()).size).toBe(1);
+  for (const proposalId of ['single-pitch', 'bulk-pitch']) {
+    const challenge = (await fixtureDb.collection('challenges').where('proposedChallengeId', '==', proposalId).get()).docs[0].data();
+    expect(challenge.submitterName).toBe('Synthetic Published Author');
+    expect(challenge.summary).not.toContain('Synthetic Published Author');
+  }
+  // Compatibility fixture for the exact generated footer in old publication.
+  await fixtureDb.doc('challenges/old-generated-footer').set({ sessionId: 'event-one', proposedChallengeId: 'single-pitch', title: 'Legacy Published Challenge', summary: '<p>Keep legacy workshop content</p><p><em>Proposed by: Synthetic Published Author</em></p>', isPublished: true });
+  // Organizer has no social profile after the preceding test, so use its existing
+  // admin sign-out action rather than creating another social profile.
+  await page.goto('/admin');
+  await page.getByRole('button', { name: /Sign Out/i }).click();
+  await expect(page.getByRole('heading', { name: 'Sign in to #HACK Live' })).toBeVisible();
+  await page.goto('/account'); await signIn(page, 'published-author');
+  await expect(page.getByRole('heading', { name: 'Your profile' })).toBeVisible();
+  page.once('dialog', dialog => dialog.accept());
+  await page.getByRole('button', { name: 'Delete profile', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Create your profile' })).toBeVisible();
+  await page.goto('/display/event-one');
+  await expect(page.getByText('Single Published Challenge', { exact: true })).toBeVisible();
+  await expect(page.getByText('Bulk Published Challenge', { exact: true })).toBeVisible();
+  await expect(page.getByText('Synthetic Published Author', { exact: false })).toHaveCount(0);
+  await expect(page.getByText('Keep legacy workshop content', { exact: true })).toBeVisible();
+});
