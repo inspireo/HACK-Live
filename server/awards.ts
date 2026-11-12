@@ -44,18 +44,24 @@ async function snapshotAward(database: Firestore, accounts: Auth, transaction: T
       if (aliases.some(value => value && value !== team!.teamId)) throw fail(409, 'Resolve conflicting team memberships before issuing.');
     }
     let recipient: AwardRecipient = { participantId: participant.id, memberId: null, name: 'Unlinked historical recipient', credit: 'unlinked' };
-    if (member.identityState === 'deleted') recipient = { participantId: null, memberId: null, name: 'Deleted recipient', credit: 'deleted' };
-    else if (team && !allocationEligible(member)) recipient = { ...recipient, name: 'Ineligible historical recipient', credit: 'ineligible' };
-    else if (awardId(member.memberId) && member.uid === member.memberId) {
-      const [pointer, profile] = await Promise.all([
+    if (member.identityState === 'deleted') {
+      recipients.push({ participantId: null, memberId: null, name: 'Deleted recipient', credit: 'deleted' });
+      continue;
+    }
+    // Canonical memberId is server-linked; mutable legacy uid alone is not.
+    // Read lifecycle BEFORE eligibility so even an uncredited historical judge
+    // or inactive member cannot add a participant reference after plan capture.
+    const [pointer, profile] = awardId(member.memberId) ? await Promise.all([
         transaction.get(database.doc(`registrations/${sessionId}~${member.memberId}`)),
         transaction.get(database.doc(`profiles/${member.memberId}`)),
-      ]);
-      if (profile.data()?.state !== 'active') {
-        if (!team) throw fail(409, 'Recipient profile is unavailable.');
-        recipients.push({ participantId: null, memberId: null, name: 'Deleted recipient', credit: 'deleted' });
-        continue;
-      }
+      ]) : [null, null];
+    if (profile && profile.data()?.state !== 'active') {
+      if (!team) throw fail(409, 'Recipient profile is unavailable.');
+      recipients.push({ participantId: null, memberId: null, name: 'Deleted recipient', credit: 'deleted' });
+      continue;
+    }
+    if (team && !allocationEligible(member)) recipient = { ...recipient, name: 'Ineligible historical recipient', credit: 'ineligible' };
+    else if (pointer && profile && member.uid === member.memberId) {
       let verified = false;
       try { const account = await accounts.getUser(member.memberId); verified = account.emailVerified && !account.disabled && account.providerData.length > 0; }
       catch (issue: any) { if (issue.code !== 'auth/user-not-found') throw issue; }

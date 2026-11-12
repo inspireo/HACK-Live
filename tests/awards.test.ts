@@ -200,6 +200,53 @@ test('historical unlinked/deleted/ineligible team recipients stay explicit; empt
   assert.ok((await eventAwards()).awards.some((award: any) => award.id === emptyAward));
 });
 
+test('publication after immutable deletion planning anonymizes linked ineligible historical recipients before eligibility and preserves peer credit', async () => {
+  for (const condition of ['judge', 'inactive'] as const) {
+    const uid = `lifecycle-${condition}`;
+    const peerUid = `lifecycle-peer-${condition}`;
+    const registered: Record<string, string> = {};
+    for (const accountUid of [uid, peerUid]) {
+      await createFixtureUser(accountUid); tokens[accountUid] = await signInFixture(accountUid);
+      const registration = await callIdentity(tokens[accountUid], 'register', { sessionId: 'event-one' });
+      assert.equal(registration.status, 200); registered[accountUid] = registration.data.participantId;
+    }
+    const teamId = `lifecycle-team-${condition}`;
+    await fixtureDb.doc(`teams/${teamId}`).set({ sessionId: 'event-one', name: 'Historical team with surviving peer' });
+    for (const participantId of Object.values(registered)) await fixtureDb.doc(`participants/${participantId}`).update({ teamId, solutioning_team_id: teamId });
+    await fixtureDb.doc(`participants/${registered[uid]}`).update(condition === 'judge' ? { officialRoles: ['judge'] } : { participationState: 'inactive' });
+    const resultId = (await succeed('draft', { categoryId: teamCategory, target: { collectionName: 'teams', teamId } })).id;
+    const attempt = await beginProfileDeletion(fixtureDb, uid);
+    const savedPlan = await prepareAwardCleanup(fixtureDb, uid, attempt.attemptId);
+    assert.ok(savedPlan.participantIds.includes(registered[uid]));
+    assert.ok(!savedPlan.resultIds.includes(resultId));
+    assert.equal((await fixtureDb.doc(`participants/${registered[uid]}`).get()).data()!.memberId, uid);
+    // Publish while the immutable plan exists but participant erasure has not
+    // run. The new result is intentionally outside that plan's recovery IDs.
+    await succeed('publish', { resultId });
+    const issued = (await fixtureDb.doc(`awardResults/${resultId}`).get()).data()!;
+    assert.ok(!issued.participantIds.includes(registered[uid]));
+    assert.ok(!issued.subjectUids.includes(uid));
+    assert.ok(issued.snapshot.recipients.some((recipient: any) => recipient.credit === 'deleted' && recipient.participantId === null && recipient.memberId === null));
+    assert.ok(issued.snapshot.recipients.some((recipient: any) => recipient.credit === 'verified' && recipient.memberId === peerUid));
+    assert.equal((await fixtureDb.doc(`memberAchievements/${uid}/awards/${resultId}`).get()).exists, false);
+    const job = (await fixtureDb.doc(`profileDeletionJobs/${uid}`).get()).data()!;
+    assert.deepEqual(job.awardPlan, savedPlan);
+    await releaseProfileDeletion(fixtureDb, uid, attempt.attemptId);
+    const completed = await callIdentity(tokens[uid], 'delete-profile');
+    assert.equal(completed.status, 200, JSON.stringify(completed));
+    assert.deepEqual((await fixtureDb.doc(`profiles/${uid}`).get()).data(), { state: 'deleted' });
+    assert.equal((await fixtureDb.doc(`profileDeletionJobs/${uid}`).get()).exists, false);
+    assert.equal((await fixtureDb.collection('awardResults').where('participantIds', 'array-contains', registered[uid]).get()).size, 0);
+    assert.equal((await fixtureDb.collection('awardResults').where('subjectUids', 'array-contains', uid).get()).size, 0);
+    assert.equal((await fixtureDb.collection('awardAudits').where('subjectUids', 'array-contains', uid).get()).size, 0);
+    const retained = (await fixtureDb.doc(`awardResults/${resultId}`).get()).data()!;
+    assert.equal(retained.status, 'published');
+    assert.ok(!retained.snapshot.recipients.some((recipient: any) => recipient.participantId === registered[uid] || recipient.memberId === uid));
+    assert.equal((await fixtureDb.doc(`memberAchievements/${peerUid}/awards/${resultId}`).get()).exists, true);
+    assert.ok((await memberAwards(peerUid)).awards.some((award: any) => award.id === resultId));
+  }
+});
+
 test('actual delete-profile partial failure preserves award recovery IDs, retries source/peer credit safely, fences old workers after recreation', async () => {
   const source = (await fixtureDb.doc(`awardResults/${teamResult}`).get()).data()!;
   const otherUid = source.snapshot.recipients.find((recipient: any) => recipient.memberId !== 'alice').memberId;
