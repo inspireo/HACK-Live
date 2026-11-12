@@ -1,3 +1,4 @@
+import EventRolesEditor from '../../components/EventRolesEditor';
 import { useState, useEffect } from 'react';
 import { updateDoc, doc, deleteDoc, collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '../../firebase';
@@ -286,6 +287,7 @@ export default function ParticipantsTab({
 
   return (
     <div className="space-y-6">
+      {sessionId && <EventRolesEditor sessionId={sessionId} participants={participants} challenges={challenges} />}
       <details className="p-4 border border-zinc-700 rounded-xl">
         <summary>Link a legacy registration</summary>
         <p className="my-3 text-sm">Independently verify the person and their account ID before linking. An old UID, name or phone passcode is not proof. Linking preserves workshop/team history and refuses conflicting registrations.</p>

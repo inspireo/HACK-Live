@@ -116,11 +116,24 @@ service cloud.firestore {
       allow update, delete: if isAuthenticated() && (hasAdminAccess(resource.data.sessionId));
     }
 
+    function allocationEligibleData(member) {
+      return member.get('identityState', '') != 'deleted' && member.get('participationState', 'active') == 'active' &&
+        (!('officialRoles' in member) || 'participant' in member.officialRoles);
+    }
+    // Even staff clients cannot allocate a staff-only participation. Roles are
+    // written only by the trusted event-roles endpoint, never by these rules.
+    function validAllocationChange() {
+      return allocationEligibleData(resource.data) || (
+        request.resource.data.get('teamId', null) == null && request.resource.data.get('solutioning_team_id', null) == null &&
+        request.resource.data.get('discoveryTeamId', null) == null && request.resource.data.get('discovery_team_id', null) == null &&
+        request.resource.data.get('isAssigned', false) == false
+      );
+    }
     match /participants/{participantId} {
       allow read: if isAuthenticated();
       // Only the trusted registration transaction creates or links participants.
       allow create: if false;
-      allow update: if isAuthenticated() && (
+      allow update: if isAuthenticated() && validAllocationChange() && (
         ((isAdmin() || hasAdminAccess(resource.data.sessionId)) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'adjective', 'designThinkingProficiency', 'teamId', 'isAssigned', 'selectedChallengeId', 'discoveryTeamId', 'discovery_team_id', 'solutioning_team_id', 'interestedFocusAreaId', 'interestedFocusAreaIds', 'archetypeScores', 'primaryArchetype', 'secondaryArchetype', 'persistedAnswers'])) ||
         (
           (resource.data.uid == request.auth.uid && resource.data.memberId == request.auth.uid && get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.state == 'active') &&
@@ -163,13 +176,13 @@ service cloud.firestore {
     }
     function canCreateForming() {
       let ownId = registeredParticipant(request.resource.data.sessionId);
-      return hasActiveProfile() && request.resource.data.leaderId == ownId && request.resource.data.memberIds == [ownId];
+      return hasActiveProfile() && allocationEligibleData(get(/databases/$(database)/documents/participants/$(ownId)).data) && request.resource.data.leaderId == ownId && request.resource.data.memberIds == [ownId];
     }
     function canUpdateForming() {
       let ownId = registeredParticipant(resource.data.sessionId);
       let beforeMembers = resource.data.memberIds.toSet();
       let afterMembers = request.resource.data.memberIds.toSet();
-      return hasActiveProfile() && request.resource.data.sessionId == resource.data.sessionId && request.resource.data.leaderId == resource.data.leaderId && (
+      return hasActiveProfile() && allocationEligibleData(get(/databases/$(database)/documents/participants/$(ownId)).data) && request.resource.data.sessionId == resource.data.sessionId && request.resource.data.leaderId == resource.data.leaderId && (
         (resource.data.leaderId == ownId && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isOpenToMore'])) ||
         (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberIds']) && request.resource.data.memberIds.size() == afterMembers.size() && (
           (!(ownId in beforeMembers) && resource.data.isOpenToMore && afterMembers == beforeMembers.union([ownId].toSet())) ||
@@ -177,32 +190,37 @@ service cloud.firestore {
         ))
       );
     }
+    function canStaffManageForming() {
+      return hasAdminAccess(resource.data.sessionId) &&
+        request.resource.data.sessionId == resource.data.sessionId && request.resource.data.leaderId == resource.data.leaderId &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberIds', 'isOpenToMore']) &&
+        request.resource.data.memberIds.toSet().difference(resource.data.memberIds.toSet()).size() == 0 &&
+        resource.data.leaderId in request.resource.data.memberIds;
+    }
     match /formingTeams/{teamId} {
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && (hasAdminAccess(request.resource.data.sessionId) || canCreateForming());
-      allow update: if isAuthenticated() && (hasAdminAccess(resource.data.sessionId) || canUpdateForming());
+      allow create: if isAuthenticated() && canCreateForming();
+      allow update: if isAuthenticated() && (canStaffManageForming() || canUpdateForming());
       allow delete: if isAuthenticated() && (hasAdminAccess(resource.data.sessionId) || resource.data.leaderId == registeredParticipant(resource.data.sessionId));
     }
     match /formingDiscoveryTeams/{teamId} {
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && (hasAdminAccess(request.resource.data.sessionId) || canCreateForming());
-      allow update: if isAuthenticated() && (hasAdminAccess(resource.data.sessionId) || canUpdateForming());
+      allow create: if isAuthenticated() && canCreateForming();
+      allow update: if isAuthenticated() && (canStaffManageForming() || canUpdateForming());
       allow delete: if isAuthenticated() && (hasAdminAccess(resource.data.sessionId) || resource.data.leaderId == registeredParticipant(resource.data.sessionId));
     }
 
     match /discoveryTeams/{teamId} {
       allow read: if isAuthenticated();
-      allow create, update: if isAuthenticated();
+      allow create: if hasAdminAccess(request.resource.data.sessionId) && !request.resource.data.keys().hasAny(['leaderId']);
+      allow update: if hasAdminAccess(resource.data.sessionId) && request.resource.data.get('leaderId', null) == resource.data.get('leaderId', null) && request.resource.data.sessionId == resource.data.sessionId;
       allow delete: if isAuthenticated() && (hasAdminAccess(resource.data.sessionId));
     }
 
     match /teams/{teamId} {
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && (
-        hasAdminAccess(request.resource.data.sessionId) ||
-        get(/databases/$(database)/documents/sessions/$(request.resource.data.sessionId)).data.status == 'Team Formation'
-      );
-      allow update: if isAuthenticated() && (
+      allow create: if hasAdminAccess(request.resource.data.sessionId) && !request.resource.data.keys().hasAny(['leaderId']);
+      allow update: if isAuthenticated() && request.resource.data.get('leaderId', null) == resource.data.get('leaderId', null) && request.resource.data.sessionId == resource.data.sessionId && (
         isAdmin() ||
         hasAdminAccess(resource.data.sessionId) ||
         (

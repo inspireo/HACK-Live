@@ -118,7 +118,7 @@ function ProfileForm({ profile }: { profile?: Profile }) {
       try { await setDoc(doc(db, 'profiles', auth.currentUser!.uid), { name: name.trim(), state: 'active' }); setMessage('Profile saved.'); } catch (issue: any) { setMessage(issue.message); } finally { setBusy(false); }
     }}><label>Name<input className={inputClass} value={name} onChange={event => setName(event.target.value)} required maxLength={100} /></label><button disabled={busy || !name.trim()} className={buttonClass}>Save profile</button></form>}
     <p role="status">{message}</p>
-    {profile && <><Link to="/">Find an event</Link><button className="block" onClick={() => signOut(auth)}>Sign out</button>
+    {profile && <><Link className="block underline" to="/badge">My badge</Link><Link to="/">Find an event</Link><button className="block" onClick={() => signOut(auth)}>Sign out</button>
       <p>Deleting removes your social profile and reusable details. Workshop contributions retain a deleted-member label. Your sign-in and event administrator permissions remain. You can create a new social profile later.</p>
       <p className="text-xs">Account ID for organizer-assisted legacy linking: <code>{auth.currentUser?.uid}</code></p>
       <button className="text-red-400" disabled={busy} onClick={async () => {

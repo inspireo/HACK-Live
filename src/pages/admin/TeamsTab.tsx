@@ -1,3 +1,5 @@
+import TeamRoleEditor from '../../components/TeamRoleEditor';
+import { allocationEligible } from '../../../shared/participation';
 import { useState, useEffect, useMemo } from 'react';
 import { collection, addDoc, updateDoc, doc, writeBatch, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '../../firebase';
@@ -218,7 +220,7 @@ export default function TeamsTab({
   }, [isGroupMode, discoveryTeams, teams, focusAreas, challenges]);
 
   const unassignedParticipants = useMemo(() => {
-    return participants.filter(p => isGroupMode ? (!p.discoveryTeamId && !p.discovery_team_id) : !p.teamId);
+    return participants.filter(p => allocationEligible(p) && (isGroupMode ? (!p.discoveryTeamId && !p.discovery_team_id) : !p.teamId));
   }, [isGroupMode, participants]);
 
   const assignedParticipants = useMemo(() => {
@@ -1269,6 +1271,7 @@ export default function TeamsTab({
   // Filtering list
   const filteredParticipants = useMemo(() => {
     return participants.filter(p => {
+      if (!allocationEligible(p)) return false;
       if (searchQuery && !p.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
       
       if (isGroupMode) {
@@ -1724,6 +1727,7 @@ export default function TeamsTab({
 
               return (
                 <div key={unit.id} className="bg-zinc-900 border border-zinc-800 rounded-2xl flex flex-col min-h-[340px] shadow-sm hover:shadow-md transition-shadow overflow-hidden">
+                   <TeamRoleEditor collectionName={isGroupMode ? 'discoveryTeams' : 'teams'} teamId={unit.id} members={members} />
                    {/* Card Main Properties Header */}
                   <div className={`p-5 border-b border-zinc-800/50 space-y-3 relative group ${isGroupMode ? 'bg-blue-950/5' : 'bg-emerald-950/5'}`}>
                     <div className="flex justify-between items-start pr-12">
