@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { signOut } from 'firebase/auth';
 import { useParams, useNavigate } from 'react-router-dom';
 import { doc, onSnapshot, collection, query, where, getDocs, getDoc, setDoc, updateDoc, deleteDoc, writeBatch, addDoc } from 'firebase/firestore';
 import { db, auth } from '../../firebase';
 import { User, Target, FileText, CheckCircle2, Copy, AlertCircle, LogOut, X, HelpCircle, UserPlus, Users, Send, Edit2, Folder, Sparkles, ThumbsUp, Trash2, Award, Plus, ChevronRight, ChevronDown } from 'lucide-react';
 import SafeHtml from '../../components/SafeHtml';
+import { identityRequest, useProfile } from '../../identity';
 import { QUESTION_PACKS, calculateArchetypeScores, getLeanings, ARCHETYPES } from '../../data/questionPacks';
 
 const getParticipantStatusLabel = (status: string) => {
@@ -79,6 +81,7 @@ const getParticipantStatusGuidance = (status: string) => {
 
 export default function ParticipantDashboard() {
   const { sessionId } = useParams();
+  const profile = useProfile();
   const navigate = useNavigate();
   const [session, setSession] = useState<any>(null);
   
@@ -101,15 +104,11 @@ export default function ParticipantDashboard() {
   const [proposedChallengeVotes, setProposedChallengeVotes] = useState<any[]>([]);
 
   // Join form state
-  const [name, setName] = useState('');
-  const [phoneLast4, setPhoneLast4] = useState('');
+  const [name, setName] = useState(profile.name);
   const [adjective, setAdjective] = useState('');
   const [proficiency, setProficiency] = useState('New to it');
   const [joinError, setJoinError] = useState('');
   
-  // Dynamic detection state
-  const [existingParticipant, setExistingParticipant] = useState<boolean | null>(null);
-  const [checkingParticipant, setCheckingParticipant] = useState(false);
 
   // Resource modal state
   const [selectedResource, setSelectedResource] = useState<any>(null);
@@ -122,7 +121,23 @@ export default function ParticipantDashboard() {
 
   // Team naming state
   const [teamName, setTeamName] = useState('');
-  const [localParticipantId, setLocalParticipantId] = useState<string | null>(() => localStorage.getItem(`participant_${sessionId}`));
+  const [localParticipantId, setLocalParticipantId] = useState<string | null>(null);
+  const [registrationReady, setRegistrationReady] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    setParticipant(null); setLocalParticipantId(null); setRegistrationReady(false);
+    Promise.all([
+      getDoc(doc(db, 'registrations', `${sessionId}~${auth.currentUser!.uid}`)),
+      getDoc(doc(db, 'registrationDefaults', auth.currentUser!.uid)),
+    ]).then(([registration, defaults]) => {
+      if (!active) return;
+      if (registration.exists()) setLocalParticipantId(registration.data().participantId);
+      if (defaults.exists()) { setAdjective(defaults.data().adjective || ''); setProficiency(defaults.data().designThinkingProficiency || 'New to it'); }
+      setRegistrationReady(true);
+    }).catch(() => { if (active) { setJoinError('Could not load registration. Refresh to retry.'); setRegistrationReady(true); } });
+    return () => { active = false; };
+  }, [sessionId]);
   const [copied, setCopied] = useState(false);
   const [teamNameSaved, setTeamNameSaved] = useState(false);
   const [promptCopied, setPromptCopied] = useState(false);
@@ -416,7 +431,13 @@ export default function ParticipantDashboard() {
   useEffect(() => {
     if (!sessionId || !auth.currentUser) return;
 
-    const unsubSession = onSnapshot(doc(db, 'sessions', sessionId), (doc) => {
+    const subscriptions: (() => void)[] = [];
+    const subscribe: typeof onSnapshot = ((...snapshotArgs: any[]) => {
+      const unsubscribe = (onSnapshot as any)(...snapshotArgs);
+      subscriptions.push(unsubscribe);
+      return unsubscribe;
+    }) as typeof onSnapshot;
+    const unsubSession = subscribe(doc(db, 'sessions', sessionId), (doc) => {
       if (doc.exists()) {
         setSession({ id: doc.id, ...doc.data() });
       } else {
@@ -426,31 +447,31 @@ export default function ParticipantDashboard() {
       console.error('Session listener error:', error);
     });
 
-    const unsubChallenges = onSnapshot(query(collection(db, 'challenges'), where('sessionId', '==', sessionId), where('isPublished', '==', true)), (snapshot) => {
+    const unsubChallenges = subscribe(query(collection(db, 'challenges'), where('sessionId', '==', sessionId), where('isPublished', '==', true)), (snapshot) => {
       setChallenges(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as any)).sort((a: any, b: any) => ((a.displayOrder ?? 0) - (b.displayOrder ?? 0)) || a.id.localeCompare(b.id)));
     }, (error) => {
       console.error('Challenges listener error:', error);
     });
 
-    const unsubResources = onSnapshot(query(collection(db, 'resources'), where('sessionId', '==', sessionId), where('isPublished', '==', true)), (snapshot) => {
+    const unsubResources = subscribe(query(collection(db, 'resources'), where('sessionId', '==', sessionId), where('isPublished', '==', true)), (snapshot) => {
       setResources(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as any)).sort((a: any, b: any) => (a.displayOrder || 0) - (b.displayOrder || 0)));
     }, (error) => {
       console.error('Resources listener error:', error);
     });
 
-    const unsubFocusAreas = onSnapshot(query(collection(db, 'focusAreas'), where('sessionId', '==', sessionId)), (snapshot) => {
+    const unsubFocusAreas = subscribe(query(collection(db, 'focusAreas'), where('sessionId', '==', sessionId)), (snapshot) => {
       setFocusAreas(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as any)).sort((a,b) => (a.displayOrder || 0) - (b.displayOrder || 0)));
     }, (error) => {
       console.error('Focus areas listener error:', error);
     });
 
-    const unsubProposed = onSnapshot(query(collection(db, 'proposedChallenges'), where('sessionId', '==', sessionId)), (snapshot) => {
+    const unsubProposed = subscribe(query(collection(db, 'proposedChallenges'), where('sessionId', '==', sessionId)), (snapshot) => {
       setProposedChallenges(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as any)));
     }, (error) => {
       console.error('Proposed challenges listener error:', error);
     });
 
-    const unsubProposedVotes = onSnapshot(query(collection(db, 'proposedChallengeVotes'), where('sessionId', '==', sessionId)), (snapshot) => {
+    const unsubProposedVotes = subscribe(query(collection(db, 'proposedChallengeVotes'), where('sessionId', '==', sessionId)), (snapshot) => {
       setProposedChallengeVotes(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as any)));
     }, (error) => {
       console.error('Proposed votes listener error:', error);
@@ -459,7 +480,7 @@ export default function ParticipantDashboard() {
     let unsubWelcome: any = null;
     if (localParticipantId) {
       // Simplify query to just sessionId to debug permission issues
-      unsubWelcome = onSnapshot(query(collection(db, 'welcomeResponses'), where('sessionId', '==', sessionId)), (snapshot) => {
+      unsubWelcome = subscribe(query(collection(db, 'welcomeResponses'), where('sessionId', '==', sessionId)), (snapshot) => {
         const allResponses = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
         // Filter locally for now
         setWelcomeResponses(allResponses.filter((r: any) => r.participantId === localParticipantId));
@@ -470,18 +491,18 @@ export default function ParticipantDashboard() {
 
     // Check local storage for existing participant ID
     if (localParticipantId) {
-      const unsubParticipant = onSnapshot(doc(db, 'participants', localParticipantId), (docSnap) => {
+      const unsubParticipant = subscribe(doc(db, 'participants', localParticipantId), (docSnap) => {
         if (docSnap.exists()) {
           const pData = { id: docSnap.id, ...docSnap.data() } as any;
+          if (pData.uid !== auth.currentUser?.uid || pData.memberId !== auth.currentUser?.uid || pData.sessionId !== sessionId) { setJoinError('Registration conflict. Contact the organizer.'); setLoading(false); return; }
           setParticipant(pData);
           setName(pData.name || '');
-          setPhoneLast4(pData.phoneLast4 || '');
           setAdjective(pData.adjective || '');
           setProficiency(pData.designThinkingProficiency || 'New to it');
 
           if (pData.teamId) {
             // Fetch team
-            onSnapshot(doc(db, 'teams', pData.teamId), (teamSnap) => {
+            subscribe(doc(db, 'teams', pData.teamId), (teamSnap) => {
               if (teamSnap.exists()) {
                 setTeam({ id: teamSnap.id, ...teamSnap.data() });
                 setTeamName(teamSnap.data().name || '');
@@ -490,19 +511,19 @@ export default function ParticipantDashboard() {
               console.error('Team listener error:', error);
             });
             // Fetch teammates
-            onSnapshot(query(collection(db, 'participants'), where('teamId', '==', pData.teamId)), (matesSnap) => {
+            subscribe(query(collection(db, 'participants'), where('teamId', '==', pData.teamId)), (matesSnap) => {
               setTeammates(matesSnap.docs.map(d => ({ id: d.id, ...d.data() })));
             }, (error) => {
               console.error('Teammates listener error:', error);
             });
           } else {
             // Fetch forming team if any
-            onSnapshot(query(collection(db, 'formingTeams'), where('memberIds', 'array-contains', localParticipantId)), (formingSnap) => {
+            subscribe(query(collection(db, 'formingTeams'), where('memberIds', 'array-contains', localParticipantId)), (formingSnap) => {
               if (!formingSnap.empty) {
                 const fTeam = { id: formingSnap.docs[0].id, ...formingSnap.docs[0].data() } as any;
                 setFormingTeam(fTeam);
                 // Fetch forming members
-                onSnapshot(query(collection(db, 'participants'), where('sessionId', '==', sessionId)), (allPartsSnap) => {
+                subscribe(query(collection(db, 'participants'), where('sessionId', '==', sessionId)), (allPartsSnap) => {
                   const allParts = allPartsSnap.docs.map(d => ({ id: d.id, ...d.data() } as any));
                   setFormingMembers(allParts.filter(p => fTeam.memberIds.includes(p.id)));
                 }, (error) => {
@@ -520,7 +541,7 @@ export default function ParticipantDashboard() {
           // --- Discovery Team Listeners ---
           const activeDiscTeamId = pData.discoveryTeamId || pData.discovery_team_id;
           if (activeDiscTeamId) {
-            onSnapshot(doc(db, 'discoveryTeams', activeDiscTeamId), (teamSnap) => {
+            subscribe(doc(db, 'discoveryTeams', activeDiscTeamId), (teamSnap) => {
               if (teamSnap.exists()) {
                 setDiscTeam({ id: teamSnap.id, ...teamSnap.data() });
                 setDiscTeamName(teamSnap.data().name || '');
@@ -528,18 +549,18 @@ export default function ParticipantDashboard() {
             }, (error) => {
               console.error('Discovery team listener error:', error);
             });
-            onSnapshot(query(collection(db, 'participants'), where('sessionId', '==', sessionId)), (allPartsSnap) => {
+            subscribe(query(collection(db, 'participants'), where('sessionId', '==', sessionId)), (allPartsSnap) => {
               const allParts = allPartsSnap.docs.map(d => ({ id: d.id, ...d.data() } as any));
               setDiscTeammates(allParts.filter(p => p.discoveryTeamId === activeDiscTeamId || p.discovery_team_id === activeDiscTeamId));
             }, (error) => {
               console.error('Discovery teammates listener error:', error);
             });
           } else {
-            onSnapshot(query(collection(db, 'formingDiscoveryTeams'), where('memberIds', 'array-contains', localParticipantId)), (formingSnap) => {
+            subscribe(query(collection(db, 'formingDiscoveryTeams'), where('memberIds', 'array-contains', localParticipantId)), (formingSnap) => {
               if (!formingSnap.empty) {
                 const fTeam = { id: formingSnap.docs[0].id, ...formingSnap.docs[0].data() } as any;
                 setFormingDiscTeam(fTeam);
-                onSnapshot(query(collection(db, 'participants'), where('sessionId', '==', sessionId)), (allPartsSnap) => {
+                subscribe(query(collection(db, 'participants'), where('sessionId', '==', sessionId)), (allPartsSnap) => {
                   const allParts = allPartsSnap.docs.map(d => ({ id: d.id, ...d.data() } as any));
                   setFormingDiscMembers(allParts.filter(p => fTeam.memberIds.includes(p.id)));
                 }, (error) => {
@@ -560,6 +581,7 @@ export default function ParticipantDashboard() {
         setLoading(false);
       });
       return () => {
+        subscriptions.forEach(unsubscribe => unsubscribe());
         unsubSession();
         unsubChallenges();
         unsubResources();
@@ -573,6 +595,7 @@ export default function ParticipantDashboard() {
     }
 
     return () => {
+      subscriptions.forEach(unsubscribe => unsubscribe());
       unsubSession();
       unsubChallenges();
       unsubResources();
@@ -583,77 +606,13 @@ export default function ParticipantDashboard() {
     };
   }, [sessionId, navigate, localParticipantId, auth.currentUser]);
 
-  useEffect(() => {
-    if (name.trim() && phoneLast4.length === 4) {
-      setCheckingParticipant(true);
-      const checkExisting = async () => {
-        const passcode = `${name.trim().toLowerCase()}_${phoneLast4}`;
-        const q = query(collection(db, 'participants'), where('sessionId', '==', sessionId), where('passcode', '==', passcode));
-        const snapshot = await getDocs(q);
-        setExistingParticipant(!snapshot.empty);
-        setCheckingParticipant(false);
-      };
-      const timeoutId = setTimeout(checkExisting, 400);
-      return () => clearTimeout(timeoutId);
-    } else {
-      setExistingParticipant(null);
-      setCheckingParticipant(false);
-    }
-  }, [name, phoneLast4, sessionId]);
-
-  const handleJoin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name || !phoneLast4 || phoneLast4.length !== 4) {
-      setJoinError('Please enter your name and 4-digit phone number.');
-      return;
-    }
-
-    setLoading(true);
-    setJoinError('');
-    const passcode = `${name.trim().toLowerCase()}_${phoneLast4}`;
-    const uid = auth.currentUser?.uid;
-
+  const handleJoin = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setLoading(true); setJoinError('');
     try {
-      const q = query(collection(db, 'participants'), where('sessionId', '==', sessionId), where('passcode', '==', passcode));
-      const snapshot = await getDocs(q);
-
-      if (!snapshot.empty) {
-        // Rejoin
-        const existingDoc = snapshot.docs[0];
-        const pData = existingDoc.data() as any;
-        await updateDoc(doc(db, 'participants', existingDoc.id), { uid });
-        localStorage.setItem(`participant_${sessionId}`, existingDoc.id);
-        setLocalParticipantId(existingDoc.id);
-        setParticipant({ id: existingDoc.id, ...pData, uid });
-        setName(pData.name || '');
-        setPhoneLast4(pData.phoneLast4 || '');
-        setAdjective(pData.adjective || '');
-        setProficiency(pData.designThinkingProficiency || 'New to it');
-      } else {
-        // New join
-        const newDocRef = doc(collection(db, 'participants'));
-        const newParticipant = {
-          sessionId,
-          passcode,
-          name: name.trim(),
-          phoneLast4,
-          adjective,
-          designThinkingProficiency: proficiency,
-          isAssigned: false,
-          teamId: null,
-          uid
-        };
-        await setDoc(newDocRef, newParticipant);
-        localStorage.setItem(`participant_${sessionId}`, newDocRef.id);
-        setLocalParticipantId(newDocRef.id);
-        setParticipant({ id: newDocRef.id, ...newParticipant });
-      }
-    } catch (err) {
-      console.error(err);
-      setJoinError('Failed to join session.');
-    } finally {
-      setLoading(false);
-    }
+      const { participantId } = await identityRequest('register', { sessionId, adjective, designThinkingProficiency: proficiency });
+      setLocalParticipantId(participantId);
+    } catch (issue: any) { setJoinError(issue.message); } finally { setLoading(false); }
   };
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
@@ -661,11 +620,15 @@ export default function ParticipantDashboard() {
     if (!participant) return;
 
     try {
-      await updateDoc(doc(db, 'participants', participant.id), {
+      const profileBatch = writeBatch(db);
+      profileBatch.set(doc(db, 'profiles', auth.currentUser!.uid), { name: name.trim(), state: 'active' });
+      profileBatch.set(doc(db, 'registrationDefaults', auth.currentUser!.uid), { adjective, designThinkingProficiency: proficiency });
+      profileBatch.update(doc(db, 'participants', participant.id), {
         name: name.trim(),
         adjective,
         designThinkingProficiency: proficiency
       });
+      await profileBatch.commit();
       showToast('Success', 'Profile updated successfully.', 'success');
     } catch (err) {
       console.error(err);
@@ -894,32 +857,7 @@ export default function ParticipantDashboard() {
     }
 
     try {
-      const batch = writeBatch(db);
-      
-      // Create actual team
-      const teamRef = doc(collection(db, 'teams'));
-      batch.set(teamRef, {
-        sessionId,
-        challengeId: formingTeam.challengeId,
-        name: '',
-        code: formingTeam.id,
-        isOpenToMore: formingTeam.isOpenToMore,
-        isParticipantCreated: true,
-        createdAt: Date.now()
-      });
-
-      // Update all members
-      for (const memberId of formingTeam.memberIds) {
-        batch.update(doc(db, 'participants', memberId), {
-          teamId: teamRef.id,
-          isAssigned: true
-        });
-      }
-
-      // Delete forming team
-      batch.delete(doc(db, 'formingTeams', formingTeam.id));
-      
-      await batch.commit();
+      await identityRequest('finalize-team', { kind: 'solution', formingId: formingTeam.id });
       showToast('Success', 'Team created successfully!', 'success');
     } catch (err) {
       console.error(err);
@@ -1118,32 +1056,7 @@ export default function ParticipantDashboard() {
     }
 
     try {
-      const batch = writeBatch(db);
-      
-      // Create actual discovery team
-      const teamRef = doc(collection(db, 'discoveryTeams'));
-      batch.set(teamRef, {
-        sessionId,
-        name: `Discovery Team ${formingDiscTeam.id}`,
-        code: formingDiscTeam.id,
-        isOpenToMore: formingDiscTeam.isOpenToMore,
-        leaderId: formingDiscTeam.leaderId,
-        isParticipantCreated: true,
-        createdAt: Date.now()
-      });
-
-      // Update all members
-      for (const memberId of formingDiscTeam.memberIds) {
-        batch.update(doc(db, 'participants', memberId), {
-          discoveryTeamId: teamRef.id,
-          discovery_team_id: teamRef.id
-        });
-      }
-
-      // Delete forming team
-      batch.delete(doc(db, 'formingDiscoveryTeams', formingDiscTeam.id));
-      
-      await batch.commit();
+      await identityRequest('finalize-team', { kind: 'discovery', formingId: formingDiscTeam.id });
       showToast('Success', 'Challenge Workgroup created successfully!', 'success');
     } catch (err) {
       console.error(err);
@@ -1186,17 +1099,7 @@ export default function ParticipantDashboard() {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem(`participant_${sessionId}`);
-    setLocalParticipantId(null);
-    setParticipant(null);
-    setName('');
-    setPhoneLast4('');
-    setAdjective('');
-    setProficiency('New to it');
-    setExistingParticipant(null);
-    setCheckingParticipant(false);
-  };
+  const handleLogout = () => signOut(auth);
 
   const copyPrompt = () => {
     if (!teammates.length) return;
@@ -1207,7 +1110,7 @@ export default function ParticipantDashboard() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  if (loading || !session) return <div className="min-h-screen bg-zinc-950 text-zinc-100 flex items-center justify-center">Loading...</div>;
+  if (loading || !session || !registrationReady) return <div className="min-h-screen bg-zinc-950 text-zinc-100 flex items-center justify-center">Loading...</div>;
 
   if (!participant) {
     return (
@@ -1222,33 +1125,15 @@ export default function ParticipantDashboard() {
           </div>
 
           <form onSubmit={handleJoin} className="space-y-4 bg-zinc-900 p-6 rounded-2xl border border-zinc-800">
-            <div>
-              <label className="block text-sm font-medium text-zinc-400 mb-1">Full Name</label>
-              <input type="text" value={name} onChange={e => setName(e.target.value)} className="w-full px-4 py-3 bg-zinc-950 border border-zinc-800 rounded-xl focus:ring-2 focus:ring-emerald-500" required />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-zinc-400 mb-1">Last 4 Digits of Phone</label>
-              <input type="text" maxLength={4} pattern="\d{4}" value={phoneLast4} onChange={e => setPhoneLast4(e.target.value)} className="w-full px-4 py-3 bg-zinc-950 border border-zinc-800 rounded-xl focus:ring-2 focus:ring-emerald-500" required />
-            </div>
-            
-            {checkingParticipant && (
-              <div className="text-sm text-zinc-500 animate-pulse text-center py-2">Checking details...</div>
-            )}
-
-            {existingParticipant === true && !checkingParticipant && (
-              <div className="bg-emerald-950/50 border border-emerald-900 p-4 rounded-xl">
-                <p className="text-emerald-400 text-sm">Looks like you’ve joined before — welcome back! Just confirm your details to rejoin.</p>
-              </div>
-            )}
-
-            {existingParticipant === false && !checkingParticipant && (
+            <p>Register as <strong>{profile.name}</strong>. <a href="/account" className="underline">Edit your profile</a></p>
+            <p className="text-sm text-zinc-400">Returning from the old sign-in? Ask your organizer to link your previous registration before continuing. Phone passcodes cannot recover it.</p>
               <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
                 <div className="bg-zinc-800/50 p-4 rounded-xl">
                   <p className="text-zinc-300 text-sm">Tell us a little about yourself so we can form great teams.</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-zinc-400 mb-1">Pick a word that describes you today</label>
-                  <input type="text" value={adjective} onChange={e => setAdjective(e.target.value)} placeholder="e.g. Curious, Builder, Explorer" className="w-full px-4 py-3 bg-zinc-950 border border-zinc-800 rounded-xl focus:ring-2 focus:ring-emerald-500" required />
+                  <input type="text" maxLength={100} value={adjective} onChange={e => setAdjective(e.target.value)} placeholder="e.g. Curious, Builder, Explorer" className="w-full px-4 py-3 bg-zinc-950 border border-zinc-800 rounded-xl focus:ring-2 focus:ring-emerald-500" required />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-zinc-400 mb-1">Design Thinking Proficiency</label>
@@ -1260,11 +1145,10 @@ export default function ParticipantDashboard() {
                   </select>
                 </div>
               </div>
-            )}
 
             {joinError && <p className="text-red-400 text-sm">{joinError}</p>}
 
-            <button type="submit" disabled={loading || checkingParticipant || existingParticipant === null} className="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-medium rounded-xl transition-colors">
+            <button type="submit" disabled={loading} className="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-medium rounded-xl transition-colors">
               {loading ? 'Joining...' : 'Continue'}
             </button>
           </form>

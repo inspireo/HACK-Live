@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
 import { Hash } from 'lucide-react';
@@ -101,6 +101,7 @@ export default function Home() {
         </form>
 
         <div className="pt-12 text-center">
+          <Link className="block text-emerald-400 mb-5" to="/members">Community members</Link>
           <button 
             onClick={() => navigate('/admin')}
             className="text-sm text-zinc-500 hover:text-zinc-300 transition-colors"

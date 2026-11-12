@@ -1,18 +1,18 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
+
     function isAuthenticated() {
-      return request.auth != null;
+      return request.auth != null && request.auth.token.firebase.sign_in_provider != 'anonymous' && request.auth.token.email_verified == true;
     }
-    
+
     function isAdmin() {
       return isAuthenticated() &&
         ((exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin') ||
           (request.auth.token.email == "xaeltan@gmail.com" && request.auth.token.email_verified == true));
     }
-    
+
     function isSessionOwner(sessionId) {
       return isAuthenticated() && get(/databases/$(database)/documents/sessions/$(sessionId)).data.ownerId == request.auth.uid;
     }
@@ -21,15 +21,35 @@ service cloud.firestore {
       return isAuthenticated() && (
         isAdmin() ||
         get(/databases/$(database)/documents/sessions/$(sessionId)).data.ownerId == request.auth.uid ||
-        (request.auth.token.email != null && 
-         'adminEmails' in get(/databases/$(database)/documents/sessions/$(sessionId)).data && 
-         request.auth.token.email in get(/databases/$(database)/documents/sessions/$(sessionId)).data.adminEmails)
+        (request.auth.token.email != null &&
+         exists(/databases/$(database)/documents/sessionAccess/$(sessionId)) &&
+         request.auth.token.email in get(/databases/$(database)/documents/sessionAccess/$(sessionId)).data.adminEmails)
       );
     }
 
-    function isDocOwner() {
-      return isAuthenticated() && request.auth.uid == resource.data.uid;
+    function hasActiveProfile() {
+      return isAuthenticated() && get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.state == 'active';
     }
+
+    match /profiles/{memberId} {
+      allow read: if isAuthenticated() && (request.auth.uid == memberId || resource.data.state == 'active');
+      allow create: if isAuthenticated() && request.auth.uid == memberId && validProfile();
+      allow update: if isAuthenticated() && request.auth.uid == memberId && resource.data.state != 'deleting' && validProfile();
+      allow delete: if false;
+      function validProfile() {
+        return request.resource.data.keys().hasOnly(['name', 'state']) && request.resource.data.state == 'active' && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 100;
+      }
+    }
+    match /registrationDefaults/{memberId} {
+      allow read: if isAuthenticated() && request.auth.uid == memberId;
+      allow create, update: if isAuthenticated() && request.auth.uid == memberId && get(/databases/$(database)/documents/profiles/$(memberId)).data.state == 'active' && request.resource.data.keys().hasOnly(['adjective', 'designThinkingProficiency']) && request.resource.data.adjective is string && request.resource.data.adjective.size() <= 100 && request.resource.data.designThinkingProficiency in ['Experienced', 'Trained', 'Some exposure', 'New to it'];
+    }
+    match /registrations/{registrationId} {
+      allow get: if isAuthenticated() && (registrationId.matches('.*~' + request.auth.uid) || resource.data.uid == request.auth.uid);
+      allow list: if isAuthenticated() && resource.data.uid == request.auth.uid;
+      allow write: if false;
+    }
+    match /legacyParticipantSecrets/{participantId} { allow read, write: if false; }
 
     match /users/{userId} {
       allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
@@ -38,42 +58,42 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    match /sessionAccess/{sessionId} {
+      allow read: if hasAdminAccess(sessionId);
+      allow create, update: if hasAdminAccess(sessionId) && request.resource.data.keys().hasOnly(['ownerEmail', 'adminEmails']) && request.resource.data.adminEmails is list && request.resource.data.ownerEmail is string;
+      allow delete: if isSessionOwner(sessionId) || isAdmin();
+    }
+
     match /sessions/{sessionId} {
-      allow read: if true;
-      allow create: if isAuthenticated() && request.resource.data.ownerId == request.auth.uid;
-      allow update: if isAuthenticated() && (
-        resource.data.ownerId == request.auth.uid || 
-        isAdmin() || 
-        (request.auth.token.email != null && 
-         'adminEmails' in resource.data && 
-         request.auth.token.email in resource.data.adminEmails)
-      );
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.ownerId == request.auth.uid && !request.resource.data.keys().hasAny(['ownerEmail', 'adminEmails', 'email', 'emailAddress', 'phone', 'phoneNumber', 'phoneLast4', 'passcode']);
+      allow update: if hasAdminAccess(sessionId) && !request.resource.data.keys().hasAny(['ownerEmail', 'adminEmails', 'email', 'emailAddress', 'phone', 'phoneNumber', 'phoneLast4', 'passcode']) && request.resource.data.ownerId == resource.data.ownerId;
       allow delete: if isAuthenticated() && (resource.data.ownerId == request.auth.uid || isAdmin());
     }
 
     match /challenges/{challengeId} {
-      allow read: if true;
+      allow read: if isAuthenticated();
       allow create: if isAuthenticated() && (hasAdminAccess(request.resource.data.sessionId));
       allow update, delete: if isAuthenticated() && (hasAdminAccess(resource.data.sessionId));
     }
 
     match /resources/{resourceId} {
-      allow read: if true;
+      allow read: if isAuthenticated();
       allow create: if isAuthenticated() && (hasAdminAccess(request.resource.data.sessionId));
       allow update, delete: if isAuthenticated() && (hasAdminAccess(resource.data.sessionId));
     }
 
     match /participants/{participantId} {
-      allow read: if true;
-      allow create: if isAuthenticated() && (request.resource.data.uid == request.auth.uid || isAdmin());
+      allow read: if isAuthenticated();
+      // Only the trusted registration transaction creates or links participants.
+      allow create: if false;
       allow update: if isAuthenticated() && (
-        isAdmin() ||
-        hasAdminAccess(resource.data.sessionId) || 
+        ((isAdmin() || hasAdminAccess(resource.data.sessionId)) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'adjective', 'designThinkingProficiency', 'teamId', 'isAssigned', 'selectedChallengeId', 'discoveryTeamId', 'discovery_team_id', 'solutioning_team_id', 'interestedFocusAreaId', 'interestedFocusAreaIds', 'archetypeScores', 'primaryArchetype', 'secondaryArchetype', 'persistedAnswers'])) ||
         (
-          (resource.data.uid == request.auth.uid || request.resource.data.passcode == resource.data.passcode) && 
+          (resource.data.uid == request.auth.uid && resource.data.memberId == request.auth.uid && get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.state == 'active') &&
           (
             // Always allowed fields for the participant themselves
-            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'adjective', 'designThinkingProficiency', 'uid', 'teamId', 'isAssigned', 'selectedChallengeId', 'discoveryTeamId', 'discovery_team_id', 'solutioning_team_id', 'interestedFocusAreaId', 'interestedFocusAreaIds', 'archetypeScores', 'primaryArchetype', 'secondaryArchetype', 'persistedAnswers']) &&
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'adjective', 'designThinkingProficiency', 'teamId', 'isAssigned', 'selectedChallengeId', 'discoveryTeamId', 'discovery_team_id', 'solutioning_team_id', 'interestedFocusAreaId', 'interestedFocusAreaIds', 'archetypeScores', 'primaryArchetype', 'secondaryArchetype', 'persistedAnswers']) &&
             // State-based restrictions for sensitive fields
             (
               !request.resource.data.diff(resource.data).affectedKeys().hasAny(['selectedChallengeId']) ||
@@ -94,39 +114,59 @@ service cloud.firestore {
                 get(/databases/$(database)/documents/sessions/$(resource.data.sessionId)).data.status == 'Focus Areas' ||
                 get(/databases/$(database)/documents/sessions/$(resource.data.sessionId)).data.status == 'Discovery Team Formation' ||
                 get(/databases/$(database)/documents/sessions/$(resource.data.sessionId)).data.status == 'Challenge Discovery' ||
+                get(/databases/$(database)/documents/sessions/$(resource.data.sessionId)).data.status == 'Challenge Drafting' ||
+                get(/databases/$(database)/documents/sessions/$(resource.data.sessionId)).data.status == 'Challenge Proposing' ||
                 get(/databases/$(database)/documents/sessions/$(resource.data.sessionId)).data.status == 'Challenge Voting'
               )
             )
           )
         )
       );
-      allow delete: if isAuthenticated() && (hasAdminAccess(resource.data.sessionId));
+      allow delete: if false; // Trusted removal also cleans the unique pointer.
     }
 
+    function registeredParticipant(sessionId) {
+      return get(/databases/$(database)/documents/registrations/$(sessionId + '~' + request.auth.uid)).data.participantId;
+    }
+    function canCreateForming() {
+      let ownId = registeredParticipant(request.resource.data.sessionId);
+      return hasActiveProfile() && request.resource.data.leaderId == ownId && request.resource.data.memberIds == [ownId];
+    }
+    function canUpdateForming() {
+      let ownId = registeredParticipant(resource.data.sessionId);
+      let beforeMembers = resource.data.memberIds.toSet();
+      let afterMembers = request.resource.data.memberIds.toSet();
+      return hasActiveProfile() && request.resource.data.sessionId == resource.data.sessionId && request.resource.data.leaderId == resource.data.leaderId && (
+        (resource.data.leaderId == ownId && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isOpenToMore'])) ||
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberIds']) && request.resource.data.memberIds.size() == afterMembers.size() && (
+          (!(ownId in beforeMembers) && resource.data.isOpenToMore && afterMembers == beforeMembers.union([ownId].toSet())) ||
+          (ownId != resource.data.leaderId && ownId in beforeMembers && afterMembers == beforeMembers.difference([ownId].toSet()))
+        ))
+      );
+    }
     match /formingTeams/{teamId} {
-      allow read: if true;
-      allow create: if true;
-      allow update: if true;
-      allow delete: if true;
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && (hasAdminAccess(request.resource.data.sessionId) || canCreateForming());
+      allow update: if isAuthenticated() && (hasAdminAccess(resource.data.sessionId) || canUpdateForming());
+      allow delete: if isAuthenticated() && (hasAdminAccess(resource.data.sessionId) || resource.data.leaderId == registeredParticipant(resource.data.sessionId));
     }
-
     match /formingDiscoveryTeams/{teamId} {
-      allow read: if true;
-      allow create: if true;
-      allow update: if true;
-      allow delete: if true;
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && (hasAdminAccess(request.resource.data.sessionId) || canCreateForming());
+      allow update: if isAuthenticated() && (hasAdminAccess(resource.data.sessionId) || canUpdateForming());
+      allow delete: if isAuthenticated() && (hasAdminAccess(resource.data.sessionId) || resource.data.leaderId == registeredParticipant(resource.data.sessionId));
     }
 
     match /discoveryTeams/{teamId} {
-      allow read: if true;
-      allow create, update: if true;
+      allow read: if isAuthenticated();
+      allow create, update: if isAuthenticated();
       allow delete: if isAuthenticated() && (hasAdminAccess(resource.data.sessionId));
     }
 
     match /teams/{teamId} {
-      allow read: if true;
+      allow read: if isAuthenticated();
       allow create: if isAuthenticated() && (
-        hasAdminAccess(request.resource.data.sessionId) || 
+        hasAdminAccess(request.resource.data.sessionId) ||
         get(/databases/$(database)/documents/sessions/$(request.resource.data.sessionId)).data.status == 'Team Formation'
       );
       allow update: if isAuthenticated() && (
@@ -135,7 +175,7 @@ service cloud.firestore {
         (
           get(/databases/$(database)/documents/sessions/$(resource.data.sessionId)).data.status == 'Team Naming Open' &&
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'nameSubmittedBy']) &&
-          get(/databases/$(database)/documents/participants/$(request.auth.uid)).data.teamId == teamId
+          get(/databases/$(database)/documents/participants/$(get(/databases/$(database)/documents/registrations/$(resource.data.sessionId + '~' + request.auth.uid)).data.participantId)).data.teamId == teamId
         )
       );
       allow delete: if isAuthenticated() && (hasAdminAccess(resource.data.sessionId));
@@ -143,33 +183,33 @@ service cloud.firestore {
 
     match /welcomeResponses/{responseId} {
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && request.resource.data.uid == request.auth.uid;
-      allow update, delete: if isAdmin() || hasAdminAccess(resource.data.sessionId) || 
+      allow create: if hasActiveProfile() && request.resource.data.uid == request.auth.uid && request.resource.data.participantId == registeredParticipant(request.resource.data.sessionId);
+      allow update: if isAdmin() || hasAdminAccess(resource.data.sessionId) ||
         (isAuthenticated() && (
-          ('uid' in resource.data && resource.data.uid == request.auth.uid) ||
-          (!('uid' in resource.data) && get(/databases/$(database)/documents/participants/$(resource.data.participantId)).data.uid == request.auth.uid)
+          (hasActiveProfile() && resource.data.participantId == registeredParticipant(resource.data.sessionId) && request.resource.data.uid == resource.data.uid && request.resource.data.participantId == resource.data.participantId && request.resource.data.sessionId == resource.data.sessionId)
         ));
+      allow delete: if isAdmin() || hasAdminAccess(resource.data.sessionId) || (hasActiveProfile() && resource.data.participantId == registeredParticipant(resource.data.sessionId));
     }
 
     match /focusAreas/{focusAreaId} {
-      allow read: if true;
+      allow read: if isAuthenticated();
       allow create, update, delete: if isAuthenticated() && (hasAdminAccess(request.resource.data.sessionId) || (resource != null && hasAdminAccess(resource.data.sessionId)));
     }
 
     match /proposedChallenges/{proposedChallengeId} {
-      allow read: if true;
-      allow create: if isAuthenticated() && request.resource.data.uid == request.auth.uid;
+      allow read: if isAuthenticated();
+      allow create: if hasActiveProfile() && request.resource.data.uid == request.auth.uid && request.resource.data.submitterParticipantId == registeredParticipant(request.resource.data.sessionId);
       allow update: if isAuthenticated() && (
-        isAdmin() || 
-        hasAdminAccess(resource.data.sessionId) || 
-        resource.data.uid == request.auth.uid
+        isAdmin() ||
+        hasAdminAccess(resource.data.sessionId) ||
+        (hasActiveProfile() && resource.data.uid == request.auth.uid && request.resource.data.uid == resource.data.uid && request.resource.data.sessionId == resource.data.sessionId && resource.data.submitterParticipantId == registeredParticipant(resource.data.sessionId) && request.resource.data.submitterParticipantId == resource.data.submitterParticipantId)
       );
       allow delete: if isAuthenticated() && (isAdmin() || hasAdminAccess(resource.data.sessionId));
     }
 
     match /proposedChallengeVotes/{voteId} {
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && request.resource.data.uid == request.auth.uid;
+      allow create: if hasActiveProfile() && request.resource.data.uid == request.auth.uid;
       allow delete: if isAuthenticated() && resource.data.uid == request.auth.uid;
     }
   }

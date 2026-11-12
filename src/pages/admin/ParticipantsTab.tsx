@@ -4,6 +4,7 @@ import { db } from '../../firebase';
 import { Edit2, CheckCircle2, AlertCircle, HelpCircle, Trash2, X, Download } from 'lucide-react';
 import { ARCHETYPES, getLeanings } from '../../data/questionPacks';
 import { exportToCSV } from '../../utils/csv';
+import { identityRequest } from '../../identity';
 
 interface ParticipantsTabProps {
   sessionId?: string;
@@ -32,6 +33,8 @@ export default function ParticipantsTab({
   const [deleteConfirmationText, setDeleteConfirmationText] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  const [legacyParticipantId, setLegacyParticipantId] = useState('');
+  const [memberUid, setMemberUid] = useState('');
 
   const [discoveryTeams, setDiscoveryTeams] = useState<any[]>([]);
 
@@ -169,7 +172,7 @@ export default function ParticipantsTab({
       const p = participants.find(part => part.id === deletingParticipantId);
       const wasInTeam = !!p?.teamId;
 
-      await deleteDoc(doc(db, 'participants', deletingParticipantId));
+      await identityRequest('remove-registration', { participantId: deletingParticipantId, sessionId });
       
       setSuccessMessage(wasInTeam 
         ? 'Participant deleted and removed from their team.' 
@@ -283,6 +286,19 @@ export default function ParticipantsTab({
 
   return (
     <div className="space-y-6">
+      <details className="p-4 border border-zinc-700 rounded-xl">
+        <summary>Link a legacy registration</summary>
+        <p className="my-3 text-sm">Independently verify the person and their account ID before linking. An old UID, name or phone passcode is not proof. Linking preserves workshop/team history and refuses conflicting registrations.</p>
+        <form className="space-y-3" onSubmit={async event => {
+          event.preventDefault(); clearMessages();
+          if (!participants.some(participant => participant.id === legacyParticipantId && !participant.memberId)) { setErrorMessage('Select an unlinked participant from this event.'); return; }
+          try { await identityRequest('link-legacy', { participantId: legacyParticipantId, memberUid }); setSuccessMessage('Legacy registration linked.'); } catch (issue: any) { setErrorMessage(issue.message); }
+        }}>
+          <label className="block">Legacy participant<select aria-label="Legacy participant" className="block bg-zinc-900 p-2" value={legacyParticipantId} onChange={event => setLegacyParticipantId(event.target.value)} required><option value="">Select participant</option>{participants.filter(participant => !participant.memberId && participant.name !== 'Deleted member').map(participant => <option key={participant.id} value={participant.id}>{participant.name} ({participant.id})</option>)}</select></label>
+          <label className="block">Verified member account ID<input className="block bg-zinc-900 p-2" value={memberUid} onChange={event => setMemberUid(event.target.value.trim())} required /></label>
+          <button className="p-2 rounded bg-emerald-700">Link verified member</button>
+        </form>
+      </details>
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold">Participants ({participants.length})</h2>
         <button

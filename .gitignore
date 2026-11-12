@@ -6,3 +6,8 @@ coverage/
 *.log
 .env*
 !.env.example
+
+playwright-report/
+test-results/
+.firebase/
+.agents/memory/

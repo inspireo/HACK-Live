@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { doc, onSnapshot, updateDoc, collection, query, where, getDocs, addDoc, deleteDoc, writeBatch } from 'firebase/firestore';
+import { doc, onSnapshot, updateDoc, collection, query, where, getDoc, getDocs, addDoc, deleteDoc, writeBatch } from 'firebase/firestore';
 import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { db, auth } from '../../firebase';
 import { ArrowLeft, Settings, Users, Target, FileText, MonitorPlay, Sparkles, ChevronLeft, ChevronRight, Activity, Award, Shield, CheckCircle2, Trash2, Eye, EyeOff, Plus, Minus } from 'lucide-react';
@@ -148,11 +148,15 @@ export default function AdminSession() {
     if (!sessionId || !user || user.isAnonymous) return;
 
     setLoading(true);
-    const unsubSession = onSnapshot(doc(db, 'sessions', sessionId), (doc) => {
-      if (doc.exists()) {
-        const data = doc.data();
+    let unsubAccess = () => {};
+    const unsubSession = onSnapshot(doc(db, 'sessions', sessionId), (sessionDoc) => {
+      if (sessionDoc.exists()) {
+        unsubAccess();
+        unsubAccess = onSnapshot(doc(db, 'sessionAccess', sessionId), async accessDoc => {
+        const data = { ...sessionDoc.data(), ...accessDoc.data() } as any;
+        const role = await getDoc(doc(db, 'users', user.uid));
         // Client-side verification
-        const isPlatformOwner = user.email === 'xaeltan@gmail.com';
+        const isPlatformOwner = user.email === 'xaeltan@gmail.com' || role.data()?.role === 'admin';
         const isSessionOwner = data.ownerId === user.uid;
         const isAssignedAdmin = data.adminEmails && data.adminEmails.includes(user.email);
         
@@ -160,8 +164,10 @@ export default function AdminSession() {
           setPermissionError(true);
         } else {
           setPermissionError(false);
-          setSession({ id: doc.id, ...data });
+          setSession({ id: sessionDoc.id, ...data });
         }
+        setLoading(false);
+        }, () => { setPermissionError(true); setLoading(false); });
       } else {
         navigate('/admin');
       }
@@ -218,6 +224,7 @@ export default function AdminSession() {
 
     return () => {
       unsubSession();
+      unsubAccess();
       unsubChallenges();
       unsubResources();
       unsubParticipants();
@@ -359,7 +366,7 @@ export default function AdminSession() {
     }
 
     try {
-      await updateDoc(doc(db, 'sessions', sessionId!), {
+      await updateDoc(doc(db, 'sessionAccess', sessionId!), {
         adminEmails: [...currentAdmins, emailToGrant]
       });
       setNewAdminEmail('');
@@ -380,7 +387,7 @@ export default function AdminSession() {
     try {
       const currentAdmins = session?.adminEmails || [];
       const updatedAdmins = currentAdmins.filter((em: string) => em !== emailToRemove);
-      await updateDoc(doc(db, 'sessions', sessionId!), {
+      await updateDoc(doc(db, 'sessionAccess', sessionId!), {
         adminEmails: updatedAdmins
       });
       setAdminSuccess(`Successfully revoked access for ${emailToRemove}.`);
