@@ -3,6 +3,7 @@ import { GoogleAuthProvider, EmailAuthProvider, User, createUserWithEmailAndPass
 import { collection, doc, getDocs, onSnapshot, query, setDoc, where } from 'firebase/firestore';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { auth, db } from './firebase';
+import { ConnectionIndicator, ConnectionPanel } from './connections';
 import { MemberDetails, ProfileEditor } from './profile-details';
 
 export const isRegisteredMember = (user: User | null) => !!user && !user.isAnonymous && user.emailVerified;
@@ -51,7 +52,7 @@ export function MemberGate({ children }: { children: React.ReactNode }) {
     try { await identityRequest('delete-profile'); } catch (issue: any) { setDeletionMessage(issue.message); } finally { setDeletionBusy(false); }
   }}>Retry deletion</button><p role="status">{deletionMessage}</p><button onClick={() => signOut(auth)}>Sign out</button></Panel>;
   if (!profile || profile.state === 'deleted') return <ProfileForm />;
-  return <ProfileContext.Provider value={profile}><div className="bg-zinc-900 text-white px-5 py-2 flex justify-between"><Link to="/">#HACK Live</Link><Link to="/account">Account · {profile.name}</Link></div>{children}</ProfileContext.Provider>;
+  return <ProfileContext.Provider value={profile}><div className="bg-zinc-900 text-white px-5 py-2 flex justify-between"><Link to="/">#HACK Live</Link><ConnectionIndicator /><Link to="/account">Account · {profile.name}</Link></div>{children}</ProfileContext.Provider>;
 }
 
 function SignIn({ user }: { user: User | null }) {
@@ -133,7 +134,7 @@ export function MemberProfile() {
     setMember(snapshot.exists() && snapshot.data().state === 'active' ? snapshot.data() as Profile : null);
     setMessage('Member unavailable.');
   }, () => { setMember(null); setMessage('Member unavailable.'); }), [memberId]);
-  return <Panel>{member ? <><h1 className="text-3xl">{member.name}</h1><p>Community member</p><MemberDetails memberId={memberId!} /></> : <p>{message}</p>}<Link to="/members">Community members</Link></Panel>;
+  return <Panel>{member ? <><h1 className="text-3xl">{member.name}</h1><p>Community member</p><MemberDetails memberId={memberId!} /><ConnectionPanel key={memberId} peerUid={memberId!} /></> : <p>{message}</p>}<Link to="/members">Community members</Link></Panel>;
 }
 export function Members() {
   const [members, setMembers] = useState<{ memberId: string; name: string }[]>([]);

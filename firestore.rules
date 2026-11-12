@@ -49,8 +49,29 @@ service cloud.firestore {
       allow get: if isAuthenticated() && get(/databases/$(database)/documents/profiles/$(memberId)).data.state == 'active';
       allow write, list: if false;
     }
-    // Reserved for the next slice. No accepted-connection access exists yet.
-    match /connectionContacts/{memberId} { allow read, write: if false; }
+    function hasAcceptedConnection(memberId) {
+      let ownView = get(/databases/$(database)/documents/connectionViews/$(request.auth.uid)/peers/$(memberId)).data;
+      let peerView = get(/databases/$(database)/documents/connectionViews/$(memberId)/peers/$(request.auth.uid)).data;
+      let pair = get(/databases/$(database)/documents/connectionPairs/$(ownView.pairId)).data;
+      return ownView.state == 'accepted' && peerView.state == 'accepted' &&
+        ownView.pairId == peerView.pairId && ownView.generation == peerView.generation &&
+        pair.state == 'accepted' && pair.generation == ownView.generation &&
+        pair.members.size() == 2 && pair.members.hasAll([request.auth.uid, memberId]);
+    }
+    // Server-only canonical pair plus both mirrors must agree. Missing or partial
+    // cleanup fails closed. A block changes canonical state and both mirrors.
+    match /connectionContacts/{memberId} {
+      allow get: if hasActiveProfile() &&
+        get(/databases/$(database)/documents/profiles/$(memberId)).data.state == 'active' &&
+        request.auth.uid != memberId && hasAcceptedConnection(memberId);
+      allow list, write: if false;
+    }
+    match /connectionViews/{owner}/peers/{peer} {
+      allow read: if hasActiveProfile() && request.auth.uid == owner;
+      allow write: if false;
+    }
+    match /connectionPairs/{pair} { allow read, write: if false; }
+    match /connectionBlocks/{owner}/targets/{target} { allow read, write: if false; }
     match /registrationDefaults/{memberId} {
       allow read: if isAuthenticated() && request.auth.uid == memberId;
       allow create, update: if isAuthenticated() && request.auth.uid == memberId && get(/databases/$(database)/documents/profiles/$(memberId)).data.state == 'active' && request.resource.data.keys().hasOnly(['adjective', 'designThinkingProficiency']) && request.resource.data.adjective is string && request.resource.data.adjective.size() <= 100 && request.resource.data.designThinkingProficiency in ['Experienced', 'Trained', 'Some exposure', 'New to it'];

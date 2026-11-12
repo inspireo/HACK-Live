@@ -43,7 +43,7 @@ export function createProfileCleanup(database: Firestore, uid: string, attemptId
   const mutations: CleanupMutation[] = [];
   const jobRef = database.doc(`profileDeletionJobs/${uid}`);
   // PR2 extension seam: deterministic owner documents, no owned blob assets.
-  for (const collectionName of ['profileDetails', 'memberDetails']) mutations.push({ reference: database.doc(`${collectionName}/${uid}`) });
+  for (const collectionName of ['profileDetails', 'memberDetails', 'connectionContacts']) mutations.push({ reference: database.doc(`${collectionName}/${uid}`) });
   return {
     update: (reference: DocumentReference, changes: UpdateData<DocumentData>) => { mutations.push({ reference, changes }); },
     delete: (reference: DocumentReference) => { mutations.push({ reference }); },
