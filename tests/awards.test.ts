@@ -297,6 +297,9 @@ test('actual delete-profile partial failure preserves award recovery IDs, retrie
   assert.equal((await fixtureDb.doc(`awardAudits/${auditId}`).get()).data()!.actorUid, otherUid);
   assert.equal((await fixtureDb.doc(`awardResults/${teamResult}`).get()).data()!.updatedBy, otherUid);
   await fixtureDb.doc('proposedChallenges/award-retry-proposal').update({ publishedChallengeId: 'missing-valid-publication' });
+  // The explicit conditional-scrub probes renewed this still-current attempt's
+  // lease. Release it before exercising authenticated takeover/retry.
+  await releaseProfileDeletion(fixtureDb, 'alice', savedJob.attemptId);
   const retried = await callIdentity(tokens.alice, 'delete-profile');
   assert.equal(retried.status, 200, JSON.stringify(retried));
   assert.equal((await job.get()).exists, false);
