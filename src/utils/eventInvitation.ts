@@ -32,7 +32,8 @@ export function buildEventInvitation(
     ? publicTitle.replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim()
     : '';
   // Avoid carrying links, markup or contact details embedded in a title into the message.
-  const safeTitle = title && title.length <= 160 && !/[<>@]|https?:|www\./i.test(title)
+  const hasEmailAddress = /[^\s@]+@[^\s@]+\.[^\s@]+/.test(title);
+  const safeTitle = title && title.length <= 160 && !/[<>]|https?:|www\./i.test(title) && !hasEmailAddress
     ? title : '#HACK Live workshop';
   const url = new URL(`/session/${encodeURIComponent(sessionId)}`, site.origin).href;
   const text = `Join me at ${safeTitle}! Come collaborate with us on #HACK Live.`;

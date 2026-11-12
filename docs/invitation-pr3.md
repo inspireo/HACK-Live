@@ -24,6 +24,8 @@ distinguishes initial unpublished setup from that review stage.
 The current session model has no published event date or venue. Neither is
 invented from creation timestamps or unrelated fields. Blank, oversized,
 markup/link/contact-style titles fall back to `#HACK Live workshop`.
+Ordinary `@` punctuation/names such as `Hack @ Singapore` and `Hack@Home`
+are preserved; email-shaped text is distinguished from a literal `@`.
 
 ## Architecture and trust boundaries
 
@@ -56,6 +58,9 @@ The inherited serial harness now also runs nine focused invitation logic tests
 and two real Chromium invitation journeys. Cumulative results: **3 profile pure,
 9 invitation pure, 18 real API/rules and 7 Chromium tests passed**. Typecheck and
 production build pass; Vite retains the existing large-chunk advisory.
+The title-fidelity follow-up reruns the nine focused tests and typecheck, adding
+ordinary `@` name regressions. Its unchanged synthetic demo output reuses the
+passing recordings; final CI reruns the cumulative suite.
 
 Commands and actual recordings: [invitation evidence](evidence/invitation-pr3.md).
 Only OS share/clipboard contracts are substituted in browser tests. Real local

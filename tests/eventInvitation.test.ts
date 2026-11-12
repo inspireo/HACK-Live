@@ -29,8 +29,13 @@ test('only known active stages are invitable; setup, closed and unknown are not 
   }
 });
 
-test('title is normalized; unsafe or missing titles fall back to a safe name', () => {
+test('title preserves ordinary @ names, normalizes controls and falls back for unsafe values', () => {
   assert.equal(buildEventInvitation('event', ' Community\n Hack ', 'Live', 'https://hack.example')!.title, 'Community Hack');
+  for (const title of ['Hack @ Singapore', 'Hack@Home']) {
+    const result = buildEventInvitation('event', title, 'Live', 'https://hack.example')!;
+    assert.equal(result.title, title);
+    assert.equal(result.text, `Join me at ${title}! Come collaborate with us on #HACK Live.`);
+  }
   for (const title of [undefined, {}, '', '<b>Event</b>', 'admin@example.com', 'Visit https://private.example', 'www.private.example', 'a'.repeat(161)]) {
     assert.equal(buildEventInvitation('event', title, 'Live', 'https://hack.example')!.title, '#HACK Live workshop');
   }
