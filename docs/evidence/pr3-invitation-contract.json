@@ -1,0 +1,14 @@
+{
+  "mode": "paced-emulator-browser",
+  "shared": {
+    "payload": {
+      "title": "Synthetic Design Workshop",
+      "text": "Join me at Synthetic Design Workshop! Come collaborate with us on #HACK Live.",
+      "url": "http://127.0.0.1:3000/session/event-one"
+    },
+    "active": true
+  },
+  "fullText": "Join me at Synthetic Design Workshop! Come collaborate with us on #HACK Live.\nhttp://127.0.0.1:3000/session/event-one",
+  "osContractsMocked": true,
+  "physicalDevice": false
+}
