@@ -68,7 +68,9 @@ export function connectionsRouter(database: Firestore) {
   return router;
 }
 
-// Called after mark-deleting. No transaction can create new edges for this uid.
+// Called after beginProfileDeletion marks deleting. Discovery only: every
+// delete runs through the parent attempt-fenced transaction queue, including
+// targets discovered after a stale worker resumes. No raw cleanup writes.
 // Preserve OTHER members' empty, hashed safety preferences across recreation.
 export async function queueConnectionCleanup(database: Firestore, uid: string, cleanup: { delete: (reference: DocumentReference) => void }) {
   const [relations, ownViews, ownBlocks, incomingViews] = await Promise.all([

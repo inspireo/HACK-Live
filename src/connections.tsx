@@ -10,9 +10,10 @@ const buttonClass = 'px-3 py-2 rounded bg-emerald-800 disabled:opacity-50';
 function useConnections() {
   const [connections, setConnections] = useState<ConnectionView[]>([]);
   const [error, setError] = useState('');
-  useEffect(() => onSnapshot(collection(db, 'connectionViews', auth.currentUser!.uid, 'peers'), snapshot => {
+  const ownUid = auth.currentUser!.uid;
+  useEffect(() => onSnapshot(collection(db, 'connectionViews', ownUid, 'peers'), snapshot => {
     setConnections(snapshot.docs.map(entry => entry.data() as ConnectionView)); setError('');
-  }, issue => { setConnections([]); setError(issue.message); }), []);
+  }, issue => { setConnections([]); setError(issue.message); }), [ownUid]);
   return { connections, error };
 }
 export function ConnectionIndicator() {
@@ -61,7 +62,7 @@ export function ConnectionPanel({ peerUid }: { peerUid: string }) {
     setContacts({});
     if (view?.state !== 'accepted') return;
     return onSnapshot(doc(db, 'connectionContacts', peerUid), snapshot => setContacts(snapshot.data() || {}), () => setContacts({}));
-  }, [peerUid, view?.state, view?.generation]);
+  }, [ownUid, peerUid, view?.state, view?.generation]);
   if (peerUid === ownUid) return null;
   const state = fields.state === 'blocked' ? 'blocked' : view?.state || 'none';
   const outgoing = view?.requester === ownUid;

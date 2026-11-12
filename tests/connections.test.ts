@@ -5,7 +5,7 @@ import { assertFails, assertSucceeds, initializeTestEnvironment, type RulesTestE
 import { collection, doc, getDoc, getDocs, setDoc } from 'firebase/firestore';
 import { callIdentity, clearFixtures, createFixtureUser, fixtureDb, projectId, signInFixture } from './fixtures';
 import { blockKey, pairKey, queueConnectionCleanup } from '../server/connections';
-import { createProfileCleanup } from '../server/profile-cleanup';
+import { beginProfileDeletion, createProfileCleanup, releaseProfileDeletion } from '../server/profile-cleanup';
 import { emptyDetails } from '../shared/profile';
 
 let environment: RulesTestEnvironment;
@@ -183,18 +183,69 @@ test('real partial cleanup failure keeps deleting; authenticated retry removes r
   for (const uid of ['partial-a', 'partial-b']) { await createFixtureUser(uid); tokens[uid] = await signInFixture(uid); assert.equal((await save(uid)).status, 200); }
   const request = await operation('partial-a', 'request', 'partial-b');
   assert.equal((await operation('partial-b', 'accept', 'partial-a', request.data.generation)).status, 200);
-  await fixtureDb.doc('profiles/partial-a').set({ state: 'deleting' }, { merge: true });
-  const cleanup = createProfileCleanup(fixtureDb, 'partial-a');
+  const manifest = await beginProfileDeletion(fixtureDb, 'partial-a');
+  const cleanup = createProfileCleanup(fixtureDb, 'partial-a', manifest.attemptId);
   await queueConnectionCleanup(fixtureDb, 'partial-a', cleanup);
+  // Commit one real bounded batch, then fail a later one.
+  for (let index = 0; index < 110; index++) cleanup.delete(fixtureDb.doc(`connectionViews/partial-a/peers/obsolete-${index}`));
   cleanup.update(fixtureDb.doc('participants/nonexistent-connection-cleanup-target'), { name: 'Deleted member' });
   await assert.rejects(cleanup.finish());
   assert.equal((await fixtureDb.doc('profiles/partial-a').get()).data()!.state, 'deleting');
   await assertFails(getDoc(doc(memberDb('partial-b'), 'connectionContacts/partial-a')));
-  // Simulate the observed partial state: canonical pair gone, incoming view
+  assert.equal((await fixtureDb.doc(`connectionPairs/${pairKey('partial-a', 'partial-b')}`).get()).exists, false);
+  await releaseProfileDeletion(fixtureDb, 'partial-a', manifest.attemptId);
+  // Simulate a surviving independently discoverable incoming view: canonical pair gone, incoming view
   // deletion not completed. Retry must discover the view independently.
   await fixtureDb.doc('connectionViews/partial-b/peers/partial-a').set({ peerUid: 'partial-a', state: 'accepted', generation: request.data.generation, pairId: pairKey('partial-a', 'partial-b'), requester: 'partial-a', unread: true });
   assert.equal((await callIdentity(tokens['partial-a'], 'delete-profile')).status, 200);
   assert.deepEqual((await fixtureDb.doc('profiles/partial-a').get()).data(), { state: 'deleted' });
   assert.equal((await fixtureDb.doc('connectionViews/partial-b/peers/partial-a').get()).exists, false);
   assert.equal((await fixtureDb.doc('connectionContacts/partial-a').get()).exists, false);
+});
+
+test('stale deletion workers discovering before or after recreation cannot erase new contacts, same-pair generations, views or safety preferences', async () => {
+  const uid = 'connection-takeover';
+  const peer = 'connection-takeover-peer';
+  const safetyOwner = 'connection-takeover-safety';
+  const ownBlockTarget = 'connection-takeover-target';
+  for (const member of [uid, peer, safetyOwner, ownBlockTarget]) {
+    await createFixtureUser(member); tokens[member] = await signInFixture(member);
+    assert.equal((await save(member)).status, 200);
+  }
+  const oldRequest = await operation(uid, 'request', peer);
+  assert.equal((await operation(peer, 'accept', uid, oldRequest.data.generation)).status, 200);
+  assert.equal((await operation(safetyOwner, 'block', uid)).status, 200);
+  const first = await beginProfileDeletion(fixtureDb, uid);
+  const earlyWorker = createProfileCleanup(fixtureDb, uid, first.attemptId);
+  await queueConnectionCleanup(fixtureDb, uid, earlyWorker);
+  await fixtureDb.doc(`profileDeletionJobs/${uid}`).update({ leaseUntil: 0 });
+  assert.equal((await callIdentity(tokens[uid], 'delete-profile')).status, 200);
+  await assertSucceeds(setDoc(doc(memberDb(uid), `profiles/${uid}`), { name: 'Recreated connection owner', state: 'active' }));
+  const fresh = { name: 'Recreated connection owner', ...emptyDetails(), professional: { title: 'Fresh professional details' }, communityFields: ['title'], contacts: { contactEmail: 'fresh-takeover@contact.test', phone: 'never-shared' }, connectionFields: ['contactEmail'] };
+  assert.equal((await callIdentity(tokens[uid], 'save-profile', fresh)).status, 200);
+  const newRequest = await operation(uid, 'request', peer);
+  assert.notEqual(newRequest.data.generation, oldRequest.data.generation);
+  assert.equal((await operation(peer, 'accept', uid, newRequest.data.generation)).status, 200);
+  assert.equal((await operation(uid, 'block', ownBlockTarget)).status, 200);
+  // A second stale worker performs discovery AFTER recreation. Neither stale
+  // reference snapshots nor fresh queries can bypass the per-batch job fence.
+  const lateWorker = createProfileCleanup(fixtureDb, uid, first.attemptId);
+  await queueConnectionCleanup(fixtureDb, uid, lateWorker);
+  const beforePaths = [
+    `profiles/${uid}`, `profileDetails/${uid}`, `memberDetails/${uid}`, `connectionContacts/${uid}`,
+    `connectionPairs/${pairKey(uid, peer)}`, `connectionViews/${uid}/peers/${peer}`, `connectionViews/${peer}/peers/${uid}`,
+    `connectionPairs/${pairKey(uid, ownBlockTarget)}`, `connectionViews/${uid}/peers/${ownBlockTarget}`, `connectionViews/${ownBlockTarget}/peers/${uid}`,
+    `connectionBlocks/${uid}/targets/${blockKey(ownBlockTarget)}`, `connectionBlocks/${safetyOwner}/targets/${blockKey(uid)}`,
+  ];
+  const beforeData = await Promise.all(beforePaths.map(async path => (await fixtureDb.doc(path).get()).data()));
+  assert.ok(beforeData.every(record => record !== undefined));
+  await assert.rejects(earlyWorker.finish(), /superseded/);
+  await assert.rejects(lateWorker.finish(), /superseded/);
+  await releaseProfileDeletion(fixtureDb, uid, first.attemptId);
+  const afterData = await Promise.all(beforePaths.map(async path => (await fixtureDb.doc(path).get()).data()));
+  assert.deepEqual(afterData, beforeData);
+  assert.deepEqual((await assertSucceeds(getDoc(doc(memberDb(peer), `connectionContacts/${uid}`)))).data(), { contactEmail: 'fresh-takeover@contact.test' });
+  assert.equal((await operation(peer, 'accept', uid, oldRequest.data.generation)).status, 409);
+  assert.equal((await operation(uid, 'request', safetyOwner)).status, 409);
+  assert.equal((await fixtureDb.doc(`profileDeletionJobs/${uid}`).get()).exists, false);
 });

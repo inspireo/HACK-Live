@@ -51,11 +51,12 @@ export function ProfileEditor({ uid, name, onNameChange, save, onSaved }: { uid:
       <label className="block" htmlFor={`professional-${field}`}>{fieldLabels[field]}</label><textarea id={`professional-${field}`} rows={field === 'bio' || field === 'work' ? 3 : 1} className={inputClass} value={details.professional[field] || ''} maxLength={field === 'bio' || field === 'work' ? 2000 : 500} onChange={event => setDetails(previous => ({ ...previous, professional: { ...previous.professional, [field]: event.target.value } }))} />
       <label><input type="checkbox" checked={details.communityFields.includes(field)} onChange={event => setDetails(previous => ({ ...previous, communityFields: event.target.checked ? [...previous.communityFields, field] : previous.communityFields.filter(value => value !== field) }))} /> Show {fieldLabels[field]} to members</label>
     </div>)}</fieldset>
-    <fieldset className="space-y-4"><legend className="font-bold">Private contact details</legend>
-      <p>All contacts are visible only to you in this release. Contact email is separate from your sign-in email.</p>
-      <p>Choose one global selection for all future accepted connections. Sharing activates after the next connection release; these selections share nothing today.</p>
+    <fieldset className="space-y-4"><legend className="font-bold">Contact details and sharing</legend>
+      <p>Contacts stay private unless you select them for approved connections. Contact email is separate from your sign-in email.</p>
+      <p>Choose one global selection for ALL approved connections. Saved selection and value changes apply to every current and future approved connection. Pending requests and other members cannot see your contacts.</p>
+      <p>Unfriend or block revokes future contact access in both directions immediately. Previously saved copies cannot be recalled.</p>
       {contactFields.map(field => <div key={field}><label className="block">{fieldLabels[field]}<input className={inputClass} type={field === 'contactEmail' ? 'email' : 'text'} value={details.contacts[field] || ''} maxLength={500} onChange={event => setDetails(previous => ({ ...previous, contacts: { ...previous.contacts, [field]: event.target.value } }))} /></label>
-        <label><input type="checkbox" checked={details.connectionFields.includes(field)} onChange={event => setDetails(previous => ({ ...previous, connectionFields: event.target.checked ? [...previous.connectionFields, field] : previous.connectionFields.filter(value => value !== field) }))} /> Share {fieldLabels[field]} with all future accepted connections</label></div>)}
+        <label><input type="checkbox" checked={details.connectionFields.includes(field)} onChange={event => setDetails(previous => ({ ...previous, connectionFields: event.target.checked ? [...previous.connectionFields, field] : previous.connectionFields.filter(value => value !== field) }))} /> Share {fieldLabels[field]} with all approved connections</label></div>)}
     </fieldset>
     {error && <p role="alert">{error}</p>}
     <button disabled={busy} className="p-3 bg-emerald-700 rounded-lg disabled:opacity-50">Save profile</button>

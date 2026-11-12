@@ -38,12 +38,16 @@ test('two members request accept see global contact changes unfriend decline can
     await expect(second.getByText('555-0101', { exact: true })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Connections · 1 accepted', exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'Mark acceptance read', exact: true }).click();
-    // Prepared checkpoint contains PR2 schema/API only. Replace this real,
-    // authenticated save with PR2 editor controls after final parent integration.
-    const changed = await callIdentity(await signInFixture('connect-first'), 'save-profile', { name: 'Synthetic connect-first', ...emptyDetails(), contacts: { phone: '555-0101', contactEmail: 'connect-first@contact.test' }, connectionFields: ['contactEmail'] });
-    expect(changed.status).toBe(200);
+    await page.goto('/account');
+    await expect(page.getByRole('heading', { name: 'Your profile', exact: true })).toBeVisible();
+    await page.getByLabel('Share Phone with all approved connections', { exact: true }).uncheck();
+    await page.getByLabel('Share Contact email with all approved connections', { exact: true }).check();
+    await page.getByRole('button', { name: 'Save profile', exact: true }).click();
+    await expect(page.getByRole('status')).toHaveText('Profile saved.');
     await expect(second.getByText('connect-first@contact.test', { exact: true })).toBeVisible();
     await expect(second.getByText('555-0101', { exact: true })).toHaveCount(0);
+    await page.goto('/members/connect-second');
+    await expect(page.getByText('555-0102', { exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'Unfriend', exact: true }).click();
     await expect(page.getByText('555-0102', { exact: true })).toHaveCount(0);
     await expect(second.getByText('connect-first@contact.test', { exact: true })).toHaveCount(0);

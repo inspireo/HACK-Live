@@ -47,7 +47,7 @@ test('profile source is owner-only, generated projection exposes only selected p
   }
   await assertFails(getDocs(collection(memberContext('profile-owner'), 'profileDetails')));
   await assertFails(getDoc(doc(memberContext('profile-owner'), 'connectionContacts/profile-owner')));
-  assert.equal((await fixtureDb.doc('connectionContacts/profile-owner').get()).exists, false);
+  assert.deepEqual((await fixtureDb.doc('connectionContacts/profile-owner').get()).data(), { contactEmail: 'separate@example.test' });
   // Full replacement removes previously shared fields and keeps ONE global selection.
   assert.equal((await callIdentity(token, 'save-profile', { ...payload, communityFields: [], connectionFields: ['phone', 'signal'] })).status, 200);
   assert.deepEqual((await fixtureDb.doc('memberDetails/profile-owner').get()).data(), {});
@@ -86,7 +86,7 @@ test('name-only compatibility and delete/retry clear private source and photo pr
   // A crashed request's lease expires; the next attempt owns all queued mutations.
   await fixtureDb.doc('profileDeletionJobs/profile-delete').update({ leaseUntil: 0 });
   assert.equal((await callIdentity(token, 'delete-profile')).status, 200);
-  for (const collectionName of ['profileDetails', 'memberDetails']) assert.equal((await fixtureDb.doc(`${collectionName}/profile-delete`).get()).exists, false);
+  for (const collectionName of ['profileDetails', 'memberDetails', 'connectionContacts']) assert.equal((await fixtureDb.doc(`${collectionName}/profile-delete`).get()).exists, false);
   assert.equal((await fixtureAuth.getUser('profile-delete')).emailVerified, true);
   assert.equal((await fixtureDb.doc('users/profile-delete').get()).data()!.role, 'admin');
   assert.equal((await callIdentity(token, 'save-profile', payload)).status, 409);
