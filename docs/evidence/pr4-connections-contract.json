@@ -1,0 +1,23 @@
+{
+  "mode": "paced-real-emulator-browser",
+  "securityMocks": false,
+  "physicalDevice": false,
+  "projectId": "demo-hack-live",
+  "accounts": [
+    "connect-first",
+    "connect-second"
+  ],
+  "selectionChange": "real-profile-editor-ui",
+  "stages": [
+    "request",
+    "acceptance",
+    "approved",
+    "global-selection",
+    "updated",
+    "unfriended",
+    "decline",
+    "cancel",
+    "blocked"
+  ],
+  "limitations": "Synthetic Chromium/Auth/Firestore emulators; no production, physical-device or Google-consent claim. No fabricated or retimed frames."
+}
