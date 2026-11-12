@@ -4,6 +4,7 @@ import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 import { Router } from 'express';
 import { identityDatabaseTarget } from './database-config';
 import { beginProfileDeletion, createProfileCleanup, releaseProfileDeletion } from './profile-cleanup';
+import { communityProjection, validateProfileEdit } from '../shared/profile';
 
 // Emulator mode must be explicit and must never fall through to production.
 const target = identityDatabaseTarget();
@@ -157,6 +158,24 @@ router.post('/finalize-team', async (req, res) => {
       transaction.delete(formingRef);
     });
     res.json({ teamId: teamRef.id });
+  } catch (error) { res.status((error as any).status || 500).json({ error: (error as Error).message }); }
+});
+
+router.post('/save-profile', async (req, res) => {
+  try {
+    let edit: ReturnType<typeof validateProfileEdit>;
+    try { edit = validateProfileEdit(req.body); } catch (issue) { throw fail(400, (issue as Error).message); }
+    const uid = res.locals.uid as string;
+    await identityDb.runTransaction(async transaction => {
+      const profileRef = identityDb.doc(`profiles/${uid}`);
+      const profile = await transaction.get(profileRef);
+      if (profile.data()?.state !== 'active') throw fail(409, 'An active profile is required.');
+      // Replace source and projection together; removing consent removes old fields.
+      transaction.set(profileRef, { name: edit.name, state: 'active' });
+      transaction.set(identityDb.doc(`profileDetails/${uid}`), edit.details);
+      transaction.set(identityDb.doc(`memberDetails/${uid}`), communityProjection(edit.details));
+    });
+    res.json({ saved: true });
   } catch (error) { res.status((error as any).status || 500).json({ error: (error as Error).message }); }
 });
 
