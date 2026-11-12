@@ -158,7 +158,7 @@ router.post('/finalize-team', async (req, res) => {
       for (const participant of participants) {
         const member = participant.data();
         if (!member || !allocationEligible(member) || !member.memberId || member.memberId !== member.uid || member.sessionId !== team.sessionId || (!discovery && member.selectedChallengeId !== team.challengeId)) throw fail(409, 'All team members must have linked registrations for this event and challenge.');
-        if (discovery ? member.discoveryTeamId || member.discovery_team_id : member.teamId || member.isAssigned) throw fail(409, 'A member is already assigned to another team. Refresh and resolve the stale forming team.');
+        if (discovery ? member.discoveryTeamId || member.discovery_team_id : member.teamId || member.solutioning_team_id || member.isAssigned) throw fail(409, 'A member is already assigned to another team. Refresh and resolve the stale forming team.');
       }
       transaction.create(teamRef, { sessionId: team.sessionId, name: discovery ? `Discovery Team ${formingId}` : '', code: formingId, isOpenToMore: team.isOpenToMore, isParticipantCreated: true, createdAt: Date.now(), leaderId: team.leaderId, ...(!discovery ? { challengeId: team.challengeId } : {}) });
       for (const participant of participants) {

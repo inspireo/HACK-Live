@@ -56,7 +56,7 @@ export function MemberGate({ children }: { children: React.ReactNode }) {
     try { await identityRequest('delete-profile'); } catch (issue: any) { setDeletionMessage(issue.message); } finally { setDeletionBusy(false); }
   }}>Retry deletion</button><p role="status">{deletionMessage}</p><button onClick={() => signOut(auth)}>Sign out</button></Panel>;
   if (!profile || profile.state === 'deleted') return <ProfileForm />;
-  return <ProfileContext.Provider value={profile}><div className="bg-zinc-900 text-white px-5 py-2 flex justify-between"><Link to="/">#HACK Live</Link><ConnectionIndicator /><Link to="/account">Account · {profile.name}</Link></div>{children}</ProfileContext.Provider>;
+  return <ProfileContext.Provider value={profile}><div className="bg-zinc-900 text-white px-5 py-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-2"><Link to="/">#HACK Live</Link><ConnectionIndicator /><Link className="min-w-0 max-w-full [overflow-wrap:anywhere]" to="/account">Account · {profile.name}</Link></div>{children}</ProfileContext.Provider>;
 }
 
 function SignIn({ user }: { user: User | null }) {

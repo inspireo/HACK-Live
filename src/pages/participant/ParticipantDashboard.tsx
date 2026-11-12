@@ -1692,7 +1692,7 @@ export default function ParticipantDashboard() {
   );
 
   const resourceModal = selectedResource && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div role="dialog" aria-modal="true" aria-label="Resource details" className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl">
             <div className="p-6 border-b border-zinc-800 flex justify-between items-start sticky top-0 bg-zinc-900/95 backdrop-blur z-10 rounded-t-2xl">
               <div className="flex-1 pr-4">
@@ -1727,6 +1727,7 @@ export default function ParticipantDashboard() {
                 )}
               </div>
               <button 
+                aria-label="Close resource details"
                 onClick={() => setSelectedResource(null)}
                 className="p-2 text-zinc-400 hover:text-white bg-zinc-800/50 hover:bg-zinc-800 rounded-full transition-colors shrink-0"
               >
