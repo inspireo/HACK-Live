@@ -14,7 +14,7 @@ import { installAttendanceRoutes } from './attendance';
 import { queueSharedContentCleanup } from './shared-content-cleanup';
 import { cleanupAttendance } from './attendance-cleanup';
 import { installAwardRoutes } from './awards';
-import { cleanupAwards } from './award-cleanup';
+import { cleanupAwards, prepareAwardCleanup } from './award-cleanup';
 
 // Emulator mode must be explicit and must never fall through to production.
 const target = identityDatabaseTarget();
@@ -210,6 +210,8 @@ router.post('/delete-profile', async (_req, res) => {
     // Persist recovery keys BEFORE any identity fields or pointers are erased.
     const manifest = await beginProfileDeletion(identityDb, uid);
     attemptId = manifest.attemptId;
+    // Save award IDs before either isolated module erases its source keys.
+    await prepareAwardCleanup(identityDb, uid, attemptId);
     await cleanupAttendance(identityDb, uid, attemptId);
     // Capture durable award recovery IDs and scrub them under this same attempt
     // before any participant/pointer erasure. Only parent finish completes.

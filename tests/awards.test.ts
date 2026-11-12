@@ -205,6 +205,9 @@ test('actual delete-profile partial failure preserves award recovery IDs, retrie
   const otherUid = source.snapshot.recipients.find((recipient: any) => recipient.memberId !== 'alice').memberId;
   await fixtureDb.doc('users/alice').set({ role: 'admin' });
   await fixtureDb.doc('sessions/award-owned').set({ ownerId: 'alice', title: 'Keep owned event' });
+  const attendance = await callIdentity(tokens.organizer, 'attendance', { sessionId: 'event-one', memberUid: 'alice', requestId: 'awards-delete-composition', method: 'manual_evidence', occurredAt: '2025-04-03T10:00:00Z', evidence: 'Synthetic staff roster' });
+  assert.equal(attendance.status, 200, JSON.stringify(attendance));
+  assert.equal((await callIdentity(tokens.alice, 'history-visibility', { sessionId: 'event-one', visible: true })).status, 200);
   // A malformed historical publication reference causes an actual API failure
   // after award scrubs have committed but BEFORE parent completion. No mocked
   // SDK, auth, route, security decision or fault-injection endpoint is used.
@@ -216,6 +219,10 @@ test('actual delete-profile partial failure preserves award recovery IDs, retrie
   const savedJob = (await job.get()).data()!;
   const plan = savedJob.awardPlan as AwardCleanupPlan;
   assert.equal(plan.completed, true); assert.ok(plan.resultIds.includes(teamResult)); assert.ok(plan.achievementIds.includes(teamResult));
+  assert.equal(savedJob.attendancePlan.completed, true);
+  assert.ok(savedJob.attendancePlan.targets.some((entry: any) => entry.path === 'attendance/event-one~alice'));
+  assert.equal((await fixtureDb.doc('attendance/event-one~alice').get()).exists, false);
+  assert.equal((await fixtureDb.doc('historyVisibility/event-one~alice').get()).exists, false);
   assert.equal(savedJob.leaseUntil, 0);
   const retained = (await fixtureDb.doc(`awardResults/${teamResult}`).get()).data()!;
   assert.equal(retained.status, 'published'); assert.deepEqual(retained.snapshot.team, source.snapshot.team);
@@ -304,6 +311,7 @@ test('actual delete-profile resumes a saved incomplete award plan after a later 
   const job = fixtureDb.doc(`profileDeletionJobs/${uid}`);
   const interrupted = (await job.get()).data()!;
   assert.equal(interrupted.awardPlan.completed, false);
+  assert.equal(interrupted.attendancePlan.completed, true);
   assert.deepEqual([...interrupted.awardPlan.resultIds].sort(), issuedIds);
   const first = (await fixtureDb.doc(`awardResults/${issuedIds[0]}`).get()).data()!;
   assert.ok(!first.subjectUids.includes(uid));
