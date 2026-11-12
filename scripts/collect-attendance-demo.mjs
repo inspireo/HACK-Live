@@ -1,4 +1,4 @@
-import { copyFile, mkdir, readFile, stat, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, readFile, readdir, stat, writeFile } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
 
 const run = JSON.parse(await readFile('test-results/.last-run.json', 'utf8'));
@@ -9,6 +9,13 @@ const output = 'docs/evidence';
 const fragments = '.agents/memory/tasks/thr_44h8h795x5/video-fragments';
 await mkdir(output, { recursive: true }); await mkdir(fragments, { recursive: true });
 const ffmpeg = process.env.FFMPEG_PATH || 'ffmpeg';
+// Playwright moves its fixture-owned staff video after test completion. Custom
+// member/viewer contexts retain their configured paths.
+if (!await stat(demo.videos.staff).catch(() => null)) {
+  const folders = (await readdir('test-results')).filter(entry => entry.startsWith('attendance-journey-real-st'));
+  if (folders.length !== 1) throw new Error('Expected exactly one actual staff journey video');
+  demo.videos.staff = `test-results/${folders[0]}/video.webm`;
+}
 for (const [role, source] of Object.entries(demo.videos)) {
   await copyFile(source, `${output}/pr6-${role}-full.webm`);
 }
@@ -23,5 +30,5 @@ for (const [index, clip] of demo.clips.entries()) {
 }
 await writeFile(`${fragments}/sequence.txt`, sequence.join('\n'));
 execFileSync(ffmpeg, ['-y', '-loglevel', 'error', '-f', 'concat', '-safe', '0', '-i', `${fragments}/sequence.txt`, '-c', 'copy', `${output}/pr6-attendance-history.webm`]);
-await writeFile(`${output}/pr6-browser-contract.json`, JSON.stringify(demo, null, 2));
+await writeFile(`${output}/pr6-browser-contract.json`, JSON.stringify({ ...demo, videos: Object.fromEntries(Object.keys(demo.videos).map(role => [role, `pr6-${role}-full.webm`])) }, null, 2));
 console.log(JSON.stringify({ video: `${output}/pr6-attendance-history.webm`, bytes: (await stat(`${output}/pr6-attendance-history.webm`)).size, stages: demo.clips.length, sourceRevision: demo.sourceRevision }));

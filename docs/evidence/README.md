@@ -9,3 +9,7 @@ These are actual Playwright Chromium recordings against deterministic synthetic 
 All recordings are committed so repository reviewers can use GitHub's **View raw / Download** to play them. CI also uploads successful videos in `pr1-emulator-browser-evidence` for 14 days. The fourth browser journey (single/bulk publishing and attribution deletion) is included in CI recordings.
 
 Reproduce: `npm ci`, `npx playwright install chromium`, `npm run typecheck`, `npm run build`, `npm run test:emulators`, then `node scripts/collect-demo.mjs`. The collection script refuses a failed browser run, locates Playwright's bundled ffmpeg (or FFMPEG_PATH), and stream-copies the original recordings with 4x timestamps without starting app/emulators. Local result: **15 emulator authorization/integrity tests and four Chromium browser journeys passed**. Test source and fixture details: [identity-pr1.md](../identity-pr1.md).
+
+## Verified attendance and history (PR6)
+
+[Actual paced staff → member → viewer video](pr6-attendance-history.webm) · [full recordings, screenshots and provenance](attendance-pr6.md). The real synthetic Firebase journey covers staff verification, owner history, Show on profile selection, protected community summaries, correction/private audit and revocation. Normal and paced cumulative validation: 21 pure/48 real API-rules/12 Chromium journeys pass. Event rosters/results may independently show participation; this control selects the new profile history only.
