@@ -11,6 +11,7 @@ import { beginProfileDeletion, createProfileCleanup, releaseProfileDeletion } fr
 import { communityProjection, validateProfileEdit } from '../shared/profile';
 import { eventSnapshot } from '../shared/attendance';
 import { installAttendanceRoutes } from './attendance';
+import { queueSharedContentCleanup } from './shared-content-cleanup';
 import { cleanupAttendance } from './attendance-cleanup';
 
 // Emulator mode must be explicit and must never fall through to production.
@@ -223,35 +224,9 @@ router.post('/delete-profile', async (_req, res) => {
       const records = await identityDb.collection(collectionName).where('uid', '==', uid).get();
       for (const record of records.docs) writer.delete(record.ref);
     }
-    for (const proposalId of manifest.proposalIds) {
-      const proposal = await identityDb.doc(`proposedChallenges/${proposalId}`).get();
-      if (proposal.exists) writer.update(proposal.ref, { uid: null, submitterName: 'Deleted member', submitterRealName: FieldValue.delete(), submitterProfileDescriptor: FieldValue.delete(), submitterParticipantId: FieldValue.delete() });
-      const published = await identityDb.collection('challenges').where('proposedChallengeId', '==', proposalId).get();
-      const publishedRefs = published.docs.map(challenge => challenge.ref);
-      if (proposal.data()?.publishedChallengeId) publishedRefs.push(identityDb.doc(`challenges/${proposal.data()!.publishedChallengeId}`));
-      for (const reference of publishedRefs) {
-        const challenge = await reference.get();
-        if (!challenge.exists) continue;
-        // Existing single/bulk publisher generated this exact attribution slot.
-        // Keep editable workshop prose while anonymizing known copied identity.
-        const summary = typeof challenge.data()!.summary === 'string' ? challenge.data()!.summary.replace(/<p><em>Proposed by:[\s\S]*?<\/em><\/p>/gi, '<p><em>Proposed by: Deleted member</em></p>') : '';
-        writer.update(reference, { summary, submitterName: 'Deleted member' });
-      }
-    }
-    // Existing team records contain participant-id references, including forming
-    // teams and name-submission attribution. Preserve workshop content while
-    // removing the deleted person's membership and attribution snapshots.
-    for (const collectionName of ['teams', 'discoveryTeams', 'formingTeams', 'formingDiscoveryTeams']) {
-      const records = await identityDb.collection(collectionName).get();
-      for (const record of records.docs) {
-        const team = record.data();
-        if (collectionName.startsWith('forming') && participantIds.includes(team.leaderId)) { writer.delete(record.ref); continue; }
-        const changes: Record<string, unknown> = {};
-        if (Array.isArray(team.memberIds) && team.memberIds.some((member: string) => participantIds.includes(member))) changes.memberIds = team.memberIds.filter((member: string) => !participantIds.includes(member));
-        for (const field of ['leaderId', 'createdBy', 'nameSubmittedBy']) if (team[field] === uid || participantIds.includes(team[field])) changes[field] = FieldValue.delete();
-        if (Object.keys(changes).length) writer.update(record.ref, changes);
-      }
-    }
+    // Current-record conditional operations preserve surviving peer edits. The
+    // original challenge attribution plan persists before any identity erasure.
+    await queueSharedContentCleanup(identityDb, uid, attemptId, manifest, writer);
     writer.delete(identityDb.doc(`registrationDefaults/${uid}`));
     await writer.finish();
     // Retain a private tombstone. Auth and platform authorization deliberately

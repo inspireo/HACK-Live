@@ -52,7 +52,8 @@ export async function withProfileDeletionFence<T>(
   });
 }
 
-type CleanupMutation = { reference: DocumentReference; changes?: UpdateData<DocumentData> };
+export type CurrentCleanupDecision = { kind: 'update'; changes: UpdateData<DocumentData> } | { kind: 'delete' } | null;
+type CleanupMutation = { reference: DocumentReference; changes?: UpdateData<DocumentData>; transform?: (current: DocumentSnapshot) => CurrentCleanupDecision };
 
 // Every mutation batch reads/locks the current deletion attempt, not just final
 // completion. A paused request cannot erase newly created data after takeover.
@@ -66,13 +67,25 @@ export function createProfileCleanup(database: Firestore, uid: string, attemptId
   return {
     update: (reference: DocumentReference, changes: UpdateData<DocumentData>) => { mutations.push({ reference, changes }); },
     delete: (reference: DocumentReference) => { mutations.push({ reference }); },
+    transform: (reference: DocumentReference, operation: (current: DocumentSnapshot) => CurrentCleanupDecision) => { mutations.push({ reference, transform: operation }); },
     abort: async () => { mutations.length = 0; },
     finish: async () => {
       for (let offset = 0; offset < mutations.length; offset += 100) {
         const chunk = mutations.slice(offset, offset + 100);
         await withProfileDeletionFence(database, uid, attemptId, async transaction => {
+          // Read every shared target before ANY mutation in this transaction.
+          // Peer updates cause retries and conditions re-evaluate on fresh data.
+          const references = [...new Map(chunk.filter(mutation => mutation.transform).map(mutation => [mutation.reference.path, mutation.reference])).values()];
+          const snapshots = await Promise.all(references.map(reference => transaction.get(reference)));
+          const currentRecords = new Map(snapshots.map(snapshot => [snapshot.ref.path, snapshot]));
           for (const mutation of chunk) {
-            if (mutation.changes) transaction.update(mutation.reference, mutation.changes);
+            if (mutation.transform) {
+              const current = currentRecords.get(mutation.reference.path)!;
+              if (!current.exists) continue;
+              const decision = mutation.transform(current);
+              if (decision?.kind === 'update') transaction.update(mutation.reference, decision.changes);
+              else if (decision?.kind === 'delete') transaction.delete(mutation.reference);
+            } else if (mutation.changes) transaction.update(mutation.reference, mutation.changes);
             else transaction.delete(mutation.reference);
           }
         });

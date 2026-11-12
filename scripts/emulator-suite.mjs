@@ -22,6 +22,7 @@ try {
   await run('node', ['--import', 'tsx', '--test', '--test-concurrency=1', 'tests/identity.test.ts', 'tests/connections.test.ts', 'tests/participation.test.ts']);
   await run('node', ['--import', 'tsx', '--test', 'tests/attendance-pure.test.ts']);
   await run('node', ['--import', 'tsx', '--test', 'tests/attendance.test.ts']);
+  await run('node', ['--import', 'tsx', '--test', 'tests/shared-cleanup.test.ts']);
   await run('npx', ['playwright', 'test']);
 } catch (issue) { console.error(issue); process.exitCode = 1; }
 finally { server.kill('SIGTERM'); }
