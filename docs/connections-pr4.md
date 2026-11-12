@@ -1,6 +1,6 @@
-# Approved connections (PR4 integrated checkpoint)
+# Approved connections (PR4)
 
-Rebased ONLY the prepared PR4 commit after immutable PR2 `8ff5c4f40b31159aa7f8dae29db901cbd81ff846` onto PR3 tested-code checkpoint `476eaa1de3cadf7b0b17a6035a04656270b7b082`, containing final PR2 `90322896` and final PR1. No parent WIP replayed or ancestors amended. Root still must supply final PR3 media-only head/URL and release exclusive emulator ownership before real validation, recording or publication.
+Rebased ONLY the prepared PR4 commit after immutable PR2 `8ff5c4f40b31159aa7f8dae29db901cbd81ff846` onto tested PR3 `476eaa1de3cadf7b0b17a6035a04656270b7b082`, then replayed ONLY PR4 onto final PR3 `63df44819f90b42b05a95af93f5cb6799a427fa1` ([PR3](https://github.com/inspireo/HACK-Live/pull/3), branch `bb/prepare-pr3-mobile-event-invitations-thr_edj5aij4t9`), containing exact final PR2 `90322896` and final PR1. No parent WIP replayed or ancestors amended. Root released exclusive app3000/Auth9099/Firestore8080/9150 ownership for this validation/recording window.
 
 ## Schema and authorization
 
@@ -55,7 +55,7 @@ No existing records are backfilled or inferred. Missing contacts/views mean priv
 
 ## Repeatable validation and video gate
 
-Safe preparation commands (do not use emulator ports):
+Use Node 24 and Java 21. Safe checks:
 
 ```
 rtk npm ci
@@ -69,7 +69,9 @@ Original preparation results (2026-11-12): dependency installation, typecheck, p
 
 After reconciliation onto `476eaa1`: typecheck, build and diff check PASS; the combined pure run passes all 15 tests (3 profile, 9 invitation, 3 connection). React checklist checked hook dependencies/subscription cleanup, escaped text rendering, accessible editor labels and preservation of parent UI. These checks do not establish real emulator transaction or browser behavior; those remain release gates.
 
-After final PR3 media-only reconciliation and root grants exclusive ownership of app3000/Firestore8080/Auth9099 + `demo-hack-live` fixtures:
+Final parent `63df448` normal validation (Node 24 / Java 21): typecheck/build PASS, 15 pure + 27 real API/rules + 8 Chromium tests PASS. The first cumulative run exposed profile activation starting child listeners from a local pending write; `MemberGate` now waits for its committed metadata snapshot. The existing real signup/verification/registration regression passes with that fix. Paced capture adds reading holds only under `CONNECTIONS_DEMO=true`, plus a manifest and collector that refuse failed/nonpaced evidence; no Auth, Firestore, API or rule mocks are used for connection evidence.
+
+With exclusive ownership of app3000/Firestore8080/Auth9099 + `demo-hack-live` fixtures:
 
 ```
 rtk npm run test:emulators
@@ -77,4 +79,4 @@ rtk npm run test:emulators
 
 Runner retains parent profile pure and invitation tests, adds connection pure tests, executes real identity and connection rules/API tests sequentially (`--test-concurrency=1` to serialize fixture resets), then all parent and new browser journeys. `tests/connections.test.ts` exercises unauthenticated/unverified/anonymous and unrelated/admin reads/writes, spoofing, projection whitelist, duplicate/opposite requests, recipient-only acceptance, stale generations, global selection updates, unfriend/block, deletion races, bounded partial failure/retry and safety retention. Its stale-worker regression discovers connections both before takeover and after recreation, then proves fresh source/contact/professional projections, same-pair new generations, both views, newly chosen own blocks and retained other-member safety preferences all survive both stale finish attempts. No authorization mocks. Pure tests cover identity encoding, projection and transition policy only; they do not establish Firestore concurrency correctness.
 
-`tests/browser/connections.spec.ts` uses two real Auth/Firestore accounts and records request → accept → selected contacts → global selection update → unfriend → no contacts, plus decline/cancel/block. The global selection-change step navigates to the REAL final PR2 profile editor, unchecks Phone, checks Contact email and saves through its UI; there is no save API shortcut for that step. Parent profile/registration/invitation journeys remain, with profile expectations updated for selected-only contact projection and current sharing labels. Existing Playwright config records video for both contexts. Reviewer-accessible upload URL of actual successful journey, exact cumulative suite results, and final parent branch/SHA are required before PR4 publication. A local video path or test definition is not evidence of a passed journey. No emulator or video result is claimed during preparation.
+`tests/browser/connections.spec.ts` uses two real Auth/Firestore accounts and records request → accept → selected contacts → global selection update → unfriend → no contacts, plus decline/cancel/block. The global selection-change step navigates to the REAL final PR2 profile editor, unchecks Phone, checks Contact email and saves through its UI; there is no save API shortcut for that step. Parent profile/registration/invitation journeys remain, with profile expectations updated for selected-only contact projection and current sharing labels. Existing Playwright config records video for both contexts. Reviewer-accessible upload URL of actual successful journey, exact cumulative suite results, and final parent branch/SHA are required before PR4 publication. A local video path or test definition is not evidence of a passed journey. Actual current results and reviewer-accessible media are recorded in the evidence document linked below.
