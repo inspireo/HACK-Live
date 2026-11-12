@@ -47,7 +47,7 @@ export default function MyBadge() {
   }
   return <main className="min-h-screen bg-zinc-950 text-zinc-100 px-3 py-6"><div className="mx-auto max-w-sm space-y-4">
     <div className="flex justify-between items-center"><h1 className="text-xl font-semibold">My badge</h1><Link className="underline" to="/account">Account</Link></div>
-    {badges.length > 1 && <label className="block">Event<select className="mt-1 w-full rounded-lg bg-zinc-800 p-3" value={selected.sessionId} onChange={event => setParameters({ event: event.target.value })}>{badges.map(badge => <option key={badge.sessionId} value={badge.sessionId}>{badge.eventName}</option>)}</select></label>}
+    {badges.length > 1 && <label className="block">Event<select aria-label="Event" className="mt-1 w-full rounded-lg bg-zinc-800 p-3" value={selected.sessionId} onChange={event => setParameters({ event: event.target.value })}>{badges.map(badge => <option key={badge.sessionId} value={badge.sessionId}>{badge.eventName}</option>)}</select></label>}
     {selected ? <>
       <article aria-label="Personal event badge" className="rounded-2xl bg-white text-zinc-950 overflow-hidden shadow-xl">
         <div className="bg-emerald-950 text-white px-5 py-4"><p className="font-black text-2xl tracking-tight">#hack<span className="text-emerald-300"> live</span></p><p className="mt-2 break-words font-medium">{selected.eventName}</p>{selected.eventDate && <p className="text-sm">{selected.eventDate}</p>}</div>

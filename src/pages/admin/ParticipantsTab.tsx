@@ -1,3 +1,4 @@
+import { allocationEligible } from '../../../shared/participation';
 import EventRolesEditor from '../../components/EventRolesEditor';
 import { useState, useEffect } from 'react';
 import { updateDoc, doc, deleteDoc, collection, query, where, onSnapshot } from 'firebase/firestore';
@@ -433,7 +434,7 @@ export default function ParticipantsTab({
                         </select>
                       </td>
                       <td className="px-4 py-3">
-                        <select value={editData.teamId} onChange={e => setEditData({...editData, teamId: e.target.value})} className="w-full px-2 py-1 bg-zinc-950 border border-zinc-700 rounded">
+                        <select disabled={!allocationEligible(p)} title={allocationEligible(p) ? undefined : "Only official participants are eligible for team allocation"} value={editData.teamId} onChange={e => setEditData({...editData, teamId: e.target.value})} className="w-full px-2 py-1 bg-zinc-950 border border-zinc-700 rounded">
                           <option value="">Unassigned</option>
                           {teams.map(t => <option key={t.id} value={t.id}>{t.name || 'Unnamed Team'} ({challenges.find((c: any) => c.id === t.challengeId)?.title})</option>)}
                         </select>

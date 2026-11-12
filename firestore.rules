@@ -213,7 +213,15 @@ service cloud.firestore {
     match /discoveryTeams/{teamId} {
       allow read: if isAuthenticated();
       allow create: if hasAdminAccess(request.resource.data.sessionId) && !request.resource.data.keys().hasAny(['leaderId']);
-      allow update: if hasAdminAccess(resource.data.sessionId) && request.resource.data.get('leaderId', null) == resource.data.get('leaderId', null) && request.resource.data.sessionId == resource.data.sessionId;
+      allow update: if isAuthenticated() && request.resource.data.get('leaderId', null) == resource.data.get('leaderId', null) && request.resource.data.sessionId == resource.data.sessionId && (
+        hasAdminAccess(resource.data.sessionId) || (
+          hasActiveProfile() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name']) &&
+          allocationEligibleData(get(/databases/$(database)/documents/participants/$(registeredParticipant(resource.data.sessionId))).data) && (
+            get(/databases/$(database)/documents/participants/$(registeredParticipant(resource.data.sessionId))).data.get('discoveryTeamId', null) == teamId ||
+            get(/databases/$(database)/documents/participants/$(registeredParticipant(resource.data.sessionId))).data.get('discovery_team_id', null) == teamId
+          )
+        )
+      );
       allow delete: if isAuthenticated() && (hasAdminAccess(resource.data.sessionId));
     }
 

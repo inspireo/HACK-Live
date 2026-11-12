@@ -11,10 +11,14 @@ async function staff(database: Firestore, transaction: Transaction, sessionId: s
   return session.data()?.ownerId === actor || access.data()?.adminEmails?.includes(email) || platform.data()?.role === 'admin' || email === 'xaeltan@gmail.com';
 }
 async function assertNoTeam(database: Firestore, transaction: Transaction, member: any) {
-  if (member.teamId || member.solutioning_team_id || member.discoveryTeamId || member.discovery_team_id) throw fail(409, 'Remove active team membership before removing the participant role or deactivating participation.');
+  if (member.isAssigned || member.teamId || member.solutioning_team_id || member.discoveryTeamId || member.discovery_team_id) throw fail(409, 'Remove active team membership before removing the participant role or deactivating participation.');
   for (const collectionName of ['formingTeams', 'formingDiscoveryTeams']) {
-    const forming = await transaction.get(database.collection(collectionName).where('sessionId', '==', member.sessionId).where('memberIds', 'array-contains', member.id));
-    if (!forming.empty) throw fail(409, 'Leave the forming team before changing allocation eligibility.');
+    // Participant IDs are globally unique. Query one indexed field and filter
+    // the event explicitly, avoiding an array/equality composite index.
+    const forming = await transaction.get(database.collection(collectionName).where('memberIds', 'array-contains', member.id));
+    if (forming.docs.some(team => team.data().sessionId === member.sessionId)) throw fail(409, 'Leave the forming team before changing allocation eligibility.');
+    const leading = await transaction.get(database.collection(collectionName).where('leaderId', '==', member.id));
+    if (leading.docs.some(team => team.data().sessionId === member.sessionId)) throw fail(409, 'Leave the forming team before changing allocation eligibility.');
   }
 }
 
@@ -25,10 +29,14 @@ export function installParticipationRoutes(router: Router, database: Firestore, 
     try {
       const { sessionId, memberUid, roles, challengeId = null, participationState = 'active' } = req.body;
       if (!validId(sessionId) || !validId(memberUid) || !Array.isArray(roles) || !roles.length || roles.length > EVENT_ROLES.length || new Set(roles).size !== roles.length || roles.some(role => !EVENT_ROLES.includes(role)) || !['active', 'inactive'].includes(participationState) || (challengeId !== null && (!validId(challengeId) || !roles.includes('challenge owner')))) throw fail(400, 'Invalid event roles.');
-      const account = await accounts.getUser(memberUid);
-      if (!account.emailVerified || account.disabled || !account.providerData.length) throw fail(409, 'A verified registered member is required.');
       const participantId = await database.runTransaction(async transaction => {
         if (!await staff(database, transaction, sessionId, res.locals.uid, res.locals.claims.email)) throw fail(403, 'Only event staff can issue official roles.');
+        if (memberUid === res.locals.uid) throw fail(403, 'Ask another event administrator to issue your official roles.');
+        const account = await accounts.getUser(memberUid).catch(issue => {
+          if (issue.code === 'auth/user-not-found') throw fail(404, 'Registered member unavailable.');
+          throw issue;
+        });
+        if (!account.emailVerified || account.disabled || !account.providerData.length) throw fail(409, 'A verified registered member is required.');
         const profile = await transaction.get(database.doc(`profiles/${memberUid}`));
         if (profile.data()?.state !== 'active') throw fail(409, 'An active member profile is required.');
         const pointerRef = database.doc(`registrations/${sessionId}~${memberUid}`);
@@ -45,7 +53,7 @@ export function installParticipationRoutes(router: Router, database: Firestore, 
           if (challenge.data()?.sessionId !== sessionId) throw fail(409, 'Challenge must belong to this event.');
         }
         const changes = { officialRoles: roles, roleChallengeId: challengeId, participationState };
-        if (participant.exists && !allocationEligible(changes)) await assertNoTeam(database, transaction, { id: participant.id, ...participant.data() });
+        if (participant.exists && !allocationEligible(changes)) await assertNoTeam(database, transaction, { ...participant.data(), id: participant.id });
         if (participant.exists) transaction.update(participantRef, changes);
         else {
           transaction.create(participantRef, { sessionId, uid: memberUid, memberId: memberUid, name: profile.data()!.name, adjective: '', teamId: null, isAssigned: false, ...changes });
@@ -73,9 +81,12 @@ export function installParticipationRoutes(router: Router, database: Firestore, 
         if (targetProfile.data()?.state !== 'active') throw fail(409, 'Member unavailable.');
         const isStaff = await staff(database, transaction, member.sessionId, res.locals.uid, res.locals.claims.email);
         const actorId = pointer.data()?.participantId;
+        const actor = actorId ? await transaction.get(database.doc(`participants/${actorId}`)) : null;
+        const currentLeader = actor?.data()?.memberId === res.locals.uid && actor.data()?.sessionId === member.sessionId && allocationEligible(actor.data()!) &&
+          actorId === team.data()?.leaderId && teamMembership({ ...actor.data(), id: actorId }, collectionName, teamId, team.data());
         // A member may describe their own work; the actual team leader or event
         // staff may describe any current member. The word "lead" grants nothing.
-        if (!isStaff && !(actorProfile.data()?.state === 'active' && actorId && (actorId === participantId || actorId === team.data()?.leaderId))) throw fail(403, 'Only the member, team leader or event staff may edit this label.');
+        if (!isStaff && !(actorProfile.data()?.state === 'active' && actorId && (actorId === participantId || currentLeader))) throw fail(403, 'Only the member, team leader or event staff may edit this label.');
         const labels = { ...member.teamRoleLabels, [`${collectionName}~${teamId}`]: label };
         transaction.update(participant.ref, { teamRoleLabels: labels });
       });
