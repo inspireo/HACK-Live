@@ -113,7 +113,7 @@ test('team labels honor self/actual leader/staff authority with cross-event isol
   await assertFails(updateDoc(doc(context('member'), 'sessions/event-one'), { title: 'A lead label is not admin' }));
   await assertFails(updateDoc(doc(context('member'), 'teams/label-team'), { leaderId: member }));
   await assertFails(updateDoc(doc(context('member'), 'participants', member), { teamRoleLabels: { 'teams~label-team': 'admin' } }));
-  await assertFails(updateDoc(doc(context('organizer'), 'participants', member), { teamRoleLabels: { 'teams~label-team': 'lead' } }));
+  await assertFails(updateDoc(doc(context('organizer'), 'participants', member), { teamRoleLabels: { 'teams~label-team': 'developer' } }));
   for (const actor of ['leader', 'coadmin', 'platform', 'organizer']) assert.equal((await callIdentity(tokens[actor], 'team-role', { ...payload, label: 'designer' })).status, 200);
   await fixtureDb.doc(`participants/${leader}`).update({ teamId: null, isAssigned: false });
   assert.equal((await callIdentity(tokens.leader, 'team-role', payload)).status, 403);

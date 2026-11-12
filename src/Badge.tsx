@@ -56,7 +56,7 @@ export default function MyBadge() {
           <div><h3 className="text-xs uppercase font-bold tracking-wide mb-2">Official event roles</h3><div className="flex flex-wrap gap-2">{selected.roles.map(role => <span key={role} className="rounded-full bg-emerald-100 text-emerald-950 px-3 py-1 text-sm font-semibold capitalize">{role}</span>)}</div></div>
           {selected.teams.map(team => <div key={team.kind}><p className="text-xs font-bold uppercase">{team.kind}</p><p className="break-words">{team.name}</p>{team.role && <p className="text-sm capitalize">Team role: {team.role}</p>}</div>)}
           <figure className="text-center"><QRCodeSVG value={url} size={240} level="M" marginSize={4} title="Member profile QR code" className="w-full max-w-[240px] h-auto mx-auto bg-white" /><figcaption className="text-sm font-medium mt-2">Scan to view my member profile</figcaption></figure>
-          <p className="text-xs text-zinc-600 text-center">Viewing a profile does not connect you or check anyone in.</p>
+          <p className="text-xs text-zinc-600 text-center">Sign in to view. Approved connections can share selected contact details.</p>
         </div>
       </article>
       <div className="flex gap-3">{typeof navigator.share === 'function' && <button className="flex-1 rounded-lg p-3 bg-emerald-700" onClick={async () => { try { await navigator.share({ title: 'My #hack member profile', url }); } catch (issue: any) { if (issue.name !== 'AbortError') await copyLink(); } }}>Share profile</button>}<button className="flex-1 rounded-lg bg-zinc-800 p-3" onClick={copyLink}>Copy profile link</button></div>
