@@ -1,4 +1,4 @@
-import type { DocumentData, DocumentReference, Firestore, UpdateData } from 'firebase-admin/firestore';
+import type { DocumentData, DocumentReference, DocumentSnapshot, Firestore, Transaction, UpdateData } from 'firebase-admin/firestore';
 import { randomUUID } from 'node:crypto';
 
 export async function beginProfileDeletion(database: Firestore, uid: string) {
@@ -19,7 +19,7 @@ export async function beginProfileDeletion(database: Firestore, uid: string) {
       proposalIds = [...new Set([...proposals.docs, ...associated.flatMap(snapshot => snapshot.docs)].map(proposal => proposal.id))];
     }
     const manifest = { participantIds, proposalIds, attemptId, leaseUntil: Date.now() + 5 * 60 * 1000 };
-    transaction.set(jobRef, manifest);
+    transaction.set(jobRef, manifest, { merge: true });
     transaction.set(database.doc(`profiles/${uid}`), { state: 'deleting' });
     return manifest;
   });
@@ -30,6 +30,25 @@ export async function releaseProfileDeletion(database: Firestore, uid: string, a
     const jobRef = database.doc(`profileDeletionJobs/${uid}`);
     const job = await transaction.get(jobRef);
     if (job.data()?.attemptId === attemptId) transaction.update(jobRef, { leaseUntil: 0 });
+  });
+}
+
+// Shared module extension seam. Callback reads/mutations and lease renewal all
+// serialize with takeover/completion; stale workers never write a new generation.
+// Callback must perform its reads before writes, as with any Firestore transaction.
+export async function withProfileDeletionFence<T>(
+  database: Firestore, uid: string, attemptId: string,
+  operation: (transaction: Transaction, job: DocumentSnapshot) => Promise<T>,
+): Promise<T> {
+  return database.runTransaction(async transaction => {
+    const jobRef = database.doc(`profileDeletionJobs/${uid}`);
+    const [job, profile] = await Promise.all([
+      transaction.get(jobRef), transaction.get(database.doc(`profiles/${uid}`)),
+    ]);
+    if (job.data()?.attemptId !== attemptId || profile.data()?.state !== 'deleting') throw new Error('Cleanup attempt superseded; retry deletion.');
+    const result = await operation(transaction, job);
+    transaction.update(jobRef, { leaseUntil: Date.now() + 5 * 60 * 1000 });
+    return result;
   });
 }
 
@@ -51,19 +70,21 @@ export function createProfileCleanup(database: Firestore, uid: string, attemptId
     finish: async () => {
       for (let offset = 0; offset < mutations.length; offset += 100) {
         const chunk = mutations.slice(offset, offset + 100);
-        await database.runTransaction(async transaction => {
-          const job = await transaction.get(jobRef);
-          if (job.data()?.attemptId !== attemptId) throw new Error('Cleanup attempt superseded; retry deletion.');
+        await withProfileDeletionFence(database, uid, attemptId, async transaction => {
           for (const mutation of chunk) {
             if (mutation.changes) transaction.update(mutation.reference, mutation.changes);
             else transaction.delete(mutation.reference);
           }
-          transaction.update(jobRef, { leaseUntil: Date.now() + 5 * 60 * 1000 });
         });
       }
       await database.runTransaction(async transaction => {
-        const job = await transaction.get(jobRef);
-        if (job.data()?.attemptId !== attemptId) throw new Error('Cleanup attempt superseded; retry deletion.');
+        const [job, profile] = await Promise.all([
+          transaction.get(jobRef), transaction.get(database.doc(`profiles/${uid}`)),
+        ]);
+        if (job.data()?.attemptId !== attemptId || profile.data()?.state !== 'deleting') throw new Error('Cleanup attempt superseded; retry deletion.');
+        for (const namespace of ['attendancePlan', 'awardPlan']) {
+          if (job.data()?.[namespace] && job.data()![namespace].completed !== true) throw new Error(`Profile cleanup module incomplete: ${namespace}`);
+        }
         transaction.set(database.doc(`profiles/${uid}`), { state: 'deleted' });
         transaction.delete(jobRef);
       });
