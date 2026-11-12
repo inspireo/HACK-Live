@@ -1,0 +1,54 @@
+// Integration draft: rename to .spec.ts after restacking onto PR1/PR2 harness.
+// HACKLIVE_INVITATION_PATH must point at a seeded active event (/session/<id>).
+// Use PR1's auth fixture to test eventual auth return; do not create another harness.
+import { expect, test } from '@playwright/test';
+
+const invitationPath = process.env.HACKLIVE_INVITATION_PATH;
+test.skip(!invitationPath, 'Requires PR1 emulator seed and auth fixture');
+test.use({ viewport: { width: 390, height: 844 } });
+
+test('mobile gesture shares public invitation and canonical destination', async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'share', { configurable: true, value: async (payload: ShareData) => {
+      (window as any).__sharedInvitation = { payload, active: navigator.userActivation.isActive };
+    } });
+  });
+  await page.goto(invitationPath!);
+  await page.getByRole('button', { name: 'Share event', exact: true }).click();
+  await expect(page.getByRole('status')).toHaveText('Event invitation shared.');
+  const shared = await page.evaluate(() => (window as any).__sharedInvitation);
+  expect(shared.active).toBe(true);
+  expect(shared.payload.url).toBe(new URL(invitationPath!, page.url()).href);
+  expect(shared.payload.text).not.toContain(shared.payload.url);
+  expect(Object.keys(shared.payload).sort()).toEqual(['text', 'title', 'url']);
+});
+
+for (const mode of ['unavailable', 'failed', 'cancelled', 'clipboard-denied']) {
+  test(`${mode} sharing has accessible fallback or quiet cancellation`, async ({ page }) => {
+    await page.addInitScript(mode => {
+      Object.defineProperty(navigator, 'share', { configurable: true, value: mode === 'unavailable' ? undefined : async () => {
+        throw new DOMException('Share ended', mode === 'cancelled' ? 'AbortError' : 'NotAllowedError');
+      } });
+      Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: async (text: string) => {
+        if (mode === 'clipboard-denied') throw new DOMException('Denied', 'NotAllowedError');
+        (window as any).__copiedInvitation = text;
+      } } });
+    }, mode);
+    await page.goto(invitationPath!);
+    await page.getByRole('button', { name: 'Share event', exact: true }).click();
+    const status = page.getByRole('status');
+    if (mode === 'cancelled') {
+      await expect(status).toBeEmpty();
+      expect(await page.evaluate(() => (window as any).__copiedInvitation)).toBeUndefined();
+    } else if (mode === 'clipboard-denied') {
+      await expect(status).toContainText('Select and copy');
+      await expect(page.getByRole('textbox', { name: 'Event invitation' })).toHaveValue(new RegExp(new URL(invitationPath!, page.url()).href.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+    } else {
+      await expect(status).toContainText('Event invitation copied');
+      expect(await page.evaluate(() => (window as any).__copiedInvitation)).toContain(new URL(invitationPath!, page.url()).href);
+    }
+  });
+}
+
+// After harness integration add seeded Draft/Closed/unknown-state coverage,
+// registered-participant/onboarding coverage, and recipient auth-return coverage.
