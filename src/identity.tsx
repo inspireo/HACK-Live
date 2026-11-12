@@ -140,7 +140,7 @@ export function MemberProfile() {
     setMember(snapshot.exists() && snapshot.data().state === 'active' ? snapshot.data() as Profile : null);
     setMessage('Member unavailable.');
   }, () => { setMember(null); setMessage('Member unavailable.'); }), [memberId]);
-  return <Panel>{member ? <><h1 className="text-3xl">{member.name}</h1><p>Community member</p><MemberDetails memberId={memberId!} /><ConnectionPanel key={memberId} peerUid={memberId!} /><MemberHistory key={memberId} memberUid={memberId} /><Achievements memberId={memberId} /></> : <p>{message}</p>}<Link to="/members">Community members</Link></Panel>;
+  return <Panel>{member ? <><h1 className="text-3xl">{member.name}</h1><p>Community member</p><MemberDetails memberId={memberId!} /><ConnectionPanel key={memberId} peerUid={memberId!} /><MemberHistory key={memberId} memberUid={memberId} /><Achievements key={memberId} memberId={memberId} /></> : <p>{message}</p>}<Link to="/members">Community members</Link></Panel>;
 }
 export function Members() {
   const [members, setMembers] = useState<{ memberId: string; name: string }[]>([]);

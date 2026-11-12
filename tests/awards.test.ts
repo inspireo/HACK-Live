@@ -1,10 +1,11 @@
 import { before, after, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { assertFails, initializeTestEnvironment, type RulesTestEnvironment } from '@firebase/rules-unit-testing';
+import { assertFails, assertSucceeds, initializeTestEnvironment, type RulesTestEnvironment } from '@firebase/rules-unit-testing';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { callIdentity, clearFixtures, createFixtureUser, fixtureAuth, fixtureDb, projectId, seedEvents, signInFixture } from './fixtures';
-import { planAwardCleanup, scrubAwardRecord, type AwardCleanupPlan } from '../server/award-cleanup';
+import { cleanupAwards, prepareAwardCleanup, scrubAwardRecord, type AwardCleanupPlan } from '../server/award-cleanup';
+import { beginProfileDeletion, createProfileCleanup, releaseProfileDeletion } from '../server/profile-cleanup';
 
 let environment: RulesTestEnvironment;
 const tokens: Record<string, string> = {};
@@ -122,6 +123,20 @@ test('team publication snapshots a coherent concurrent membership/name generatio
   assert.equal((await memberAwards('other')).awards.length, 0);
 });
 
+test('legacy solution-team alias credits the linked recipient; conflicting nonempty aliases reject publication', async () => {
+  await fixtureDb.doc('teams/alias-team').set({ sessionId: 'event-one', name: 'Legacy alias team' });
+  await fixtureDb.doc(`participants/${participantIds.bob}`).update({ teamId: null, solutioning_team_id: 'alias-team' });
+  const legacyId = (await succeed('draft', { categoryId: teamCategory, target: { collectionName: 'teams', teamId: 'alias-team' } })).id;
+  await succeed('publish', { resultId: legacyId });
+  assert.deepEqual((await fixtureDb.doc(`awardResults/${legacyId}`).get()).data()!.snapshot.recipients.map((recipient: any) => recipient.memberId), ['bob']);
+  await fixtureDb.doc(`participants/${participantIds.bob}`).update({ teamId: 'different-team' });
+  const conflictId = (await succeed('draft', { categoryId: teamCategory, target: { collectionName: 'teams', teamId: 'alias-team' } })).id;
+  assert.equal((await manage('publish', { resultId: conflictId })).status, 409);
+  await succeed('discard', { resultId: conflictId });
+  await fixtureDb.doc(`participants/${participantIds.bob}`).update({ teamId: null, solutioning_team_id: null });
+  assert.deepEqual((await fixtureDb.doc(`awardResults/${legacyId}`).get()).data()!.snapshot.recipients.map((recipient: any) => recipient.memberId), ['bob']);
+});
+
 test('legacy mutable uid, missing pointer and disabled account never confer personal award credit; multiple winners supported', async () => {
   await fixtureDb.doc('participants/legacy-award').set({ sessionId: 'event-one', uid: 'legacy', name: 'Untrusted legacy name', passcode: 'not-proof' });
   const legacyAward = (await succeed('draft', { categoryId: individualCategory, target: { participantId: 'legacy-award' } })).id;
@@ -185,39 +200,23 @@ test('historical unlinked/deleted/ineligible team recipients stay explicit; empt
   assert.ok((await eventAwards()).awards.some((award: any) => award.id === emptyAward));
 });
 
-test('durable award cleanup manifest survives partial scrubbing, fences stale generations, preserves team aggregate and other credit', async () => {
+test('actual delete-profile partial failure preserves award recovery IDs, retries source/peer credit safely, fences old workers after recreation', async () => {
   const source = (await fixtureDb.doc(`awardResults/${teamResult}`).get()).data()!;
   const otherUid = source.snapshot.recipients.find((recipient: any) => recipient.memberId !== 'alice').memberId;
-  await fixtureDb.doc('profiles/alice').update({ state: 'deleting' });
-  const job = fixtureDb.doc('profileDeletionJobs/award-cleanup-test');
-  await job.set({ generation: 'current', state: 'deleting' });
-  const plan = await fixtureDb.runTransaction(async transaction => {
-    const manifest = await planAwardCleanup(fixtureDb, transaction, 'alice', [participantIds.alice]);
-    transaction.update(job, { awards: manifest }); return manifest;
-  });
-  assert.ok(plan.resultIds.includes(teamResult)); assert.ok(plan.achievementIds.includes(teamResult));
-  const fence = (generation: string) => async (transaction: any) => {
-    const saved = await transaction.get(job);
-    const profile = await transaction.get(fixtureDb.doc('profiles/alice'));
-    if (saved.data()?.generation !== generation || saved.data()?.state !== 'deleting' || profile.data()?.state !== 'deleting') throw new Error('Stale deletion generation');
-  };
-  await assert.rejects(scrubAwardRecord(fixtureDb, 'alice', plan, 'result', teamResult, fence('old')), /Stale deletion generation/);
-  assert.equal((await fixtureDb.doc(`awardResults/${teamResult}`).get()).data()!.snapshot.recipients.some((recipient: any) => recipient.memberId === 'alice'), true);
-  // Concurrent staff work after planning must not create fresh personal audit
-  // references outside the immutable deletion manifest.
-  await succeed('correct', { resultId: teamResult, categoryId: correctedCategory, reason: 'Correction concurrent with deletion' });
-  const duringDeletion = await staffData();
-  for (const audit of duringDeletion.audits.filter((entry: any) => !plan.auditIds.includes(entry.id))) assert.ok(!audit.subjectUids.includes('alice'));
-  assert.equal((await manage('draft', { categoryId: individualCategory, target: { participantId: participantIds.alice } })).status, 409);
-  await scrubAwardRecord(fixtureDb, 'alice', plan, 'result', teamResult, fence('current'));
-  // A real failing write interrupts cleanup after personal discovery was removed.
-  await assert.rejects(fixtureDb.doc('awardAudits/missing-retry-target').update({ reason: null }));
-  const restored = (await job.get()).data()!.awards as AwardCleanupPlan;
-  for (const [type, recordIds] of [['result', restored.resultIds], ['audit', restored.auditIds], ['achievement', restored.achievementIds]] as const) {
-    for (const recordId of recordIds) await scrubAwardRecord(fixtureDb, 'alice', restored, type, recordId, fence('current'));
-  }
-  // Retry the exact persisted plan after all discovery fields have gone.
-  for (const resultId of restored.resultIds) await scrubAwardRecord(fixtureDb, 'alice', restored, 'result', resultId, fence('current'));
+  await fixtureDb.doc('users/alice').set({ role: 'admin' });
+  await fixtureDb.doc('sessions/award-owned').set({ ownerId: 'alice', title: 'Keep owned event' });
+  // A malformed historical publication reference causes an actual API failure
+  // after award scrubs have committed but BEFORE parent completion. No mocked
+  // SDK, auth, route, security decision or fault-injection endpoint is used.
+  await fixtureDb.doc('proposedChallenges/award-retry-proposal').set({ uid: 'alice', sessionId: 'event-one', submitterParticipantId: participantIds.alice, publishedChallengeId: 'invalid/path', title: 'Keep shared proposal' });
+  const failed = await callIdentity(tokens.alice, 'delete-profile');
+  assert.equal(failed.status, 500, JSON.stringify(failed));
+  assert.equal((await fixtureDb.doc('profiles/alice').get()).data()!.state, 'deleting');
+  const job = fixtureDb.doc('profileDeletionJobs/alice');
+  const savedJob = (await job.get()).data()!;
+  const plan = savedJob.awardPlan as AwardCleanupPlan;
+  assert.equal(plan.completed, true); assert.ok(plan.resultIds.includes(teamResult)); assert.ok(plan.achievementIds.includes(teamResult));
+  assert.equal(savedJob.leaseUntil, 0);
   const retained = (await fixtureDb.doc(`awardResults/${teamResult}`).get()).data()!;
   assert.equal(retained.status, 'published'); assert.deepEqual(retained.snapshot.team, source.snapshot.team);
   assert.ok(retained.snapshot.recipients.some((recipient: any) => recipient.memberId === otherUid));
@@ -225,14 +224,118 @@ test('durable award cleanup manifest survives partial scrubbing, fences stale ge
   assert.ok(!retained.snapshot.recipients.some((recipient: any) => recipient.memberId === 'alice'));
   assert.equal((await fixtureDb.doc(`memberAchievements/${otherUid}/awards/${teamResult}`).get()).exists, true);
   assert.equal((await fixtureDb.doc(`memberAchievements/alice/awards/${teamResult}`).get()).exists, false);
-  for (const auditId of restored.auditIds) { const audit = (await fixtureDb.doc(`awardAudits/${auditId}`).get()).data()!; assert.ok(!audit.subjectUids.includes('alice')); assert.equal(audit.reason, null); }
   assert.ok((await eventAwards()).awards.find((award: any) => award.id === teamResult).recipientNames.includes('Deleted recipient'));
   assert.equal((await callIdentity(tokens.other, 'awards/member', { memberId: 'alice' })).status, 404);
   assert.equal((await callIdentity(tokens.alice, 'awards/visibility', { resultId: teamResult, visibleOnProfile: true })).status, 403);
+  // A concurrent correction during the deleting lifecycle cannot create fresh
+  // subject references outside the persisted plan. Individual issuance is denied.
+  await succeed('correct', { resultId: teamResult, categoryId: correctedCategory, reason: 'Correction concurrent with deletion' });
+  const duringDeletion = await staffData();
+  for (const audit of duringDeletion.audits.filter((entry: any) => !plan.auditIds.includes(entry.id))) assert.ok(!audit.subjectUids.includes('alice'));
+  assert.equal((await manage('draft', { categoryId: individualCategory, target: { participantId: participantIds.alice } })).status, 409);
+  // Even a retained plan entry cannot overwrite a newer unrelated actor/reason.
+  const auditId = plan.auditIds[0]; assert.ok(auditId);
+  await fixtureDb.doc(`awardAudits/${auditId}`).update({ actorUid: otherUid, subjectUids: [otherUid], reason: 'Newer unrelated reason' });
+  await fixtureDb.doc(`awardResults/${teamResult}`).update({ updatedBy: otherUid });
+  await scrubAwardRecord(fixtureDb, 'alice', savedJob.attemptId, 'audit', auditId);
+  await scrubAwardRecord(fixtureDb, 'alice', savedJob.attemptId, 'result', teamResult);
+  assert.equal((await fixtureDb.doc(`awardAudits/${auditId}`).get()).data()!.reason, 'Newer unrelated reason');
+  assert.equal((await fixtureDb.doc(`awardAudits/${auditId}`).get()).data()!.actorUid, otherUid);
+  assert.equal((await fixtureDb.doc(`awardResults/${teamResult}`).get()).data()!.updatedBy, otherUid);
+  await fixtureDb.doc('proposedChallenges/award-retry-proposal').update({ publishedChallengeId: 'missing-valid-publication' });
+  const retried = await callIdentity(tokens.alice, 'delete-profile');
+  assert.equal(retried.status, 200, JSON.stringify(retried));
+  assert.equal((await job.get()).exists, false);
+  assert.deepEqual((await fixtureDb.doc('profiles/alice').get()).data(), { state: 'deleted' });
   assert.equal((await fixtureAuth.getUser('alice')).emailVerified, true);
-  await fixtureDb.doc('profiles/alice').set({ name: 'Returned synthetic alice', state: 'active' });
-  assert.equal((await memberAwards('alice')).awards.length, 0);
+  assert.equal((await fixtureDb.doc('users/alice').get()).data()!.role, 'admin');
+  assert.equal((await fixtureDb.doc('sessions/award-owned').get()).data()!.ownerId, 'alice');
   assert.ok((await memberAwards(otherUid)).awards.some((award: any) => award.id === teamResult));
+  // Recreate through actual rules/API. Old achievements must not reappear; an
+  // explicitly issued NEW award uses the new canonical participant pointer.
+  const client = environment.authenticatedContext('alice', { email: 'alice@example.test', email_verified: true, firebase: { sign_in_provider: 'password' } }).firestore();
+  await assertSucceeds(setDoc(doc(client, 'profiles/alice'), { name: 'Returned synthetic alice', state: 'active' }));
+  assert.equal((await memberAwards('alice')).awards.length, 0);
+  const registered = await callIdentity(tokens.alice, 'register', { sessionId: 'event-one' });
+  assert.equal(registered.status, 200); assert.notEqual(registered.data.participantId, participantIds.alice);
+  const saved = await callIdentity(tokens.alice, 'save-profile', { name: 'Returned synthetic alice', professional: { title: 'Keep fresh title' }, communityFields: ['title'], contacts: {}, connectionFields: [] });
+  assert.equal(saved.status, 200, JSON.stringify(saved));
+  const freshId = (await succeed('draft', { categoryId: individualCategory, target: { participantId: registered.data.participantId } })).id;
+  await succeed('publish', { resultId: freshId });
+  const freshSource = (await fixtureDb.doc(`awardResults/${freshId}`).get()).data();
+  const freshProjection = (await fixtureDb.doc(`memberAchievements/alice/awards/${freshId}`).get()).data();
+  // The original API attempt resumes after takeover and completion. Planning,
+  // manifest writes, source/audit scrubs and new projection deletes all reject.
+  await assert.rejects(prepareAwardCleanup(fixtureDb, 'alice', savedJob.attemptId), /superseded/);
+  await assert.rejects(cleanupAwards(fixtureDb, 'alice', savedJob.attemptId), /superseded/);
+  for (const [type, recordId] of [['result', teamResult], ['result', freshId], ['audit', auditId], ['achievement', freshId]] as const) await assert.rejects(scrubAwardRecord(fixtureDb, 'alice', savedJob.attemptId, type, recordId), /superseded/);
+  const pausedParent = createProfileCleanup(fixtureDb, 'alice', savedJob.attemptId);
+  pausedParent.delete(fixtureDb.doc(`awardResults/${freshId}`));
+  pausedParent.delete(fixtureDb.doc(`memberAchievements/alice/awards/${freshId}`));
+  await assert.rejects(pausedParent.finish(), /superseded/);
+  assert.equal((await job.get()).exists, false);
+  assert.deepEqual((await fixtureDb.doc(`awardResults/${freshId}`).get()).data(), freshSource);
+  assert.deepEqual((await fixtureDb.doc(`memberAchievements/alice/awards/${freshId}`).get()).data(), freshProjection);
+  assert.equal((await fixtureDb.doc('memberDetails/alice').get()).data()!.title, 'Keep fresh title');
+  assert.equal((await fixtureDb.doc('profiles/alice').get()).data()!.state, 'active');
+  assert.ok((await memberAwards('alice')).awards.some((award: any) => award.id === freshId));
+  assert.ok((await memberAwards(otherUid)).awards.some((award: any) => award.id === teamResult));
+});
+
+test('actual delete-profile resumes a saved incomplete award plan after a later source transaction fails', async () => {
+  const uid = 'partial-award'; await createFixtureUser(uid);
+  const token = await signInFixture(uid);
+  const registration = await callIdentity(token, 'register', { sessionId: 'event-one' });
+  assert.equal(registration.status, 200);
+  await fixtureDb.doc('teams/partial-award-team').set({ sessionId: 'event-one', name: 'Keep shared partial team' });
+  for (const participantId of [registration.data.participantId, participantIds.carol]) await fixtureDb.doc(`participants/${participantId}`).update({ teamId: 'partial-award-team', solutioning_team_id: 'partial-award-team' });
+  const issuedIds: string[] = [];
+  for (let winner = 0; winner < 2; winner++) {
+    const issued = (await succeed('draft', { categoryId: teamCategory, target: { collectionName: 'teams', teamId: 'partial-award-team' } })).id;
+    await succeed('publish', { resultId: issued }); issuedIds.push(issued);
+  }
+  issuedIds.sort();
+  const later = fixtureDb.doc(`awardResults/${issuedIds[1]}`);
+  const original = (await later.get()).data()!;
+  // Real stored-source corruption makes the second transaction throw after the
+  // first source has committed. The actual route retains its durable saved IDs.
+  await later.update({ 'snapshot.recipients': null });
+  assert.equal((await callIdentity(token, 'delete-profile')).status, 500);
+  const job = fixtureDb.doc(`profileDeletionJobs/${uid}`);
+  const interrupted = (await job.get()).data()!;
+  assert.equal(interrupted.awardPlan.completed, false);
+  assert.deepEqual([...interrupted.awardPlan.resultIds].sort(), issuedIds);
+  const first = (await fixtureDb.doc(`awardResults/${issuedIds[0]}`).get()).data()!;
+  assert.ok(!first.subjectUids.includes(uid));
+  assert.ok(!first.snapshot.recipients.some((recipient: any) => recipient.memberId === uid));
+  assert.ok(first.snapshot.recipients.some((recipient: any) => recipient.memberId === 'carol'));
+  assert.equal((await fixtureDb.doc(`memberAchievements/carol/awards/${issuedIds[0]}`).get()).exists, true);
+  assert.equal((await fixtureDb.doc(`profiles/${uid}`).get()).data()!.state, 'deleting');
+  await later.update({ 'snapshot.recipients': original.snapshot.recipients });
+  assert.equal((await callIdentity(token, 'delete-profile')).status, 200);
+  assert.equal((await job.get()).exists, false);
+  assert.deepEqual((await fixtureDb.doc(`profiles/${uid}`).get()).data(), { state: 'deleted' });
+  assert.equal((await fixtureDb.collection(`memberAchievements/${uid}/awards`).get()).size, 0);
+  for (const resultId of issuedIds) {
+    const retained = (await fixtureDb.doc(`awardResults/${resultId}`).get()).data()!;
+    assert.equal(retained.status, 'published'); assert.deepEqual(retained.snapshot.team, original.snapshot.team);
+    assert.ok(retained.snapshot.recipients.some((recipient: any) => recipient.memberId === 'carol'));
+    assert.ok(!retained.snapshot.recipients.some((recipient: any) => recipient.memberId === uid));
+    assert.equal((await fixtureDb.doc(`memberAchievements/carol/awards/${resultId}`).get()).exists, true);
+  }
+});
+
+test('parent completion refuses a captured incomplete award module and authenticated route recovery finishes it', async () => {
+  await createFixtureUser('award-completion-gate');
+  const token = await signInFixture('award-completion-gate');
+  const attempt = await beginProfileDeletion(fixtureDb, 'award-completion-gate');
+  const plan = await prepareAwardCleanup(fixtureDb, 'award-completion-gate', attempt.attemptId);
+  assert.equal(plan.completed, false);
+  await assert.rejects(createProfileCleanup(fixtureDb, 'award-completion-gate', attempt.attemptId).finish(), /module incomplete: awardPlan/);
+  assert.equal((await fixtureDb.doc('profiles/award-completion-gate').get()).data()!.state, 'deleting');
+  await releaseProfileDeletion(fixtureDb, 'award-completion-gate', attempt.attemptId);
+  assert.equal((await callIdentity(token, 'delete-profile')).status, 200);
+  assert.equal((await fixtureDb.doc('profileDeletionJobs/award-completion-gate').get()).exists, false);
 });
 
 test('social deletion preserves staff authority without recreating actor attribution after manifest planning', async () => {

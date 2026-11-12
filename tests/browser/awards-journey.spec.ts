@@ -12,6 +12,8 @@ test.beforeAll(async () => {
     if (uid === 'award-member') memberParticipantId = registered.data.participantId;
     await fixtureDb.doc(`participants/${registered.data.participantId}`).update({ teamId: 'browser-award-team', isAssigned: true });
   }
+  const savedProfile = await callIdentity(await signInFixture('award-member'), 'save-profile', { name: 'Synthetic award-member', professional: { title: 'Systems builder' }, communityFields: ['title'], contacts: { contactEmail: 'private-award-member@example.test' }, connectionFields: [] });
+  expect(savedProfile.status).toBe(200);
   await fixtureDb.doc('teams/browser-award-team').set({ sessionId: 'event-one', name: 'Historical Builders', challengeId: 'event-one-challenge', hasPresented: true });
   await fixtureDb.doc('sessions/event-one').update({ status: 'Closed', date: '2025-06-01' });
 });
@@ -46,11 +48,14 @@ test('staff publish individual and team awards; member selects profile credit; l
   const viewerContext = await browser.newContext({ recordVideo: { dir: 'test-results/award-viewer', size: { width: 1100, height: 760 } } });
   try {
     const member = await memberContext.newPage(); await member.goto('/account'); await signIn(member, 'award-member');
+    await expect(member.getByLabel('Professional title or role', { exact: true })).toHaveValue('Systems builder');
     await expect(member.getByRole('heading', { name: 'Contributor', exact: true })).toBeVisible();
     await expect(member.getByRole('heading', { name: 'Team excellence', exact: true })).toBeVisible();
     await expect(member.getByLabel('Show Contributor on my profile', { exact: true })).not.toBeChecked();
     const viewer = await viewerContext.newPage(); await viewer.goto('/members/award-member'); await signIn(viewer, 'award-viewer');
     await expect(viewer.getByText('No achievements selected for this profile.', { exact: false })).toBeVisible();
+    await expect(viewer.getByText('Systems builder', { exact: false })).toBeVisible();
+    await expect(viewer.getByText('private-award-member@example.test', { exact: false })).toHaveCount(0);
     await member.getByLabel('Show Team excellence on my profile', { exact: true }).check();
     await expect(member.getByLabel('Show Team excellence on my profile', { exact: true })).toBeEnabled();
     await viewer.reload();

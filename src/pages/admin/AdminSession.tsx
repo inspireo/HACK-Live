@@ -1503,7 +1503,7 @@ export default function AdminSession() {
               proposedChallenges={proposedChallenges}
             />
           )}
-          {activeTab === 'awards' && <AwardsTab sessionId={sessionId!} />}
+          {activeTab === 'awards' && <AwardsTab key={sessionId} sessionId={sessionId!} />}
           {activeTab === 'resources' && <ResourcesTab sessionId={sessionId!} resources={resources} />}
           {activeTab === 'participants' && (
             <ParticipantsTab 

@@ -14,6 +14,7 @@ import { installAttendanceRoutes } from './attendance';
 import { queueSharedContentCleanup } from './shared-content-cleanup';
 import { cleanupAttendance } from './attendance-cleanup';
 import { installAwardRoutes } from './awards';
+import { cleanupAwards } from './award-cleanup';
 
 // Emulator mode must be explicit and must never fall through to production.
 const target = identityDatabaseTarget();
@@ -210,6 +211,9 @@ router.post('/delete-profile', async (_req, res) => {
     const manifest = await beginProfileDeletion(identityDb, uid);
     attemptId = manifest.attemptId;
     await cleanupAttendance(identityDb, uid, attemptId);
+    // Capture durable award recovery IDs and scrub them under this same attempt
+    // before any participant/pointer erasure. Only parent finish completes.
+    await cleanupAwards(identityDb, uid, attemptId);
     const participantIds = manifest.participantIds;
     const ownedParticipants = participantIds.length ? await identityDb.getAll(...participantIds.map(participantId => identityDb.doc(`participants/${participantId}`))) : [];
     // Bounded, attempt-fenced transactions permit repeatable cleanup beyond a single write batch.
