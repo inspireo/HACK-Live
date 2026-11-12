@@ -1,35 +1,41 @@
-# Event invitation browser integration
+# Event invitation regressions
 
-`event-invitation.spec.ts.template` is a pending Playwright spec, not an executed test.
-Rename it to `.spec.ts` and adapt it to PR1's existing emulator/auth fixtures after
-restacking this slice onto PR2. No second harness or dependency setup is included.
+`event-invitation.spec.ts` runs in the inherited serial Playwright suite against
+real Firebase Auth/Firestore emulators and the identity server. File-scoped
+fixtures reset before the next file; do not run fixture files in parallel.
 
-The draft uses `HACKLIVE_INVITATION_PATH=/session/<seeded-active-event-id>` and a
-390 × 844 viewport. It covers direct-gesture native share, unsupported sharing,
-share failure, cancellation, clipboard denial and visible/accessibility feedback.
-Replace its environment-driven path with the harness fixture when available.
+The 390 × 844 journey signs in, shares from the join screen, registers through the
+existing form, tests dashboard copy/manual/cancellation paths, shares from Opening
+onboarding, then opens the exact shared URL in a fresh context. That recipient
+signs in through real Firebase email auth, retains the event destination,
+registers once and reloads into the same registration. A second test verifies live
+stage gating and unsafe-title fallback without duplicating registrations.
 
-Before publishing PR3:
+Only OS share and clipboard contracts are mocked. Tests assert native share is
+called with active user activation and exact title/text/url. Auth, identity
+operations, session reads and rules are real. This is Chromium mobile viewport
+evidence, not a physical phone or an OS share sheet recording.
 
-- Seed public title plus distinctive owner/admin/contact/recovery fields and
-  assert only the expected title/text/canonical URL reaches share and copy.
-- Cover registered participant dashboard, Opening onboarding and join screen.
-- Seed Draft, Closed and unknown states and assert Share event is absent.
-- Follow the shared URL in a fresh recipient context; exercise PR1's actual auth
-  mechanism and verify the same event destination survives and uses the existing
-  join flow. Do not add another registration form or auth-return implementation.
-- Record a reviewer-accessible mobile demo showing native share (real device when
-  available), clipboard fallback, quiet cancellation and recipient navigation.
-  Browser mocks verify API payload/gesture but cannot prove an OS share sheet.
-
-Focused tests can run before that integration, using existing dependencies:
+With Node 24, Java 21, Chromium installed and ports 3000/8080/9099/9150 free:
 
 ```sh
-rtk npm ci --legacy-peer-deps
-rtk proxy npx --no-install tsx --test tests/eventInvitation.test.ts
-rtk npm run lint
+rtk npm ci
+rtk proxy npx playwright install chromium
+rtk npm run typecheck
 rtk npm run build
+rtk npm run test:emulators
+rtk proxy env INVITATION_DEMO=true npm run test:emulators
+rtk proxy node scripts/collect-invitation-demo.mjs
 ```
 
-The legacy-peer-deps flag is needed for the baseline React 19/react-quill peer
-conflict. This slice does not change package files.
+Normal tests contain no reviewer reading pauses; INVITATION_DEMO=true adds
+3.5-second holds. The collector requires a fully passing cumulative suite and the
+paced demo manifest. It copies actual recordings, screenshots and contract data
+to docs/evidence, without synthesizing or retiming frames. See
+[invitation evidence](../../docs/evidence/invitation-pr3.md) for review links and limitations.
+
+The focused nine-test logic suite also runs inside test:emulators. Run alone:
+
+```sh
+rtk proxy node --import tsx --test tests/eventInvitation.test.ts
+```
