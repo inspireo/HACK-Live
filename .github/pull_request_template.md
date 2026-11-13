@@ -18,7 +18,7 @@ List exact commands, results, and any checks not run with their actual blockers.
 
 ## Video demo and reproduction
 
-Link a reviewer-accessible recording of the actual expected journey (GitHub artifact or repository evidence). Local paths alone do not count. State synthetic/emulator vs production and browser/viewport vs real-device evidence. Include repeatable test/demo instructions. Keep media modest.
+Upload a recording of the actual expected journey directly into the PR description as a GitHub video attachment. Verify playback and keep the stable attachment URL in the evidence documentation. Do not commit video files; collectors write ignored local videos for upload. State synthetic/emulator vs production and browser/viewport vs real-device evidence. Include repeatable test/demo instructions. Keep media modest; temporary CI artifacts supplement the attached demo.
 
 ## Stack
 
