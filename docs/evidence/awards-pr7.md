@@ -1,6 +1,6 @@
 # PR7 actual official-award evidence
 
-[Actual paced staff → member → viewer walkthrough](pr7-official-awards.webm) — **63.72 seconds**, VP9/WebM, 1100×760. Authorized repository reviewers can use GitHub **View raw / Download** to play the actual movie. These files are committed repository evidence, not local-only paths.
+[Actual paced staff → member → viewer walkthrough](https://github.com/user-attachments/assets/691b5cc8-92a6-4e50-9f66-9c25a67af7fa) — **63.72 seconds**, VP9/WebM, 1100×760. Open the verified GitHub video attachment to play the actual movie; it is also published in the PR description.
 
 Recorded 2026-11-12 against actual synthetic Firebase Auth/Firestore emulators and the real application/API/rules. Capture product: `a1c5fdc73998e30e061cf48151730d034ef3a0f7`. Node `v24.22.2`, Chromium `158.0.8127.18`, desktop viewport 1100×760. No production data, authentication mocks, security mocks, live Google consent, or physical-device claims.
 
@@ -14,9 +14,9 @@ Recorded 2026-11-12 against actual synthetic Firebase Auth/Firestore emulators a
 
 ## Full recordings
 
-- [Staff full recording](pr7-staff-full.webm): drafts/publication/finalization, actual later team removal, correction/revocation and authorized private audit.
-- [Member full recording](pr7-member-full.webm): existing professional editor, private-by-default achievements, explicit profile selection, snapshot credit after team removal, correction retaining selection and revoked team award removed.
-- [Viewer full recording](pr7-viewer-full.webm): unselected profile hidden, selected safe summary, independently published official event results, correction and revocation; no private contacts/audit reasons.
+- [Staff full recording](https://github.com/user-attachments/assets/8ae21471-d003-4be7-8def-f33488cbb165): drafts/publication/finalization, actual later team removal, correction/revocation and authorized private audit.
+- [Member full recording](https://github.com/user-attachments/assets/eb775f82-bec1-4a7a-9ac1-44c7e65e6dcc): existing professional editor, private-by-default achievements, explicit profile selection, snapshot credit after team removal, correction retaining selection and revoked team award removed.
+- [Viewer full recording](https://github.com/user-attachments/assets/8697c42a-8d10-4400-98f1-1352c048910d): unselected profile hidden, selected safe summary, independently published official event results, correction and revocation; no private contacts/audit reasons.
 - [Machine-readable source/timestamp contract](pr7-browser-contract.json).
 
 ## Captured stages
@@ -47,3 +47,16 @@ Recorded 2026-11-12 against actual synthetic Firebase Auth/Firestore emulators a
 Use Node 24 and Java 21. Run `npm ci`, `npx playwright install chromium`, `npm run typecheck`, `npm run build`, then `npm run test:emulators` for the complete cumulative validation. After it passes, run the same harness with `AWARDS_DEMO=true AWARDS_RECORD_ONLY=true AWARDS_SOURCE_REVISION=a1c5fdc73998e30e061cf48151730d034ef3a0f7` for evidence-only capture. Then run `FFMPEG_PATH=/path/to/ffmpeg node scripts/collect-awards-demo.mjs`. Normal mode has no recording holds; demo mode uses 150 ms browser action pacing and actual 3.5-second stage holds. Save/collect media before any further Playwright run resets test-results.
 
 Schema/API/index/migration/backfill/trust contract: [awards-pr7.md](../awards-pr7.md). Parent: [actual PR6](https://github.com/inspireo/HACK-Live/pull/6), `cbe48355cc82c9bdf4d39937bc4c6a09f0290a9d`. No merge/deployment.
+
+Recording collectors continue to write local videos to `docs/evidence/`; `docs/evidence/*.webm` is ignored. Upload those files directly into the PR description, verify the resulting GitHub attachments, and update these links. Do not commit or force-add videos. Screenshots and capture contracts remain tracked; original recording revisions, filenames and timings are historical capture provenance.
+
+## Capture filename to attachment mapping
+
+The unchanged capture contract records the original local filenames and source revision. The recordings are now hosted at these verified attachments.
+
+| Capture filename | Attachment |
+| --- | --- |
+| `pr7-member-full.webm` | [Verified recording](https://github.com/user-attachments/assets/eb775f82-bec1-4a7a-9ac1-44c7e65e6dcc) |
+| `pr7-official-awards.webm` | [Verified recording](https://github.com/user-attachments/assets/691b5cc8-92a6-4e50-9f66-9c25a67af7fa) |
+| `pr7-staff-full.webm` | [Verified recording](https://github.com/user-attachments/assets/8ae21471-d003-4be7-8def-f33488cbb165) |
+| `pr7-viewer-full.webm` | [Verified recording](https://github.com/user-attachments/assets/8697c42a-8d10-4400-98f1-1352c048910d) |

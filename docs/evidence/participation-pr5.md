@@ -8,12 +8,12 @@ Normal and paced cumulative runs both passed: **19 pure tests, 34 real API/rules
 
 | Recording | Actual journey |
 | --- | --- |
-| [Staff role assignment](pr5-staff-role-assignment.webm) | Organizer issues mentor + volunteer to the verified member, with participant unchecked; creates/reuses the existing registration. The staff form pauses after the saved result. |
-| [320px mobile badge](pr5-mobile-badge.webm) | Real member sign-in, staff-only event resources/detail modal and Share event, large profile QR, multiple official role chips, selected professional title, profile sharing, event selector, live revocation and deletion. The mobile video is 29.36 seconds at 320 × 740. |
-| [Mixed participant and team label](pr5-mixed-participant-team-label.webm) | Participant + mentor selects a challenge, creates a forming team, edits the designer label through the UI, finalizes through the real trusted API, and displays official roles and the separate team role on the badge. Tests assert retained actual leaderId and transferred label. |
-| [Legacy alias removal](pr5-legacy-alias-removal.webm) | Seeded alias-only legacy membership leaves through the member UI; seeded dual aliases are removed through the actual admin action. Both fields clear and mentor-only role assignment succeeds. |
+| [Staff role assignment](https://github.com/user-attachments/assets/bc281e54-4822-4b26-9a48-8eee71c03e3c) | Organizer issues mentor + volunteer to the verified member, with participant unchecked; creates/reuses the existing registration. The staff form pauses after the saved result. |
+| [320px mobile badge](https://github.com/user-attachments/assets/2078e30d-d90a-41c6-8f7f-23b4738f84fe) | Real member sign-in, staff-only event resources/detail modal and Share event, large profile QR, multiple official role chips, selected professional title, profile sharing, event selector, live revocation and deletion. The mobile video is 29.36 seconds at 320 × 740. |
+| [Mixed participant and team label](https://github.com/user-attachments/assets/b4bc75b2-23b8-4382-bf85-e94fcfc57c01) | Participant + mentor selects a challenge, creates a forming team, edits the designer label through the UI, finalizes through the real trusted API, and displays official roles and the separate team role on the badge. Tests assert retained actual leaderId and transferred label. |
+| [Legacy alias removal](https://github.com/user-attachments/assets/c3f9b895-1adc-4577-8798-e4b1b73f7c3c) | Seeded alias-only legacy membership leaves through the member UI; seeded dual aliases are removed through the actual admin action. Both fields clear and mentor-only role assignment succeeds. |
 
-The desktop staff and mobile recordings capture different signed-in contexts during the same real journey. Supplemental team/alias clips are shorter regression recordings. Files are committed alongside this document so repository reviewers can open or download them with their existing repository access.
+The desktop staff and mobile recordings capture different signed-in contexts during the same real journey. Supplemental team/alias clips are shorter regression recordings. The recording links open verified GitHub video attachments also published in the PR description.
 
 ## Screenshots
 
@@ -51,3 +51,5 @@ node scripts/collect-participation-demo.mjs
 ```
 
 The collector requires a passed cumulative browser run, a paced evidence manifest, the source revision and all four recordings. It never manufactures screenshots or videos.
+
+Recording collectors continue to write local videos to `docs/evidence/`; `docs/evidence/*.webm` is ignored. Upload those files directly into the PR description, verify the resulting GitHub attachments, and update these links. Do not commit or force-add videos. Screenshots and capture contracts remain tracked; original recording revisions, filenames and timings are historical capture provenance.
