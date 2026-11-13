@@ -173,6 +173,7 @@ function DisplayChallenges({ challenges, participants, teams }: { challenges: an
               <div>
                 <h3 className="text-2xl font-bold mb-4">{c.title}</h3>
                 <SafeHtml html={c.summary} className="text-zinc-400 text-lg leading-relaxed" />
+                      {c.submitterName && <p className="text-sm text-zinc-400 italic">Proposed by: {c.submitterName}</p>}
               </div>
               <div className="mt-8 pt-6 border-t border-zinc-800 flex justify-between items-end">
                 <div>

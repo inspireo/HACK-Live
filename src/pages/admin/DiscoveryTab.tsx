@@ -325,9 +325,6 @@ export default function DiscoveryTab({
     if (pc.supportingContext) {
       summaryHtml += `<p><strong>Supporting Context:</strong><br/>${pc.supportingContext}</p>`;
     }
-    if (pc.submitterName) {
-      summaryHtml += `<p><em>Proposed by: ${pc.submitterName}</em></p>`;
-    }
     setPublishSummary(summaryHtml);
     setPublishDocLink('');
     setIsPublishing(true);
@@ -346,6 +343,7 @@ export default function DiscoveryTab({
         docLink: publishDocLink,
         isPublished: true,
         displayOrder: challengesCount,
+        submitterName: moderatingChallenge.submitterName || '',
         proposedChallengeId: moderatingChallenge.id
       });
 
@@ -382,9 +380,6 @@ export default function DiscoveryTab({
         if (pc.supportingContext) {
           summaryHtml += `<p><strong>Supporting Context:</strong><br/>${pc.supportingContext}</p>`;
         }
-        if (pc.submitterName) {
-          summaryHtml += `<p><em>Proposed by: ${pc.submitterName}</em></p>`;
-        }
 
         batch.set(challengeRef, {
           sessionId,
@@ -393,6 +388,7 @@ export default function DiscoveryTab({
           docLink: '',
           isPublished: true,
           displayOrder: orderIndex++,
+          submitterName: pc.submitterName || '',
           proposedChallengeId: pc.id
         });
 
@@ -991,7 +987,8 @@ CONTEXT: ${editSupportingContext || 'N/A'}`;
               
               return (
                 <div 
-                  key={pc.id} 
+                  key={pc.id}
+                  data-testid={`proposal-${pc.id}`}
                   className={`bg-zinc-900 border rounded-2xl p-6 flex gap-4 items-start justify-between transition-all ${
                     pc.isPublished 
                       ? 'border-emerald-600/30 bg-emerald-950/5 shadow-inner' 

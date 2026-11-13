@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { collection, query, where, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, addDoc, serverTimestamp, doc, getDoc, setDoc } from 'firebase/firestore';
 import { signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '../../firebase';
 import { Plus, LogOut, Settings } from 'lucide-react';
@@ -30,11 +30,15 @@ export default function AdminDashboard() {
 
     setLoading(true);
     const q = query(collection(db, 'sessions'));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const allSessions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const unsubscribe = onSnapshot(q, async (snapshot) => {
+      const role = await getDoc(doc(db, 'users', user.uid));
+      const allSessions = await Promise.all(snapshot.docs.map(async sessionDoc => {
+        const access = await getDoc(doc(db, 'sessionAccess', sessionDoc.id)).catch(() => null);
+        return { id: sessionDoc.id, ...sessionDoc.data(), ...access?.data() };
+      }));
       
       const filtered = allSessions.filter((session: any) => {
-        const isPlatformOwner = user.email === 'xaeltan@gmail.com';
+        const isPlatformOwner = user.email === 'xaeltan@gmail.com' || role.data()?.role === 'admin';
         const isOwner = session.ownerId === user.uid;
         const isCoAdmin = session.adminEmails && session.adminEmails.includes(user.email);
         return isPlatformOwner || isOwner || isCoAdmin;
@@ -92,11 +96,10 @@ export default function AdminDashboard() {
         maxTeamSize: 5,
         displayMode: 'Challenges',
         ownerId: user.uid,
-        ownerEmail: user.email || '',
-        adminEmails: [],
         createdAt: serverTimestamp()
       });
 
+      await setDoc(doc(db, 'sessionAccess', docRef.id), { ownerEmail: user.email || '', adminEmails: [] });
       setNewSessionTitle('');
       setNewSessionCode('');
       navigate(`/admin/${docRef.id}`);
