@@ -69,7 +69,7 @@ Final validation on exact PR3 `63df448` and immutable PR4 product/test source `d
 
 The first real browser run exposed child listeners starting from a local pending profile creation, causing an SDK watch assertion during signup-to-event return. `MemberGate` now waits for the committed metadata snapshot; the real signup/verification/registration regression passes in both final runs. React checklist covered subscription cleanup/dependencies, escaped rendering, accessible labels and preservation of parent UI. No security behavior was mocked.
 
-Actual original paced videos and screenshots are committed with reviewer-accessible links in [PR4 evidence](evidence/connections-pr4.md). `CONNECTIONS_DEMO=true` adds reading holds only to this journey; the collector refuses failed or nonpaced results. Source checkpoint `d83adf8` is immutable; subsequent publication changes add media/docs only. Local services were shut down and released after recording.
+Verified original paced video attachments and committed screenshots are linked in [PR4 evidence](evidence/connections-pr4.md). `CONNECTIONS_DEMO=true` adds reading holds only to this journey; the collector refuses failed or nonpaced results. Source checkpoint `d83adf8` is immutable; subsequent publication changes add media/docs only. Local services were shut down and released after recording.
 
 With exclusive ownership of app3000/Firestore8080/Auth9099 + `demo-hack-live` fixtures:
 

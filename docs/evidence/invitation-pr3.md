@@ -7,12 +7,12 @@ Only `navigator.share` and clipboard contracts are mocked. This is **not a
 physical phone or OS share-sheet recording**, and does not establish native OS
 presentation, Google consent or production deployment behavior.
 
-- [Mobile sender invitation journey](pr3-invitation-mobile.webm) (51.76 seconds, 2.00 MB): real sender
+- [Mobile sender invitation journey](https://github.com/user-attachments/assets/717e4547-3aef-4310-9b1d-48f3f1f5dd95) (51.76 seconds, 2.00 MB): real sender
   email sign-in, Share event on the join screen, existing event registration,
   dashboard copy fallback when native share is absent/fails, selectable manual
   copy when clipboard is denied, quiet cancellation, and Opening onboarding.
   The sender recording waits naturally while the independent recipient is used.
-- [Recipient sign-in and event return](pr3-invitation-recipient.webm) (20.24 seconds, 0.78 MB): fresh
+- [Recipient sign-in and event return](https://github.com/user-attachments/assets/6e3f3ff4-fe38-40db-b9a5-d44cab52911d) (20.24 seconds, 0.78 MB): fresh
   browser storage opens the exact canonical shared URL, passes through actual
   Firebase email sign-in, retains the event destination, registers through the
   existing form and reloads into the same registration.
@@ -24,8 +24,8 @@ presentation, Google consent or production deployment behavior.
   copy string, and explicit evidence limitations. The video does not show an OS
   chooser; the live-region confirmation represents the tested contract result.
 
-Use GitHub **View raw / Download** on committed video files to view them with
-repository access. The PR description links immutable commit versions. CI also
+Open the verified GitHub video attachments linked above and in the PR
+description. CI also
 retains the complete test-results/Playwright report artifact for 14 days.
 
 ## Reproduction and results
@@ -54,3 +54,5 @@ gesture, exact payload, URL nonduplication, copy/manual/cancellation feedback,
 Draft/Closed/unknown gating, safe-title fallback and real recipient sign-in
 return are asserted. Parent profile/privacy/workshop regressions remain intact.
 See [architecture/schema/compatibility](../invitation-pr3.md).
+
+Recording collectors continue to write local videos to `docs/evidence/`; `docs/evidence/*.webm` is ignored. Upload those files directly into the PR description, verify the resulting GitHub attachments, and update these links. Do not commit or force-add videos. Screenshots and capture contracts remain tracked; original recording revisions, filenames and timings are historical capture provenance.
