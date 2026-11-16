@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { communityProjection, emptyDetails } from '../shared/profile';
 import { allocationEligible, badgeMemberDetails, officialRoles, profileUrl, solutionTeamId, teamMembership } from '../shared/participation';
 
 test('allocation compatibility: historical participants and mixed official roles remain eligible in both allocation phases', () => {
@@ -33,4 +34,15 @@ test('QR payload is only the opaque profile destination without event, labels, c
   assert.equal(url.href, 'https://hack.example.test/members/opaque-account-123');
   assert.equal(url.search, ''); assert.equal(url.hash, '');
   assert.equal(profileUrl('https://hack.example.test', 'opaque/segment'), 'https://hack.example.test/members/opaque%2Fsegment');
+});
+
+// Both consumers use the same safe string contract; no private-source fallback.
+test('badge preserves selected managed photo paths and excludes unselected photos', () => {
+  const avatarUrl = '/api/identity/photo/badge-member/12345678-1234-4234-8234-123456789abc';
+  const details = { ...emptyDetails(), professional: { avatarUrl, title: 'Designer', skills: 'React, Accessibility' } };
+  assert.deepEqual(badgeMemberDetails(communityProjection(details)), { avatarUrl: undefined, title: undefined });
+  assert.deepEqual(badgeMemberDetails(communityProjection({ ...details, communityFields: ['avatarUrl', 'title', 'skills'] })), { avatarUrl, title: 'Designer' });
+  for (const value of ['/api/identity/photo/member/not-a-version', '//other.example.test/photo', avatarUrl + '?token=secret', avatarUrl + '/extra', '/api/identity/profileDetails/member', '/api/identity/photo/../12345678-1234-4234-8234-123456789abc']) {
+    assert.equal(badgeMemberDetails({ avatarUrl: value }).avatarUrl, undefined);
+  }
 });

@@ -1,3 +1,5 @@
+import { safeProfileUrl } from './profile';
+
 export const EVENT_ROLES = ['participant', 'mentor', 'volunteer', 'judge', 'challenge owner', 'organizer/facilitator'] as const;
 export type EventRole = typeof EVENT_ROLES[number];
 export const TEAM_LABELS = ['lead', 'developer', 'designer', 'researcher'] as const;
@@ -30,8 +32,7 @@ export function badgeMemberDetails(selected: Record<string, unknown> = {}) {
   let avatarUrl: string | undefined;
   if (typeof selected.avatarUrl === 'string') {
     try {
-      const photo = new URL(selected.avatarUrl);
-      if (photo.protocol === 'https:' && !photo.username && !photo.password) avatarUrl = photo.href;
+      avatarUrl = safeProfileUrl(selected.avatarUrl, 'avatarUrl');
     } catch { /* Invalid optional photo leaves a name-only badge. */ }
   }
   return { avatarUrl, title: typeof selected.title === 'string' ? selected.title : undefined };
