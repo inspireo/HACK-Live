@@ -32,10 +32,10 @@ test('private contact drafts, linked and separate WhatsApp, normalized Telegram 
   expect(source.professional.bio).toBe('Unrelated retained edit');
   await mobile.fill('+1 202 555 0199'); await expect(whatsapp).toHaveValue('+1 202 555 0199');
   await telegram.fill('t.me/abcd'); await expect(page.getByRole('link', { name: '@abcd', exact: true })).toHaveAttribute('href', 'https://t.me/abcd');
-  await page.getByLabel('Share WhatsApp number with all future accepted connections', { exact: true }).check();
+  await page.getByLabel('Share WhatsApp number with all approved connections', { exact: true }).check();
   await save.click(); await expect(page.getByRole('status')).toHaveText('Profile saved.'); await page.reload();
   await expect(whatsapp).toHaveValue('+12025550199'); await expect(telegram).toHaveValue('@abcd');
-  await expect(page.getByLabel('Share Mobile number with all future accepted connections', { exact: true })).not.toBeChecked();
+  await expect(page.getByLabel('Share Mobile number with all approved connections', { exact: true })).not.toBeChecked();
   await linked.uncheck(); await whatsapp.fill('+44 7700 900123'); await save.click(); await expect(page.getByRole('status')).toHaveText('Profile saved.');
   await page.reload(); await expect(linked).not.toBeChecked(); await expect(whatsapp).toHaveValue('+447700900123');
   await mobile.fill('+65 8765 4321'); await expect(whatsapp).toHaveValue('+447700900123');
@@ -44,5 +44,5 @@ test('private contact drafts, linked and separate WhatsApp, normalized Telegram 
   source = (await fixtureDb.doc('profileDetails/contacts-browser').get()).data()!;
   expect(source.whatsappUsesMobile).toBe(false); expect(source.connectionFields).toEqual(['whatsapp']);
   expect((await fixtureDb.doc('memberDetails/contacts-browser').get()).data()).toEqual({});
-  expect((await fixtureDb.doc('connectionContacts/contacts-browser').get()).exists).toBe(false);
+  expect((await fixtureDb.doc('connectionContacts/contacts-browser').get()).data()).toEqual({ whatsapp: '+447700900123' });
 });

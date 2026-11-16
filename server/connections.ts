@@ -2,7 +2,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { Router } from 'express';
 import type { DocumentReference, Firestore } from 'firebase-admin/firestore';
 import { connectionActions, contactProjection, nextConnectionState, type ConnectionAction, type ConnectionCore } from '../shared/connections';
-import { contactFields, emptyDetails, validateProfileEdit } from '../shared/profile';
+import { contactFields, emptyDetails, type ProfileDetails } from '../shared/profile';
 
 export const pairKey = (first: string, second: string) => createHash('sha256').update(JSON.stringify([first, second].sort())).digest('hex');
 export const blockKey = (uid: string) => createHash('sha256').update(JSON.stringify(['connection-block-v1', uid])).digest('hex');
@@ -31,12 +31,14 @@ export function connectionsRouter(database: Firestore) {
         ]);
         if (ownProfile.data()?.state !== 'active' || peerProfile.data()?.state !== 'active') throw fail(409, 'Member unavailable.');
         const current = relation.exists ? relation.data() as ConnectionCore : undefined;
-        const projectionFor = (source: typeof ownSource, profile: typeof ownProfile) => contactProjection(source.exists ? validateProfileEdit({ name: profile.data()!.name, ...source.data() }).details : emptyDetails());
+        // Legacy private sources may contain retired Signal or now-invalid values.
+        // Project only current selected string keys; links validate separately.
+        const projectionFor = (source: typeof ownSource) => contactProjection(source.exists ? source.data() as ProfileDetails : emptyDetails());
         if (action === 'inspect') {
           if (ownBlock.exists || peerBlock.exists) return { state: 'blocked' };
           // Only keys, never private source or unapproved contact values.
-          const ownProjection = projectionFor(ownSource, ownProfile);
-          const peerProjection = current?.state === 'pending' || current?.state === 'accepted' ? projectionFor(peerSource, peerProfile) : {};
+          const ownProjection = projectionFor(ownSource);
+          const peerProjection = current?.state === 'pending' || current?.state === 'accepted' ? projectionFor(peerSource) : {};
           return { state: current?.state || 'none', ownFields: contactFields.filter(field => !!ownProjection[field]), peerFields: contactFields.filter(field => !!peerProjection[field]) };
         }
         if (action !== 'block' && (ownBlock.exists || peerBlock.exists)) throw fail(409, 'Connection unavailable.');
@@ -51,9 +53,9 @@ export function connectionsRouter(database: Firestore) {
         const next = { requester: action === 'request' ? actor : current?.requester || actor, generation: action === 'request' || action === 'block' ? randomUUID() : current!.generation, state };
         if (state === 'accepted') {
           // Initializes existing PR2 selections without a bulk migration. Reads
-          // conflict with saves/deletion; project only validated canonical fields.
-          transaction.set(database.doc(`connectionContacts/${actor}`), projectionFor(ownSource, ownProfile));
-          transaction.set(database.doc(`connectionContacts/${peerUid}`), projectionFor(peerSource, peerProfile));
+          // conflict with saves/deletion; project only current selected contact keys.
+          transaction.set(database.doc(`connectionContacts/${actor}`), projectionFor(ownSource));
+          transaction.set(database.doc(`connectionContacts/${peerUid}`), projectionFor(peerSource));
         }
         transaction.set(relationRef, { ...next, members: [actor, peerUid].sort() });
         const ownNext = { ...next, pairId: relationRef.id, peerUid, unread: false };

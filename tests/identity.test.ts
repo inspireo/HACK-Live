@@ -419,7 +419,7 @@ test('contacts save strips legacy Signal, normalizes Telegram and keeps WhatsApp
   assert.equal(source.whatsappUsesMobile, true);
   assert.deepEqual(source.connectionFields, ['whatsapp']);
   assert.deepEqual((await fixtureDb.doc('memberDetails/contact-owner').get()).data(), {});
-  assert.equal((await fixtureDb.doc('connectionContacts/contact-owner').get()).exists, false);
+  assert.deepEqual((await fixtureDb.doc('connectionContacts/contact-owner').get()).data(), { whatsapp: '+6581234567' });
   const invalid = await callIdentity(token, 'save-profile', { ...payload, contacts: { telegram: 'invalid-old-value' }, whatsappUsesMobile: false });
   assert.equal(invalid.status, 400);
   assert.deepEqual((await fixtureDb.doc('profileDetails/contact-owner').get()).data(), source);

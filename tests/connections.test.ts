@@ -6,13 +6,14 @@ import { collection, doc, getDoc, getDocs, setDoc } from 'firebase/firestore';
 import { callIdentity, clearFixtures, createFixtureUser, fixtureDb, projectId, signInFixture } from './fixtures';
 import { blockKey, pairKey, queueConnectionCleanup } from '../server/connections';
 import { beginProfileDeletion, createProfileCleanup, releaseProfileDeletion } from '../server/profile-cleanup';
+import { retireSignalContact } from '../server/retired-contacts';
 import { emptyDetails } from '../shared/profile';
 
 let environment: RulesTestEnvironment;
 const tokens: Record<string, string> = {};
 const memberDb = (uid: string, verified = true, provider: 'password' | 'anonymous' = 'password') => environment.authenticatedContext(uid, { email_verified: verified, firebase: { sign_in_provider: provider } }).firestore();
 const operation = (actor: string, action: string, peerUid: string, generation?: string) => callIdentity(tokens[actor], `connections/${action}`, { peerUid, ...(generation ? { generation } : {}) });
-const save = (actor: string, connectionFields: string[] = ['phone']) => callIdentity(tokens[actor], 'save-profile', { name: `Synthetic ${actor}`, ...emptyDetails(), contacts: { phone: '555-0101', contactEmail: `${actor}@contact.test`, signal: 'private-signal' }, connectionFields });
+const save = (actor: string, connectionFields: string[] = ['phone']) => callIdentity(tokens[actor], 'save-profile', { name: `Synthetic ${actor}`, ...emptyDetails(), contacts: { phone: '+6581234567', contactEmail: `${actor}@contact.test`, signal: 'private-signal' }, connectionFields });
 before(async () => {
   await clearFixtures();
   environment = await initializeTestEnvironment({ projectId, firestore: { host: '127.0.0.1', port: 8080, rules: await readFile('firestore.rules', 'utf8') } });
@@ -72,7 +73,7 @@ test('duplicates and simultaneous opposite requests create exactly one pending g
   assert.equal((await operation('outsider', 'accept', requester, generation)).status, 409);
   assert.equal((await operation(recipient, 'accept', requester, generation)).status, 200);
   for (const [actor, peer] of [['alice', 'bob'], ['bob', 'alice']]) {
-    assert.deepEqual((await assertSucceeds(getDoc(doc(memberDb(actor), `connectionContacts/${peer}`)))).data(), { phone: '555-0101' });
+    assert.deepEqual((await assertSucceeds(getDoc(doc(memberDb(actor), `connectionContacts/${peer}`)))).data(), { phone: '+6581234567' });
     await assertFails(getDoc(doc(memberDb(actor), `profileDetails/${peer}`)));
   }
   assert.equal((await fixtureDb.doc(`connectionViews/${requester}/peers/${recipient}`).get()).data()!.unread, true);
@@ -86,7 +87,7 @@ test('global selection changes apply to every accepted peer, including empty sel
   assert.equal((await operation('carol', 'accept', 'alice', request.data.generation)).status, 200);
   assert.equal((await save('alice', ['contactEmail'])).status, 200);
   for (const peer of ['bob', 'carol']) assert.deepEqual((await getDoc(doc(memberDb(peer), 'connectionContacts/alice'))).data(), { contactEmail: 'alice@contact.test' });
-  assert.equal((await callIdentity(tokens.alice, 'save-profile', { name: 'Synthetic alice', ...emptyDetails(), contacts: { contactEmail: 'changed@contact.test', phone: 'private-now' }, connectionFields: ['contactEmail'] })).status, 200);
+  assert.equal((await callIdentity(tokens.alice, 'save-profile', { name: 'Synthetic alice', ...emptyDetails(), contacts: { contactEmail: 'changed@contact.test', phone: '+6587654321' }, connectionFields: ['contactEmail'] })).status, 200);
   for (const peer of ['bob', 'carol']) assert.deepEqual((await getDoc(doc(memberDb(peer), 'connectionContacts/alice'))).data(), { contactEmail: 'changed@contact.test' });
   assert.equal((await save('alice', [])).status, 200);
   assert.deepEqual((await getDoc(doc(memberDb('bob'), 'connectionContacts/alice'))).data(), {});
@@ -221,7 +222,7 @@ test('stale deletion workers discovering before or after recreation cannot erase
   await fixtureDb.doc(`profileDeletionJobs/${uid}`).update({ leaseUntil: 0 });
   assert.equal((await callIdentity(tokens[uid], 'delete-profile')).status, 200);
   await assertSucceeds(setDoc(doc(memberDb(uid), `profiles/${uid}`), { name: 'Recreated connection owner', state: 'active' }));
-  const fresh = { name: 'Recreated connection owner', ...emptyDetails(), professional: { title: 'Fresh professional details' }, communityFields: ['title'], contacts: { contactEmail: 'fresh-takeover@contact.test', phone: 'never-shared' }, connectionFields: ['contactEmail'] };
+  const fresh = { name: 'Recreated connection owner', ...emptyDetails(), professional: { title: 'Fresh professional details' }, communityFields: ['title'], contacts: { contactEmail: 'fresh-takeover@contact.test', phone: '+6587654321' }, connectionFields: ['contactEmail'] };
   assert.equal((await callIdentity(tokens[uid], 'save-profile', fresh)).status, 200);
   const newRequest = await operation(uid, 'request', peer);
   assert.notEqual(newRequest.data.generation, oldRequest.data.generation);
@@ -248,4 +249,112 @@ test('stale deletion workers discovering before or after recreation cannot erase
   assert.equal((await operation(peer, 'accept', uid, oldRequest.data.generation)).status, 409);
   assert.equal((await operation(uid, 'request', safetyOwner)).status, 409);
   assert.equal((await fixtureDb.doc(`profileDeletionJobs/${uid}`).get()).exists, false);
+});
+
+
+async function acceptedFixture(owner: string, peer: string) {
+  for (const uid of [owner, peer]) { await createFixtureUser(uid); tokens[uid] = await signInFixture(uid); assert.equal((await save(uid)).status, 200); }
+  const request = await operation(owner, 'request', peer);
+  assert.equal(request.status, 200);
+  assert.equal((await operation(peer, 'accept', owner, request.data.generation)).status, 200);
+  return request.data.generation as string;
+}
+
+test('old clients cannot read any retired Signal key; dry-run is inert and trusted cleanup restores only existing allowed access', async () => {
+  const owner = 'retired-owner', peer = 'retired-peer';
+  const generation = await acceptedFixture(owner, peer);
+  const reference = fixtureDb.doc(`connectionContacts/${owner}`);
+  const sourceBefore = (await fixtureDb.doc(`profileDetails/${owner}`).get()).data();
+  for (const signal of ['retired-secret', '', null, { malformed: true }]) {
+    const mixed = { phone: '+6581234567', signal };
+    await reference.set(mixed);
+    // This is an unfiltered direct Firestore get, equivalent to an old client.
+    await assertFails(getDoc(doc(memberDb(peer), reference.path)));
+    assert.equal(await retireSignalContact(fixtureDb, owner), 'candidate');
+    assert.deepEqual((await reference.get()).data(), mixed);
+    assert.equal(await retireSignalContact(fixtureDb, owner, true), 'retired');
+    assert.deepEqual((await assertSucceeds(getDoc(doc(memberDb(peer), reference.path)))).data(), { phone: '+6581234567' });
+    assert.equal(await retireSignalContact(fixtureDb, owner, true), 'clean');
+  }
+  await reference.set({ signal: 'only-retired' });
+  await retireSignalContact(fixtureDb, owner, true);
+  assert.deepEqual((await assertSucceeds(getDoc(doc(memberDb(peer), reference.path)))).data(), {});
+  await reference.set({ phone: '+6581234567', signal: 'retired', futureContact: { private: 'preserve' } });
+  await retireSignalContact(fixtureDb, owner, true);
+  assert.deepEqual((await reference.get()).data(), { phone: '+6581234567', futureContact: { private: 'preserve' } });
+  await assertFails(getDoc(doc(memberDb(peer), reference.path)));
+  await assertFails(getDoc(doc(memberDb(owner), reference.path)));
+  await assertFails(getDoc(doc(memberDb('outsider'), reference.path)));
+  assert.deepEqual((await fixtureDb.doc(`profileDetails/${owner}`).get()).data(), sourceBefore);
+  await reference.set({ phone: '+6581234567' });
+  assert.equal((await operation(peer, 'unfriend', owner, generation)).status, 200);
+  await assertFails(getDoc(doc(memberDb(peer), reference.path)));
+});
+
+test('legacy source sanitizes inspect/accept without validation failure and linked WhatsApp never grants mobile sharing', async () => {
+  const owner = 'legacy-source-owner', peer = 'legacy-source-peer';
+  for (const uid of [owner, peer]) { await createFixtureUser(uid); tokens[uid] = await signInFixture(uid); }
+  const legacy = { ...emptyDetails(), professional: { skills: 'x'.repeat(600) }, contacts: { phone: 'legacy-local', telegram: 'invalid-old-link', signal: { retired: true }, whatsapp: 'stale' }, connectionFields: ['signal', 'whatsapp', 'telegram'], whatsappUsesMobile: true };
+  await fixtureDb.doc(`profileDetails/${owner}`).set(legacy);
+  const request = await operation(owner, 'request', peer);
+  assert.equal(request.status, 200);
+  const inspected = await operation(peer, 'inspect', owner);
+  assert.equal(inspected.status, 200);
+  assert.deepEqual(inspected.data.peerFields, ['telegram', 'whatsapp']);
+  assert.equal(JSON.stringify(inspected.data).includes('legacy-local'), false);
+  assert.equal((await operation(peer, 'accept', owner, request.data.generation)).status, 200);
+  assert.deepEqual((await assertSucceeds(getDoc(doc(memberDb(peer), `connectionContacts/${owner}`)))).data(), { telegram: 'invalid-old-link', whatsapp: 'legacy-local' });
+  assert.deepEqual((await fixtureDb.doc(`profileDetails/${owner}`).get()).data(), legacy);
+  const payload = { name: 'Corrected', ...emptyDetails(), contacts: { phone: '+65 8123 4567', signal: 'retired', whatsapp: 'ignored' }, whatsappUsesMobile: true, connectionFields: ['signal', 'whatsapp'] };
+  assert.equal((await callIdentity(tokens[owner], 'save-profile', payload)).status, 200);
+  assert.deepEqual((await fixtureDb.doc(`connectionContacts/${owner}`).get()).data(), { whatsapp: '+6581234567' });
+  assert.equal((await callIdentity(tokens[owner], 'save-profile', { ...payload, contacts: { phone: '+1 202 555 0199' } })).status, 200);
+  assert.deepEqual((await getDoc(doc(memberDb(peer), `connectionContacts/${owner}`))).data(), { whatsapp: '+12025550199' });
+});
+
+test('retired cleanup preserves concurrent new fields and serializes with canonical Save and accept', async () => {
+  const owner = 'migration-race-owner', peer = 'migration-race-peer';
+  await acceptedFixture(owner, peer);
+  const reference = fixtureDb.doc(`connectionContacts/${owner}`);
+  await reference.set({ signal: 'retired', phone: '+6581234567' });
+  // Real competing emulator transactions/writes, rather than mocked transforms.
+  await Promise.all([retireSignalContact(fixtureDb, owner, true), reference.set({ phone: '+12025550199', futureContact: { concurrent: 'keep' } }, { merge: true })]);
+  assert.deepEqual((await reference.get()).data(), { phone: '+12025550199', futureContact: { concurrent: 'keep' } });
+  await reference.set({ signal: 'retired', phone: '+6581234567' });
+  const saved = await Promise.all([retireSignalContact(fixtureDb, owner, true), callIdentity(tokens[owner], 'save-profile', { name: 'Fresh save', ...emptyDetails(), contacts: { contactEmail: 'new@contact.test' }, connectionFields: ['contactEmail'] })]);
+  assert.equal(saved[1].status, 200);
+  assert.deepEqual((await reference.get()).data(), { contactEmail: 'new@contact.test' });
+  const oldPair = (await fixtureDb.doc(`connectionPairs/${pairKey(owner, peer)}`).get()).data()!;
+  assert.equal((await operation(peer, 'unfriend', owner, oldPair.generation)).status, 200);
+  const request = await operation(owner, 'request', peer);
+  await reference.set({ signal: 'retired', contactEmail: 'stale@contact.test' });
+  const accepted = await Promise.all([retireSignalContact(fixtureDb, owner, true), operation(peer, 'accept', owner, request.data.generation)]);
+  assert.equal(accepted[1].status, 200);
+  assert.deepEqual((await reference.get()).data(), { contactEmail: 'new@contact.test' });
+});
+
+test('stale migration discovery never resurrects deleted projections or clobbers recreated profile state', async () => {
+  const owner = 'migration-recreation', peer = 'migration-recreation-peer';
+  await acceptedFixture(owner, peer);
+  const reference = fixtureDb.doc(`connectionContacts/${owner}`);
+  await reference.set({ signal: 'old-retired', phone: '+6581234567' });
+  const discovered = await fixtureDb.collection('connectionContacts').get();
+  assert.ok(discovered.docs.some(record => record.id === owner));
+  assert.equal((await callIdentity(tokens[owner], 'delete-profile')).status, 200);
+  assert.equal(await retireSignalContact(fixtureDb, owner, true), 'missing');
+  assert.equal((await reference.get()).exists, false);
+  await fixtureDb.doc(`profiles/${owner}`).set({ name: 'New incarnation', state: 'active' });
+  assert.equal((await callIdentity(tokens[owner], 'save-profile', { name: 'New incarnation', ...emptyDetails(), contacts: { contactEmail: 'new-incarnation@contact.test' }, connectionFields: ['contactEmail'] })).status, 200);
+  const paths = [`profiles/${owner}`, `profileDetails/${owner}`, `memberDetails/${owner}`, reference.path];
+  const beforeData = await Promise.all(paths.map(async path => (await fixtureDb.doc(path).get()).data()));
+  assert.equal(await retireSignalContact(fixtureDb, owner, true), 'clean');
+  assert.deepEqual(await Promise.all(paths.map(async path => (await fixtureDb.doc(path).get()).data())), beforeData);
+  await assertFails(getDoc(doc(memberDb(peer), reference.path)));
+  // A deleting profile retains its cleanup authority; migration never writes it.
+  await reference.update({ signal: 'retired' });
+  await fixtureDb.doc(`profiles/${owner}`).update({ state: 'deleting' });
+  assert.equal(await retireSignalContact(fixtureDb, owner, true), 'inactive');
+  assert.equal((await reference.get()).data()!.signal, 'retired');
+  await reference.delete();
+  assert.equal(await retireSignalContact(fixtureDb, owner, true), 'missing');
 });
