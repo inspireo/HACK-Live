@@ -60,6 +60,32 @@ test('real uploaded bytes stay private; sharing/revocation gates every authentic
   assert.equal((await getPhoto(url, otherToken)).status, 404);
 });
 
+test('every photo caller needs an active profile, including owners; recreated active peers regain selected access', async () => {
+  const result = await upload(undefined, true); assert.equal(result.status, 200);
+  const url = result.data.details.professional.avatarUrl;
+  const profileRef = fixtureDb.doc('profiles/photo-other');
+  assert.equal((await getPhoto(url, otherToken)).status, 200);
+  for (const state of [undefined, 'deleting', 'deleted']) {
+    if (state) await profileRef.set({ state }); else await profileRef.delete();
+    const denied = await getPhoto(url, otherToken);
+    assert.equal(denied.status, 404, `caller state ${state}`);
+    assert.equal(denied.headers.get('cache-control'), 'private, no-store');
+    assert.equal(denied.headers.get('vary'), 'Authorization');
+    assert.equal(denied.headers.get('x-content-type-options'), 'nosniff');
+    // Owning the target cannot bypass its lifecycle boundary either.
+    if (state) await fixtureDb.doc(`profiles/${uid}`).set({ state });
+    else await fixtureDb.doc(`profiles/${uid}`).delete();
+    assert.equal((await getPhoto(url, ownerToken)).status, 404, `owner state ${state}`);
+    await fixtureDb.doc(`profiles/${uid}`).set({ name: 'Photo member', state: 'active' });
+    await profileRef.set({ name: 'Recreated peer', state: 'active' });
+    assert.equal((await getPhoto(url, otherToken)).status, 200);
+    assert.equal((await getPhoto(url, ownerToken)).status, 200);
+  }
+  const current = (await fixtureDb.doc(`profileDetails/${uid}`).get()).data()!;
+  assert.equal((await callIdentity(ownerToken, 'save-profile', { name: 'Photo member', ...current, communityFields: [] })).status, 200);
+  assert.equal((await getPhoto(url, otherToken)).status, 404);
+});
+
 test('replace/remove are atomic, old versions and cross-owner/stale references cannot resurrect bytes', async () => {
   const old = (await fixtureDb.doc(`profileDetails/${uid}`).get()).data()!;
   const replaced = await upload('#884433', true); assert.equal(replaced.status, 200);
