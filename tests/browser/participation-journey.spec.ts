@@ -271,6 +271,8 @@ test('badge uses authenticated selected photo and removes it when sharing is rev
     await editor.getByRole('button', { name: 'Save profile', exact: true }).click();
     await expect(editor.getByRole('status')).toHaveText('Profile saved.');
     await expect(avatar).toHaveCount(0);
+    await expect(badge).toBeVisible(); // The live projection listener unmounted only the selected photo.
+    await expect(page).toHaveURL(/\/badge$/);
     await expect(sharedPhoto).toHaveCount(0);
     await evidence(page, 'private-photo-badge');
     const requestsBeforeReload = photoRequests.length;
