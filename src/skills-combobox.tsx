@@ -17,7 +17,9 @@ export function SkillsCombobox({ value, onChange, disabled }: { value: string; o
     try {
       if (/[,\n]/.test(term)) throw new Error('Add one skill at a time.');
       const existing = selected.find(entry => entry.toLowerCase() === term.toLowerCase());
-      onChange(normalizeSkills((existing ? selected.filter(entry => entry !== existing) : [...selected, term]).join(', ')).join(', '));
+      // Corrective removals must work even while other legacy terms exceed today's bounds.
+      const nextTerms = existing ? selected.filter(entry => entry !== existing) : normalizeSkills([...selected, term].join(', '));
+      onChange(nextTerms.join(', '));
       setQuery(''); setActive(0); setError('');
     } catch (issue) { setError((issue as Error).message); }
   }
