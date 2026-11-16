@@ -8,17 +8,28 @@ import type { ConnectionAction, ConnectionView } from '../shared/connections';
 
 const buttonClass = 'px-3 py-2 rounded bg-emerald-800 disabled:opacity-50';
 function useConnections() {
-  const [connections, setConnections] = useState<ConnectionView[]>([]);
-  const [error, setError] = useState('');
-  const ownUid = auth.currentUser!.uid;
-  useEffect(() => onSnapshot(collection(db, 'connectionViews', ownUid, 'peers'), snapshot => {
-    setConnections(snapshot.docs.map(entry => entry.data() as ConnectionView)); setError('');
-  }, issue => { setConnections([]); setError(issue.message); }), [ownUid]);
-  return { connections, error };
+  const ownUid = auth.currentUser?.uid;
+  const [snapshot, setSnapshot] = useState<{ ownerUid?: string; connections: ConnectionView[]; error: string }>({ connections: [], error: '' });
+  useEffect(() => {
+    setSnapshot({ ownerUid: ownUid, connections: [], error: '' });
+    if (!ownUid) return;
+    let current = true;
+    const unsubscribe = onSnapshot(collection(db, 'connectionViews', ownUid, 'peers'), result => {
+      if (!current || auth.currentUser?.uid !== ownUid) return;
+      setSnapshot({ ownerUid: ownUid, connections: result.docs.map(entry => entry.data() as ConnectionView), error: '' });
+    }, issue => {
+      if (current && auth.currentUser?.uid === ownUid) setSnapshot({ ownerUid: ownUid, connections: [], error: issue.message });
+    });
+    return () => { current = false; unsubscribe(); };
+  }, [ownUid]);
+  // Suppress the prior account before the new effect/subscription can run.
+  const selected = ownUid && snapshot.ownerUid === ownUid ? snapshot : undefined;
+  return { ownUid, connections: selected?.connections || [], error: selected?.error || '' };
 }
 export function ConnectionIndicator() {
-  const { connections } = useConnections();
-  const incoming = connections.filter(entry => entry.state === 'pending' && entry.requester !== auth.currentUser!.uid).length;
+  const { connections, ownUid } = useConnections();
+  if (!ownUid) return null;
+  const incoming = connections.filter(entry => entry.state === 'pending' && entry.requester !== ownUid).length;
   const accepted = connections.filter(entry => entry.state === 'accepted' && entry.unread).length;
   return <Link to="/connections">Connections{incoming ? ` · ${incoming} incoming` : ''}{accepted ? ` · ${accepted} accepted` : ''}</Link>;
 }
@@ -28,8 +39,8 @@ function PeerName({ uid }: { uid: string }) {
   return <Link className="underline" to={`/members/${uid}`}>{name}</Link>;
 }
 export function ConnectionsPage() {
-  const { connections, error } = useConnections();
-  const ownUid = auth.currentUser!.uid;
+  const { connections, error, ownUid } = useConnections();
+  if (!ownUid) return null;
   return <main className="min-h-screen bg-zinc-950 text-white p-6 space-y-6"><h1 className="text-3xl">Connections</h1>
     <p>Only accepted connections can view your globally selected contact fields. Sharing a team or attending an event does not connect you.</p>
     {(['Incoming requests', 'Outgoing requests', 'Accepted connections'] as const).map((heading, group) => {
@@ -40,6 +51,12 @@ export function ConnectionsPage() {
 
 // Integration seam: append to PR2's member presentation; never owns its editor.
 export function ConnectionPanel({ peerUid }: { peerUid: string }) {
+  const ownUid = auth.currentUser?.uid;
+  if (!ownUid || peerUid === ownUid) return null;
+  // A new viewer/peer gets fresh state before any async inspect or listener result.
+  return <ConnectionDetails key={JSON.stringify([ownUid, peerUid])} ownUid={ownUid} peerUid={peerUid} />;
+}
+function ConnectionDetails({ ownUid, peerUid }: { ownUid: string; peerUid: string }) {
   const [view, setView] = useState<ConnectionView | undefined>();
   const [ready, setReady] = useState(false);
   const [error, setError] = useState('');
@@ -47,29 +64,40 @@ export function ConnectionPanel({ peerUid }: { peerUid: string }) {
   const [confirmation, setConfirmation] = useState(false);
   const [fields, setFields] = useState<{ ownFields?: ContactField[]; peerFields?: ContactField[]; state?: string }>({});
   const [contacts, setContacts] = useState<Partial<Record<ContactField, string>>>({});
-  const ownUid = auth.currentUser!.uid;
   useEffect(() => {
     setReady(false); setView(undefined); setContacts({}); setConfirmation(false);
-    return onSnapshot(doc(db, 'connectionViews', ownUid, 'peers', peerUid), snapshot => { setView(snapshot.exists() ? snapshot.data() as ConnectionView : undefined); setReady(true); }, issue => { setError(issue.message); setReady(false); });
+    if (auth.currentUser?.uid !== ownUid) return;
+    let current = true;
+    const unsubscribe = onSnapshot(doc(db, 'connectionViews', ownUid, 'peers', peerUid), snapshot => {
+      if (!current || auth.currentUser?.uid !== ownUid) return;
+      setView(snapshot.exists() ? snapshot.data() as ConnectionView : undefined); setReady(true);
+    }, issue => { if (current && auth.currentUser?.uid === ownUid) { setError(issue.message); setReady(false); } });
+    return () => { current = false; unsubscribe(); };
   }, [ownUid, peerUid]);
   useEffect(() => {
     let active = true;
     setFields({});
-    if (peerUid !== ownUid) identityRequest('connections/inspect', { peerUid }).then(result => { if (active) setFields(result); }).catch(issue => { if (active) setError(issue.message); });
+    if (auth.currentUser?.uid !== ownUid) return;
+    if (peerUid !== ownUid) identityRequest('connections/inspect', { peerUid }).then(result => { if (active && auth.currentUser?.uid === ownUid) setFields(result); }).catch(issue => { if (active && auth.currentUser?.uid === ownUid) setError(issue.message); });
     return () => { active = false; };
   }, [peerUid, ownUid, view?.state, view?.generation, confirmation]);
   useEffect(() => {
     setContacts({});
-    if (view?.state !== 'accepted') return;
-    return onSnapshot(doc(db, 'connectionContacts', peerUid), snapshot => setContacts(snapshot.data() || {}), () => setContacts({}));
+    if (auth.currentUser?.uid !== ownUid || view?.state !== 'accepted') return;
+    let current = true;
+    const unsubscribe = onSnapshot(doc(db, 'connectionContacts', peerUid), snapshot => {
+      if (current && auth.currentUser?.uid === ownUid) setContacts(snapshot.data() || {});
+    }, () => { if (current && auth.currentUser?.uid === ownUid) setContacts({}); });
+    return () => { current = false; unsubscribe(); };
   }, [ownUid, peerUid, view?.state, view?.generation]);
-  if (peerUid === ownUid) return null;
+  if (auth.currentUser?.uid !== ownUid) return null;
   const state = fields.state === 'blocked' ? 'blocked' : view?.state || 'none';
   const outgoing = view?.requester === ownUid;
   async function act(action: ConnectionAction) {
+    if (auth.currentUser?.uid !== ownUid) return;
     setBusy(true); setError('');
-    try { await identityRequest(`connections/${action}`, { peerUid, ...(view ? { generation: view.generation } : {}) }); setConfirmation(false); }
-    catch (issue) { setError((issue as Error).message); } finally { setBusy(false); }
+    try { await identityRequest(`connections/${action}`, { peerUid, ...(view ? { generation: view.generation } : {}) }); if (auth.currentUser?.uid === ownUid) setConfirmation(false); }
+    catch (issue) { if (auth.currentUser?.uid === ownUid) setError((issue as Error).message); } finally { if (auth.currentUser?.uid === ownUid) setBusy(false); }
   }
   const actionButton = (action: ConnectionAction, label: string) => <button className={buttonClass} disabled={busy || !ready} onClick={() => act(action)}>{label}</button>;
   const labels = (selection?: ContactField[]) => selection ? selection.map(field => fieldLabels[field]).join(', ') || 'No populated fields selected' : 'Loading selected fields…';
