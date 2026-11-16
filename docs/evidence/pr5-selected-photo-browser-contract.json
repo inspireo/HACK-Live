@@ -1,0 +1,46 @@
+{
+  "head": "e21a2591fdecedb3542e0059297704ccc093073c",
+  "sha256": "15c80251c5dadf62d9fb60321f91c11c95c9a3854e84ab11af3e9c1854c97edb",
+  "bytes": 1372760,
+  "duration_seconds": 31.76,
+  "viewport": {
+    "width": 320,
+    "height": 740
+  },
+  "full_video_decode_exit_code": 0,
+  "test": "actual paced staff/mobile badge selected-photo journey",
+  "synthetic_firebase": true,
+  "physical_device": false,
+  "security_mocks": false,
+  "native_share_clipboard_adapters_mocked": true,
+  "frames_retained": [
+    12,
+    20,
+    28
+  ],
+  "attachment": "https://github.com/user-attachments/assets/cdb45053-7724-4879-bb20-f4434ef4cab6",
+  "attachment_publication": "Uploaded by root; remote byte verification pending PR description publication",
+  "badge_source_slice": "d1abb9190be18606f2baad668e8058772bdff8ec",
+  "profile_source": "6460ab4bf2c888d49488f66b89e83b4fb1e7e93c",
+  "published_profile_ancestor": "46126fadfcc4d70735ca09a63671bb5a3f890933",
+  "full_cumulative_tests": {
+    "pure": 26,
+    "api_rules": 72,
+    "browser": 16,
+    "total": 114
+  },
+  "focused_recording_tests": 1,
+  "decoded_frames": 794,
+  "legacy_collector_parent_head": "37fca8cc9907add4ce39227535b4b49f2325757b",
+  "capture_dependency_pr4": "abccaf19e25f878b0b4b2bb9b0ccbf967e4b9d9a",
+  "screenshots": [
+    {
+      "path": "docs/evidence/pr5-badge-selected-photo-320.png",
+      "sha256": "155fb0e4840a0f6aef8c86950eafd466b0eb4b95eca89cb4f14cd06f19bdd72c"
+    },
+    {
+      "path": "docs/evidence/pr5-badge-selected-photo-320-full-page.png",
+      "sha256": "09dee376a8a94918896613fb477186f271f6657f8969009bb5d683aab1e27c6f"
+    }
+  ]
+}
