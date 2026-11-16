@@ -50,6 +50,7 @@ service cloud.firestore {
       allow write, list: if false;
     }
     // Reserved for the next slice. No accepted-connection access exists yet.
+    match /profilePhotos/{memberId} { allow read, write: if false; }
     match /connectionContacts/{memberId} { allow read, write: if false; }
     match /registrationDefaults/{memberId} {
       allow read: if isAuthenticated() && request.auth.uid == memberId;
