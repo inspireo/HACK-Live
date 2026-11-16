@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { communityProjection, emptyDetails, normalizeSkills, validateProfileEdit } from '../shared/profile';
+import { contactFields, profileEditorDetails, normalizeTelegram, communityProjection, emptyDetails, normalizeSkills, validateProfileEdit } from '../shared/profile';
 import { normalizePhotoUpload } from '../server/profile-photo';
 import { photoFixture } from './photo-fixture';
 import sharp from 'sharp';
@@ -75,4 +75,32 @@ test('URLs, contact email and limits reject dangerous or malformed input', () =>
   assert.equal(saved.details.professional.portfolio, 'https://example.test/');
   assert.equal(saved.details.professional.bio, '<script>text</script>');
   assert.deepEqual(saved.details.contacts, { contactEmail: 'contact@example.test' });
+});
+
+test('contact canonicalization retires Signal, defaults private and persists explicit WhatsApp choice', () => {
+  const payload = { name: 'Member', ...emptyDetails(), contacts: { phone: '+65 (8123) 4567', whatsapp: '+44 7700 900123', signal: { obsolete: true } }, connectionFields: ['signal', 'whatsapp'] };
+  const separate = validateProfileEdit(payload).details;
+  assert.deepEqual(separate.contacts, { phone: '+6581234567', whatsapp: '+447700900123' });
+  assert.deepEqual(separate.connectionFields, ['whatsapp']);
+  assert.equal(separate.whatsappUsesMobile, false);
+  const linked = validateProfileEdit({ ...payload, whatsappUsesMobile: true }).details;
+  assert.equal(linked.contacts.whatsapp, linked.contacts.phone);
+  assert.deepEqual(linked.connectionFields, ['whatsapp']);
+  assert.equal(validateProfileEdit({ ...payload, whatsappUsesMobile: true, contacts: { phone: '+1 202 555 0199', whatsapp: 'stale' } }).details.contacts.whatsapp, '+12025550199');
+  assert.throws(() => validateProfileEdit({ ...payload, whatsappUsesMobile: true, contacts: {} }), /uncheck/);
+  for (const phone of ['81234567', '006581234567', '+01234', '+65bad1234567']) assert.throws(() => validateProfileEdit({ ...payload, contacts: { phone } }), /country code/);
+  assert.throws(() => validateProfileEdit({ ...payload, whatsappUsesMobile: 'true' }));
+  assert.equal(contactFields.includes('signal' as never), false);
+  assert.deepEqual(emptyDetails().connectionFields, []);
+});
+
+test('Telegram accepts friendly usernames and exact profile links including short collectible names', () => {
+  for (const value of ['Member_name', '@Member_name', 'https://t.me/Member_name', 't.me/Member_name/']) assert.equal(normalizeTelegram(value), '@Member_name');
+  assert.equal(normalizeTelegram('@abcd'), '@abcd');
+  for (const value of ['https://evil.test/member', 'https://t.me.evil.test/member', 'https://user@t.me/member', 'https://t.me/member?start=token', 'https://t.me/member#x', 'https://t.me/old/../member', 'https://t.me/+invite', 'https://t.me/member/42', '@bad-name', 'https://t.me/%61bcd', 'https://t.me:443/abcd']) assert.throws(() => normalizeTelegram(value));
+  const old = profileEditorDetails({ ...emptyDetails(), contacts: { telegram: 'bad-old-value', signal: 'retired' } as never, connectionFields: ['signal'] as never });
+  assert.equal(old.contacts.telegram, 'bad-old-value');
+  assert.deepEqual(old.connectionFields, []);
+  assert.throws(() => validateProfileEdit({ name: 'Member', ...old }), /clear the field/);
+  assert.deepEqual(validateProfileEdit({ name: 'Member', ...old, contacts: { telegram: '' } }).details.contacts, {});
 });

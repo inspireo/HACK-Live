@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { doc, getDoc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from './firebase';
-import { communityProjection, contactFields, emptyDetails, fieldLabels, professionalFields, isManagedPhotoUrl, maxPhotoUploadBytes, safeProfileUrl, validateProfileEdit, type ProfessionalValues, type ProfileDetails } from '../shared/profile';
+import { profileEditorDetails, normalizeTelegram, communityProjection, contactFields, emptyDetails, fieldLabels, professionalFields, isManagedPhotoUrl, maxPhotoUploadBytes, safeProfileUrl, validateProfileEdit, type ProfessionalValues, type ProfileDetails } from '../shared/profile';
 import { SkillsCombobox } from './skills-combobox';
 
 export function ProfilePhoto({ url }: { url: string }) {
@@ -70,7 +70,7 @@ export function ProfileEditor({ uid, name, onNameChange, save, onSaved }: { uid:
   useEffect(() => {
     let current = true;
     setReady(false); setError(''); setPhotoFile(null); setRemovePhoto(false); setPhotoError('');
-    getDoc(doc(db, 'profileDetails', uid)).then(snapshot => { if (current) { setDetails(snapshot.exists() ? snapshot.data() as ProfileDetails : emptyDetails()); setReady(true); } }).catch(issue => { if (current) setError(issue.message); });
+    getDoc(doc(db, 'profileDetails', uid)).then(snapshot => { if (current) { setDetails(snapshot.exists() ? profileEditorDetails(snapshot.data() as ProfileDetails) : emptyDetails()); setReady(true); } }).catch(issue => { if (current) setError(issue.message); });
     return () => { current = false; };
   }, [uid]);
   const inputClass = 'block w-full p-3 bg-zinc-900 border border-zinc-600 rounded-lg';
@@ -113,7 +113,11 @@ export function ProfileEditor({ uid, name, onNameChange, save, onSaved }: { uid:
     <fieldset disabled={busy} className="space-y-4"><legend className="font-bold">Private contact details</legend>
       <p>All contacts are visible only to you in this release. Contact email is separate from your sign-in email.</p>
       <p>Choose one global selection for all future accepted connections. Sharing activates after the next connection release; these selections share nothing today.</p>
-      {contactFields.map(field => <div key={field}><label className="block">{fieldLabels[field]}<input className={inputClass} type={field === 'contactEmail' ? 'email' : 'text'} value={details.contacts[field] || ''} maxLength={500} onChange={event => setDetails(previous => ({ ...previous, contacts: { ...previous.contacts, [field]: event.target.value } }))} /></label>
+      {contactFields.map(field => <div key={field} className="space-y-2">
+        {field === 'whatsapp' && <><label><input type="checkbox" checked={details.whatsappUsesMobile === true} onChange={event => setDetails(previous => ({ ...previous, whatsappUsesMobile: event.target.checked, contacts: { ...previous.contacts, whatsapp: event.target.checked ? previous.contacts.phone || '' : previous.contacts.whatsapp || '' } }))} /> Use my mobile number for WhatsApp</label><p id="whatsapp-help">Optional. Choose this only if your WhatsApp uses this mobile number. You can enter a different number instead. Sharing WhatsApp also exposes its registered phone number.</p></>}
+        <label className="block">{fieldLabels[field]}<input className={inputClass} type={field === 'contactEmail' ? 'email' : field === 'telegram' ? 'text' : 'tel'} autoComplete={field === 'contactEmail' ? 'email' : field === 'phone' ? 'tel' : 'off'} inputMode={field === 'contactEmail' ? 'email' : field === 'telegram' ? 'text' : 'tel'} aria-describedby={field === 'telegram' ? 'telegram-help' : field === 'whatsapp' ? 'whatsapp-help' : field === 'phone' ? 'mobile-help' : undefined} disabled={field === 'whatsapp' && details.whatsappUsesMobile === true} value={field === 'whatsapp' && details.whatsappUsesMobile ? details.contacts.phone || '' : details.contacts[field] || ''} maxLength={500} onChange={event => setDetails(previous => ({ ...previous, contacts: { ...previous.contacts, [field]: event.target.value, ...(field === 'phone' && previous.whatsappUsesMobile ? { whatsapp: event.target.value } : {}) } }))} /></label>
+        {field === 'phone' && <p id="mobile-help">Include + and your country code. All contact fields are optional; clear an old value to remove it.</p>}
+        {field === 'telegram' && <><p id="telegram-help">Type or paste your @username or https://t.me/username. This does not verify ownership. Clear an old value to remove it.</p><TelegramPreview value={details.contacts.telegram || ''} /></>}
         <label><input type="checkbox" checked={details.connectionFields.includes(field)} onChange={event => setDetails(previous => ({ ...previous, connectionFields: event.target.checked ? [...previous.connectionFields, field] : previous.connectionFields.filter(value => value !== field) }))} /> Share {fieldLabels[field]} with all future accepted connections</label></div>)}
     </fieldset>
     {error && <p role="alert">{error}</p>}
@@ -121,4 +125,12 @@ export function ProfileEditor({ uid, name, onNameChange, save, onSaved }: { uid:
   </form>
   <button type="button" className="underline" onClick={() => setPreview(value => !value)}>Preview community view</button>
   {preview && <section aria-label="Community preview" className="border border-zinc-600 rounded-lg p-4 space-y-3"><h2 className="text-xl">{name}</h2><p>Preview of your current edits. Save to apply them.</p><ProfessionalView values={communityProjection({ ...details, professional: { ...details.professional, ...((photoFile || removePhoto) ? { avatarUrl: undefined } : {}) } })} />{photoPreview && details.communityFields.includes('avatarUrl') && <img src={photoPreview} alt="New photo preview" className="w-24 h-24 rounded-full object-cover" />}<p>Contacts are hidden.</p></section>}</>;
+}
+
+function TelegramPreview({ value }: { value: string }) {
+  if (!value.trim()) return null;
+  try {
+    const username = normalizeTelegram(value);
+    return <p>Telegram link preview: <a className="underline" href={`https://t.me/${username.slice(1)}`} target="_blank" rel="noopener noreferrer">{username}</a></p>;
+  } catch { return <p>Correct this Telegram username or link, or clear it before saving.</p>; }
 }
