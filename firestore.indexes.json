@@ -89,6 +89,11 @@
           "queryScope": "COLLECTION_GROUP"
         }
       ]
+    },
+    {
+      "collectionGroup": "profilePhotos",
+      "fieldPath": "bytes",
+      "indexes": []
     }
   ]
 }

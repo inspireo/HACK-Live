@@ -30,6 +30,7 @@ try {
   await run('node', ['--import', 'tsx', '--test', 'tests/shared-cleanup.test.ts']);
   await run('node', ['--import', 'tsx', '--test', 'tests/awards-pure.test.ts']);
   await run('node', ['--import', 'tsx', '--test', 'tests/awards.test.ts']);
+  await run('node', ['--import', 'tsx', '--test', 'tests/profile-api.test.ts']);
   await run('npx', ['playwright', 'test']);
   }
 } catch (issue) { console.error(issue); process.exitCode = 1; }

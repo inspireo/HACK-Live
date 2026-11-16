@@ -1,6 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { communityProjection, emptyDetails, validateProfileEdit } from '../shared/profile';
+import { communityProjection, emptyDetails, normalizeSkills, validateProfileEdit } from '../shared/profile';
+import { normalizePhotoUpload } from '../server/profile-photo';
+import { photoFixture } from './photo-fixture';
+import sharp from 'sharp';
 
 test('default privacy, explicit professional consent and revocation exclude contacts', () => {
   const details = emptyDetails();
@@ -12,6 +15,40 @@ test('default privacy, explicit professional consent and revocation exclude cont
   assert.deepEqual(communityProjection(details), { title: 'Engineer', skills: 'TypeScript' });
   details.communityFields = [];
   assert.deepEqual(communityProjection(details), {});
+});
+
+test('skills normalize whitespace, case-insensitive duplicates and enforce count, term and total bounds', () => {
+  assert.deepEqual(normalizeSkills(' TypeScript, typescript,  Team   facilitation \nReact, , REACT '), ['TypeScript', 'Team facilitation', 'React']);
+  const saved = validateProfileEdit({ name: 'Member', ...emptyDetails(), professional: { skills: ' TypeScript, typescript, React ' } });
+  assert.equal(saved.details.professional.skills, 'TypeScript, React');
+  for (const skills of ['x'.repeat(61), 'x'.repeat(501), Array.from({ length: 21 }, (_, position) => `skill ${position}`).join(','), 'bad\u0000skill']) assert.throws(() => normalizeSkills(skills));
+});
+
+test('real image decoder verifies raster type/content/pixels, normalizes orientation and strips metadata', async () => {
+  const fixture = await photoFixture();
+  const upload = { contentType: fixture.mimeType, base64: fixture.buffer.toString('base64') };
+  const normalized = await normalizePhotoUpload(upload);
+  const metadata = await sharp(normalized).metadata();
+  assert.equal(metadata.format, 'webp');
+  assert.ok(normalized!.length <= 256 * 1024);
+  assert.ok(await normalizePhotoUpload({ contentType: 'image/webp', base64: normalized!.toString('base64') }));
+  const animated = await sharp(Buffer.concat([Buffer.alloc(12, 0), Buffer.alloc(12, 255)]), { raw: { width: 2, height: 4, channels: 3, pageHeight: 2 } }).webp({ loop: 0, delay: [100, 100] }).toBuffer();
+  assert.equal((await sharp(animated, { animated: true }).metadata()).pages, 2);
+  await assert.rejects(normalizePhotoUpload({ contentType: 'image/webp', base64: animated.toString('base64') }));
+  const oriented = await sharp(fixture.buffer).withMetadata({ orientation: 6 }).jpeg().toBuffer();
+  const rotated = await normalizePhotoUpload({ contentType: 'image/jpeg', base64: oriented.toString('base64') });
+  const rotatedMetadata = await sharp(rotated).metadata();
+  assert.equal(rotatedMetadata.width, 100); assert.equal(rotatedMetadata.height, 80);
+  assert.equal(rotatedMetadata.exif, undefined); assert.equal(rotatedMetadata.orientation, undefined);
+  const tooManyPixels = await sharp({ create: { width: 4100, height: 4100, channels: 3, background: '#337766' } }).png().toBuffer();
+  for (const invalid of [
+    { ...upload, contentType: 'image/jpeg' }, { ...upload, base64: 'garbage' },
+    { ...upload, extra: 'unexpected' }, { ...upload, base64: Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"/>').toString('base64') },
+    { ...upload, base64: tooManyPixels.toString('base64') },
+    { ...upload, base64: Buffer.alloc(2 * 1024 * 1024 + 1).toString('base64') },
+    { ...upload, base64: fixture.buffer.subarray(0, 40).toString('base64') },
+  ]) await assert.rejects(normalizePhotoUpload(invalid));
+  assert.equal(await normalizePhotoUpload(null), undefined);
 });
 
 test('strict edit schema excludes authority, lifecycle, arbitrary contacts and per-connection overrides', () => {
