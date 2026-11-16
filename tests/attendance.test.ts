@@ -254,7 +254,7 @@ test('profile state and module completion protect planning, mutation and parent 
 test('whole delete-profile partial failure retains shared plans and retries contacts/source/audit/verifier cleanup', async () => {
   const uid = 'whole-deletion'; const peerUid = 'whole-peer'; const subjectUid = 'whole-subject';
   for (const memberUid of [uid, peerUid, subjectUid]) { await createFixtureUser(memberUid); tokens[memberUid] = await signInFixture(memberUid); }
-  for (const memberUid of [uid, peerUid]) assert.equal((await callIdentity(tokens[memberUid], 'save-profile', { name: `Synthetic ${memberUid}`, ...emptyDetails(), professional: { title: 'Synthetic private source' }, communityFields: ['title'], contacts: { phone: '555-0199' }, connectionFields: ['phone'] })).status, 200);
+  for (const memberUid of [uid, peerUid]) assert.equal((await callIdentity(tokens[memberUid], 'save-profile', { name: `Synthetic ${memberUid}`, ...emptyDetails(), professional: { title: 'Synthetic private source' }, communityFields: ['title'], contacts: { phone: '+12025550199' }, connectionFields: ['phone'] })).status, 200);
   const requested = await callIdentity(tokens[uid], 'connections/request', { peerUid });
   assert.equal(requested.status, 200);
   assert.equal((await callIdentity(tokens[peerUid], 'connections/accept', { peerUid: uid, generation: requested.data.generation })).status, 200);
@@ -300,13 +300,13 @@ test('whole delete-profile partial failure retains shared plans and retries cont
   await assertSucceeds(setDoc(doc(ownClient, `profiles/${uid}`), { name: 'New whole profile', state: 'active' }));
   assert.equal((await callIdentity(tokens[uid], 'register', { sessionId: 'event-one' })).status, 200);
   assert.equal((await attend('organizer', { memberUid: uid })).status, 200);
-  assert.equal((await callIdentity(tokens[uid], 'save-profile', { name: 'New whole profile', ...emptyDetails(), professional: { title: 'Fresh preserved source' }, communityFields: ['title'], contacts: { phone: '555-0111' }, connectionFields: ['phone'] })).status, 200);
+  assert.equal((await callIdentity(tokens[uid], 'save-profile', { name: 'New whole profile', ...emptyDetails(), professional: { title: 'Fresh preserved source' }, communityFields: ['title'], contacts: { phone: '+12025550111' }, connectionFields: ['phone'] })).status, 200);
   stale.delete(fixtureDb.doc(`profileDetails/${uid}`)); stale.delete(fixtureDb.doc(`attendance/event-one~${uid}`));
   await assert.rejects(stale.finish(), /superseded/);
   await assert.rejects(cleanupAttendance(fixtureDb, uid, interrupted.attemptId), /superseded/);
   assert.equal((await fixtureDb.doc(`profileDetails/${uid}`).get()).data()?.professional.title, 'Fresh preserved source');
   assert.deepEqual((await fixtureDb.doc(`memberDetails/${uid}`).get()).data(), { title: 'Fresh preserved source' });
-  assert.deepEqual((await fixtureDb.doc(`connectionContacts/${uid}`).get()).data(), { phone: '555-0111' });
+  assert.deepEqual((await fixtureDb.doc(`connectionContacts/${uid}`).get()).data(), { phone: '+12025550111' });
   assert.equal((await fixtureDb.collection('attendanceAudit').where('memberUid', '==', uid).get()).size, 1);
   assert.equal((await callIdentity(tokens[uid], 'member-history')).data.entries[0].attendanceStatus, 'verified-attended');
 });

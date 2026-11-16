@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { auth, db } from './firebase';
 import { identityRequest } from './identity';
 import { fieldLabels, type ContactField } from '../shared/profile';
-import type { ConnectionAction, ConnectionView } from '../shared/connections';
+import { contactHref, selectedContacts, selectedContactFields, type ConnectionAction, type ConnectionView } from '../shared/connections';
 
 const buttonClass = 'px-3 py-2 rounded bg-emerald-800 disabled:opacity-50';
 function useConnections() {
@@ -100,12 +100,13 @@ function ConnectionDetails({ ownUid, peerUid }: { ownUid: string; peerUid: strin
     catch (issue) { if (auth.currentUser?.uid === ownUid) setError((issue as Error).message); } finally { if (auth.currentUser?.uid === ownUid) setBusy(false); }
   }
   const actionButton = (action: ConnectionAction, label: string) => <button className={buttonClass} disabled={busy || !ready} onClick={() => act(action)}>{label}</button>;
-  const labels = (selection?: ContactField[]) => selection ? selection.map(field => fieldLabels[field]).join(', ') || 'No populated fields selected' : 'Loading selected fields…';
+  const labels = (selection?: ContactField[]) => selection ? selectedContactFields(selection).map(field => fieldLabels[field]).join(', ') || 'No populated fields selected' : 'Loading selected fields…';
+  const visibleContacts = selectedContacts(contacts);
   return <section aria-label="Connection" className="space-y-3 py-3">
     <p role="status">{state === 'pending' ? outgoing ? 'Request sent' : 'Incoming connection request' : state === 'accepted' ? 'Connected' : state === 'blocked' ? 'Connection unavailable' : 'Not connected'}</p>
     {state === 'pending' && <><p>You share after acceptance: {labels(fields.ownFields)}.</p><p>They share after acceptance: {labels(fields.peerFields)}.</p><p>Each person chooses one contact selection for all approved connections. Later changes apply to all current and future connections.</p></>}
     {state === 'pending' && (outgoing ? actionButton('cancel', 'Cancel request') : <>{actionButton('accept', 'Accept connection')}{actionButton('decline', 'Decline request')}</>)}
-    {state === 'accepted' && <><h3>Shared contacts</h3><dl>{Object.entries(contacts).map(([field, value]) => <div key={field}><dt>{fieldLabels[field as ContactField]}</dt><dd>{value}</dd></div>)}</dl>{!Object.keys(contacts).length && <p>No contact fields shared.</p>}{view?.unread && actionButton('seen', 'Mark acceptance read')}{actionButton('unfriend', 'Unfriend')}</>}
+    {state === 'accepted' && <><h3>Shared contacts</h3><dl>{Object.entries(visibleContacts).map(([field, value]) => { const href = contactHref(field as ContactField, value); return <div key={field}><dt>{fieldLabels[field as ContactField]}</dt><dd>{href ? <a className="underline" href={href} target={href.startsWith('https:') ? '_blank' : undefined} rel="noopener noreferrer" referrerPolicy="no-referrer">{value}</a> : <>{value}<span className="block text-sm">Ask this member to correct this contact in their profile.</span></>}</dd></div>; })}</dl>{!Object.keys(visibleContacts).length && <p>No contact fields shared.</p>}{view?.unread && actionButton('seen', 'Mark acceptance read')}{actionButton('unfriend', 'Unfriend')}</>}
     {!['accepted', 'pending', 'blocked'].includes(state) && <>{!confirmation ? <button className={buttonClass} disabled={!ready} onClick={() => setConfirmation(true)}>Request connection</button> : <><p>You will share after acceptance: {labels(fields.ownFields)}. They choose which fields to share. These global selections can change later.</p>{actionButton('request', 'Send request')}</>}</>}
     {state !== 'blocked' && actionButton('block', 'Block member')}
     <p className="text-sm">Unfriend or block immediately removes future contact access in both directions. Copies already saved by someone cannot be recalled. Blocking prevents new requests from this account, including after profile recreation.</p>
