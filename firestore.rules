@@ -64,7 +64,8 @@ service cloud.firestore {
     match /connectionContacts/{memberId} {
       allow get: if hasActiveProfile() &&
         get(/databases/$(database)/documents/profiles/$(memberId)).data.state == 'active' &&
-        request.auth.uid != memberId && hasAcceptedConnection(memberId);
+        request.auth.uid != memberId && hasAcceptedConnection(memberId) &&
+        resource.data.keys().hasOnly(['contactEmail', 'phone', 'telegram', 'whatsapp']);
       allow list, write: if false;
     }
     match /connectionViews/{owner}/peers/{peer} {
