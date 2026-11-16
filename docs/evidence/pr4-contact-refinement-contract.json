@@ -6,7 +6,7 @@
   "securityMocks": false,
   "physicalDevice": false,
   "externalNavigationOrMessages": false,
-  "nativeUploadStatus": "pending root publication",
+  "nativeUploadStatus": "published; root verified private bytes and native players",
   "pureTests": 31,
   "apiRulesTests": 78,
   "browserTests": 20,
@@ -31,7 +31,8 @@
       ],
       "decoded_frames": 949,
       "source_head": "dc907e980b37731725252a94be5829b14c2ce1ce",
-      "unedited_original": true
+      "unedited_original": true,
+      "attachmentUrl": "https://github.com/user-attachments/assets/75164547-217f-4561-af40-6790a98a9f29"
     },
     {
       "party": "recipient",
@@ -44,7 +45,8 @@
       ],
       "decoded_frames": 897,
       "source_head": "dc907e980b37731725252a94be5829b14c2ce1ce",
-      "unedited_original": true
+      "unedited_original": true,
+      "attachmentUrl": "https://github.com/user-attachments/assets/3999d25f-5953-4e40-9f2e-19f1106294bd"
     }
   ]
 }
