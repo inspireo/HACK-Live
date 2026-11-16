@@ -1,6 +1,7 @@
 import { test, expect, Page } from '@playwright/test';
 import jsQR from 'jsqr';
 import { writeFile } from 'node:fs/promises';
+import { photoFixture } from '../photo-fixture';
 import { emptyDetails } from '../../shared/profile';
 import { callIdentity, clearFixtures, createFixtureUser, fixtureDb, password, seedEvents, signInFixture } from '../fixtures';
 
@@ -220,4 +221,51 @@ test('legacy solution aliases clear through member leave and admin removal befor
     await expect(page.getByText(/Your official roles do not include discovery or solution team allocation/)).toBeVisible();
     await evidence(page, 'legacy-alias-cleared');
   } finally { await adminContext.close(); }
+});
+
+
+test('badge uses authenticated selected photo and removes it when sharing is revoked', async ({ page, context }) => {
+  await createFixtureUser('badge-photo');
+  const memberToken = await signInFixture('badge-photo');
+  const imageFixture = await photoFixture('#224466');
+  const saved = await callIdentity(memberToken, 'save-profile', {
+    name: 'Photo badge member', ...emptyDetails(), professional: { title: 'Designer' }, communityFields: ['title'],
+    photoUpload: { contentType: imageFixture.mimeType, base64: imageFixture.buffer.toString('base64') },
+  });
+  expect(saved.status).toBe(200);
+  const assigned = await callIdentity(await signInFixture('organizer'), 'event-roles', { sessionId: 'event-one', memberUid: 'badge-photo', roles: ['mentor'] });
+  expect(assigned.status).toBe(200);
+  const photoRequests: boolean[] = [];
+  page.on('request', request => {
+    if (request.url().includes('/api/identity/photo/')) photoRequests.push(!!request.headers().authorization?.startsWith('Bearer '));
+  });
+  await page.setViewportSize({ width: 320, height: 740 });
+  await page.goto('/badge'); await signIn(page, 'badge-photo');
+  const badge = page.getByRole('article', { name: 'Personal event badge' });
+  await expect(badge).toContainText('Photo badge member');
+  await expect(badge.getByRole('img', { name: 'Member avatar' })).toHaveCount(0);
+  expect(photoRequests).toEqual([]); // Even its owner cannot bypass the selected projection on the badge.
+  const editor = await context.newPage();
+  try {
+    await editor.goto('/account');
+    await editor.getByLabel('Show Photo to members', { exact: true }).check();
+    await editor.getByRole('button', { name: 'Save profile', exact: true }).click();
+    await expect(editor.getByRole('status')).toHaveText('Profile saved.');
+    const avatar = badge.getByRole('img', { name: 'Member avatar' });
+    await expect(avatar).toHaveAttribute('src', /^blob:/);
+    await expect.poll(() => avatar.evaluate(image => (image as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
+    expect(photoRequests.length).toBeGreaterThan(0); expect(photoRequests.every(authenticated => authenticated)).toBe(true);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    await evidence(page, 'selected-photo-badge');
+    await editor.getByLabel('Show Photo to members', { exact: true }).uncheck();
+    await editor.getByRole('button', { name: 'Save profile', exact: true }).click();
+    await expect(editor.getByRole('status')).toHaveText('Profile saved.');
+    await expect(avatar).toHaveCount(0);
+    await evidence(page, 'private-photo-badge');
+    const requestsBeforeReload = photoRequests.length;
+    await page.reload();
+    await expect(badge).toContainText('Photo badge member');
+    await expect(avatar).toHaveCount(0);
+    expect(photoRequests).toHaveLength(requestsBeforeReload);
+  } finally { await editor.close(); }
 });
