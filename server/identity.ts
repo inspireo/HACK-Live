@@ -188,13 +188,14 @@ router.get('/photo/:memberId/:version', async (req, res) => {
     const { memberId, version } = req.params;
     if (!/^[A-Za-z0-9_-]{1,128}$/.test(memberId) || !/^[a-f0-9-]{36}$/.test(version)) throw fail(404, 'Photo unavailable.');
     const photo = await identityDb.runTransaction(async transaction => {
-      const [profile, source, asset] = await Promise.all([
+      const [profile, caller, source, asset] = await Promise.all([
         transaction.get(identityDb.doc(`profiles/${memberId}`)),
+        transaction.get(identityDb.doc(`profiles/${res.locals.uid}`)),
         transaction.get(identityDb.doc(`${res.locals.uid === memberId ? 'profileDetails' : 'memberDetails'}/${memberId}`)),
         transaction.get(identityDb.doc(`profilePhotos/${memberId}`)),
       ]);
       const values = res.locals.uid === memberId ? source.data()?.professional : source.data();
-      if (profile.data()?.state !== 'active' || asset.data()?.version !== version || values?.avatarUrl !== `/api/identity/photo/${memberId}/${version}`) throw fail(404, 'Photo unavailable.');
+      if (profile.data()?.state !== 'active' || caller.data()?.state !== 'active' || asset.data()?.version !== version || values?.avatarUrl !== `/api/identity/photo/${memberId}/${version}`) throw fail(404, 'Photo unavailable.');
       return asset.data()!;
     });
     res.type('image/webp').send(photo.bytes);
