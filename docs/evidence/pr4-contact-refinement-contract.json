@@ -1,0 +1,50 @@
+{
+  "source_head": "dc907e980b37731725252a94be5829b14c2ce1ce",
+  "capture_scope": "full cumulative tip; contact implementation matches PR4 source f7ae116d914c045acdd214d8ddd0037134ad50bb",
+  "mode": "paced-real-emulator-browser",
+  "projectId": "demo-hack-live",
+  "securityMocks": false,
+  "physicalDevice": false,
+  "externalNavigationOrMessages": false,
+  "nativeUploadStatus": "pending root publication",
+  "pureTests": 31,
+  "apiRulesTests": 78,
+  "browserTests": 20,
+  "totalTests": 129,
+  "protectedCrossAccountTestsUnchanged": true,
+  "fullDecodePassed": true,
+  "visuallyInspected": [
+    "recipient video 12s showing all four approved contact actions",
+    "sender video 20s showing revoked contacts",
+    "approved contacts screenshot",
+    "real global-selection editor screenshot"
+  ],
+  "videos": [
+    {
+      "party": "sender",
+      "bytes": 3188748,
+      "sha256": "4be7eedcf6f1cea796499d2e9ca6a3d8a08721d7189cebb9b0a54238d3efb2a6",
+      "duration": "00:00:37.96",
+      "dimensions": [
+        1100,
+        760
+      ],
+      "decoded_frames": 949,
+      "source_head": "dc907e980b37731725252a94be5829b14c2ce1ce",
+      "unedited_original": true
+    },
+    {
+      "party": "recipient",
+      "bytes": 1655287,
+      "sha256": "fd83a3ef88f9a29b4a0a8fe879a3fc9583110f7b9751863ca0f67c5060fb3e38",
+      "duration": "00:00:35.88",
+      "dimensions": [
+        1100,
+        760
+      ],
+      "decoded_frames": 897,
+      "source_head": "dc907e980b37731725252a94be5829b14c2ce1ce",
+      "unedited_original": true
+    }
+  ]
+}
