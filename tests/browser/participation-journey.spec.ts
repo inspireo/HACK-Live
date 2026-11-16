@@ -23,7 +23,7 @@ test.beforeAll(async () => {
   await clearFixtures(); await seedEvents();
   await createFixtureUser('organizer'); await createFixtureUser('badge-browser');
   const selectedPhoto = await photoFixture('#32776c');
-  const saved = await callIdentity(await signInFixture('badge-browser'), 'save-profile', { name: 'Alex Morgan', ...emptyDetails(), professional: { title: 'Software architect', bio: 'PRIVATE-BADGE-BIO' }, communityFields: ['title', 'avatarUrl'], contacts: { phone: 'PRIVATE-BADGE-CONTACT' }, photoUpload: { contentType: selectedPhoto.mimeType, base64: selectedPhoto.buffer.toString('base64') } });
+  const saved = await callIdentity(await signInFixture('badge-browser'), 'save-profile', { name: 'Alex Morgan', ...emptyDetails(), professional: { title: 'Software architect', bio: 'PRIVATE-BADGE-BIO' }, communityFields: ['title', 'avatarUrl'], contacts: { phone: '+6585550199' }, photoUpload: { contentType: selectedPhoto.mimeType, base64: selectedPhoto.buffer.toString('base64') } });
   expect(saved.status).toBe(200);
   await fixtureDb.doc('resources/mentor-handbook').set({ sessionId: 'event-one', title: 'Mentor handbook', summary: '<p>Support members without joining a solution team.</p>', category: 'Guide', isPublished: true });
 });
@@ -74,7 +74,7 @@ test('staff issues roles → mobile member badge → decoded profile destination
     await expect(selectedAvatar).toHaveAttribute('src', /^blob:/);
     await expect.poll(() => selectedAvatar.evaluate(image => (image as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
     expect(await selectedAvatar.evaluate(image => image.getBoundingClientRect().width)).toBe(56);
-    await expect(member.getByText('PRIVATE-BADGE-CONTACT', { exact: true })).toHaveCount(0);
+    await expect(member.getByText('+6585550199', { exact: true })).toHaveCount(0);
     await expect(member.getByText('PRIVATE-BADGE-BIO', { exact: true })).toHaveCount(0);
     expect(await member.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     await member.screenshot({ path: 'test-results/pr5-mobile/badge-320.png', fullPage: true });
@@ -127,7 +127,7 @@ test('staff issues roles → mobile member badge → decoded profile destination
       await expect(viewer.getByText('Community member', { exact: true })).toBeVisible();
       await expect(viewer.getByRole('img', { name: 'Member avatar' })).toHaveAttribute('src', /^blob:/);
       await expect(viewer.getByRole('button', { name: 'Request connection', exact: true })).toBeVisible();
-      await expect(viewer.getByText('PRIVATE-BADGE-CONTACT', { exact: true })).toHaveCount(0);
+      await expect(viewer.getByText('+6585550199', { exact: true })).toHaveCount(0);
       await evidence(viewer, 'member-visible-profile');
       // Viewing the stable profile is read-only; participation remains staff-only.
       expect((await fixtureDb.doc(`participants/${registration.participantId}`).get()).data()!.officialRoles).toEqual(['mentor', 'volunteer']);
