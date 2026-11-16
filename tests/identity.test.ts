@@ -52,7 +52,7 @@ test('profile source is owner-only, generated projection exposes only selected p
   // Full replacement removes previously shared fields and keeps ONE global selection.
   assert.equal((await callIdentity(token, 'save-profile', { ...payload, communityFields: [], connectionFields: ['phone', 'signal'] })).status, 200);
   assert.deepEqual((await fixtureDb.doc('memberDetails/profile-owner').get()).data(), {});
-  assert.deepEqual((await fixtureDb.doc('profileDetails/profile-owner').get()).data()!.connectionFields, ['phone', 'signal']);
+  assert.deepEqual((await fixtureDb.doc('profileDetails/profile-owner').get()).data()!.connectionFields, ['phone']);
 });
 
 test('server rejects malicious fields/links without partial writes; token owns edits and authority is unchanged', async () => {
@@ -405,4 +405,27 @@ test('a paused deletion attempt cannot mutate recreated profile data after lease
   assert.equal((await fixtureDb.doc('proposedChallengeVotes/fresh-after-takeover').get()).exists, true);
   assert.equal((await fixtureDb.doc(`participants/${fresh.data.participantId}`).get()).data()!.name, 'Fresh profile');
   assert.deepEqual((await fixtureDb.doc(`profiles/${uid}`).get()).data(), { name: 'Fresh profile', state: 'active' });
+});
+
+test('contacts save strips legacy Signal, normalizes Telegram and keeps WhatsApp mode owner-private', async () => {
+  await createFixtureUser('contact-owner');
+  const token = await signInFixture('contact-owner');
+  await fixtureDb.doc('profileDetails/contact-owner').set({ ...emptyDetails(), contacts: { signal: { invalid: true }, telegram: 'bad-old-value' }, connectionFields: ['signal'] });
+  const payload = { name: 'Contact Member', ...emptyDetails(), contacts: { signal: { invalid: true }, phone: '+65 8123 4567', telegram: 't.me/abcd', whatsapp: '+44 7700 900123' }, connectionFields: ['signal', 'whatsapp'], whatsappUsesMobile: true };
+  const saved = await callIdentity(token, 'save-profile', payload);
+  assert.equal(saved.status, 200);
+  const source = (await fixtureDb.doc('profileDetails/contact-owner').get()).data()!;
+  assert.deepEqual(source.contacts, { phone: '+6581234567', whatsapp: '+6581234567', telegram: '@abcd' });
+  assert.equal(source.whatsappUsesMobile, true);
+  assert.deepEqual(source.connectionFields, ['whatsapp']);
+  assert.deepEqual((await fixtureDb.doc('memberDetails/contact-owner').get()).data(), {});
+  assert.equal((await fixtureDb.doc('connectionContacts/contact-owner').get()).exists, false);
+  const invalid = await callIdentity(token, 'save-profile', { ...payload, contacts: { telegram: 'invalid-old-value' }, whatsappUsesMobile: false });
+  assert.equal(invalid.status, 400);
+  assert.deepEqual((await fixtureDb.doc('profileDetails/contact-owner').get()).data(), source);
+  assert.equal((await callIdentity(token, 'save-profile', { ...payload, contacts: { phone: '+1 202 555 0199' } })).status, 200);
+  assert.equal((await fixtureDb.doc('profileDetails/contact-owner').get()).data()!.contacts.whatsapp, '+12025550199');
+  assert.equal((await callIdentity(token, 'save-profile', { ...payload, whatsappUsesMobile: false })).status, 200);
+  assert.equal((await fixtureDb.doc('profileDetails/contact-owner').get()).data()!.contacts.whatsapp, '+447700900123');
+  await assertFails(getDoc(doc(memberContext('member'), 'profileDetails/contact-owner')));
 });

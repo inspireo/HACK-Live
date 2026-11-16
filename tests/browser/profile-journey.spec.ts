@@ -63,8 +63,14 @@ test('real Firebase profile edits, community preview, other-member privacy, revo
   await page.getByLabel('Bio', { exact: true }).scrollIntoViewIfNeeded();
   await reviewerHold(page);
   await page.getByLabel('Contact email', { exact: true }).fill('private-contact@example.test');
-  await page.getByLabel('Phone', { exact: true }).fill('+65 1234 5678');
-  await page.getByLabel('Telegram handle', { exact: true }).fill('private-synthetic-handle');
+  await page.getByLabel('Mobile number', { exact: true }).fill('+65 1234 5678');
+  await page.getByLabel('Telegram username or link', { exact: true }).fill('https://t.me/synthetic_member');
+  await expect(page.getByRole('link', { name: '@synthetic_member', exact: true })).toHaveAttribute('href', 'https://t.me/synthetic_member');
+  await expect(page.getByLabel('Use my mobile number for WhatsApp', { exact: true })).not.toBeChecked();
+  await page.getByLabel('Use my mobile number for WhatsApp', { exact: true }).check();
+  await expect(page.getByLabel('WhatsApp number', { exact: true })).toHaveValue('+65 1234 5678');
+  await page.getByRole('group', { name: 'Private contact details' }).scrollIntoViewIfNeeded();
+  await reviewerHold(page);
   await page.getByLabel('Show Professional title or role to members', { exact: true }).check();
   await page.getByLabel('Show Skills to members', { exact: true }).check();
   await page.getByLabel('Show GitHub to members', { exact: true }).check();
@@ -108,7 +114,7 @@ test('real Firebase profile edits, community preview, other-member privacy, revo
     await expect(otherPage.getByRole('heading', { name: 'Synthetic Professional Member' })).toBeVisible();
     await expect(otherPage.getByText('Community Engineer', { exact: false })).toBeVisible();
     await expect(otherPage.getByRole('link', { name: 'GitHub', exact: true })).toHaveAttribute('href', 'https://github.com/synthetic');
-    for (const privateText of ['Private synthetic biography', 'Synthetic Company', 'private-contact@example.test', '+65 1234 5678', 'private-synthetic-handle']) await expect(otherPage.getByText(privateText, { exact: false })).toHaveCount(0);
+    for (const privateText of ['Private synthetic biography', 'Synthetic Company', 'private-contact@example.test', '+65 1234 5678', 'https://t.me/synthetic_member']) await expect(otherPage.getByText(privateText, { exact: false })).toHaveCount(0);
     await expect(otherPage.getByRole('img', { name: 'Member avatar' })).toHaveCount(0);
     await expect(otherPage.getByRole('button', { name: 'Save profile' })).toHaveCount(0);
     await otherPage.screenshot({ path: 'test-results/profile-other-member.png' });
@@ -147,7 +153,7 @@ test('real Firebase profile edits, community preview, other-member privacy, revo
 
     await page.getByLabel('Show Professional title or role to members', { exact: true }).uncheck();
     await page.getByLabel('Share Contact email with all approved connections', { exact: true }).uncheck();
-    await page.getByLabel('Share Phone with all approved connections', { exact: true }).check();
+    await page.getByLabel('Share Mobile number with all approved connections', { exact: true }).check();
     await page.getByRole('button', { name: 'Remove photo', exact: true }).click();
     expect((await fixtureDb.doc('profilePhotos/profile-browser-owner').get()).exists).toBe(true);
     await expect(page.getByText('Photo will be removed when you save.')).toBeVisible();
