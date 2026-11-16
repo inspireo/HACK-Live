@@ -1,7 +1,34 @@
 import React, { useEffect, useState } from 'react';
 import { doc, getDoc, onSnapshot } from 'firebase/firestore';
-import { db } from './firebase';
-import { communityProjection, contactFields, emptyDetails, fieldLabels, professionalFields, safeProfileUrl, validateProfileEdit, type ProfessionalValues, type ProfileDetails } from '../shared/profile';
+import { auth, db } from './firebase';
+import { communityProjection, contactFields, emptyDetails, fieldLabels, professionalFields, isManagedPhotoUrl, maxPhotoUploadBytes, safeProfileUrl, validateProfileEdit, type ProfessionalValues, type ProfileDetails } from '../shared/profile';
+import { SkillsCombobox } from './skills-combobox';
+
+export function ProfilePhoto({ url }: { url: string }) {
+  const [resolved, setResolved] = useState<{ url: string; blob: string } | null>(null);
+  useEffect(() => {
+    if (!isManagedPhotoUrl(url)) return;
+    const controller = new AbortController();
+    let current = true;
+    let objectUrl: string | undefined;
+    setResolved(null);
+    (async () => {
+      const token = await auth.currentUser?.getIdToken();
+      if (!token || !current) return;
+      const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` }, signal: controller.signal, cache: 'no-store' });
+      if (!response.ok) return;
+      const blob = await response.blob();
+      if (!current) return;
+      objectUrl = URL.createObjectURL(blob);
+      setResolved({ url, blob: objectUrl });
+    })().catch(() => {});
+    return () => { current = false; controller.abort(); if (objectUrl) URL.revokeObjectURL(objectUrl); };
+  }, [url]);
+  let source: string | undefined;
+  if (isManagedPhotoUrl(url)) source = resolved?.url === url ? resolved.blob : undefined;
+  else { try { source = safeProfileUrl(url, 'avatarUrl'); } catch {} }
+  return source ? <img src={source} alt="Member avatar" className="w-24 h-24 rounded-full object-cover" referrerPolicy="no-referrer" loading="lazy" /> : null;
+}
 
 export function ProfessionalView({ values }: { values: ProfessionalValues }) {
   return <div className="space-y-3">{professionalFields.map(field => {
@@ -9,7 +36,7 @@ export function ProfessionalView({ values }: { values: ProfessionalValues }) {
     if (!value) return null;
     if (['avatarUrl', 'linkedin', 'github', 'portfolio'].includes(field)) {
       try { safeProfileUrl(value, field); } catch { return null; }
-      if (field === 'avatarUrl') return <img key={field} src={value} alt="Member avatar" className="w-24 h-24 rounded-full object-cover" referrerPolicy="no-referrer" loading="lazy" />;
+      if (field === 'avatarUrl') return <ProfilePhoto key={field} url={value} />;
       return <p key={field}><a className="underline" href={value} target="_blank" rel="noopener noreferrer">{fieldLabels[field]}</a></p>;
     }
     return <p className="whitespace-pre-wrap break-words" key={field}><strong>{fieldLabels[field]}: </strong>{value}</p>;
@@ -31,9 +58,18 @@ export function ProfileEditor({ uid, name, onNameChange, save, onSaved }: { uid:
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [preview, setPreview] = useState(false);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [removePhoto, setRemovePhoto] = useState(false);
+  const [photoPreview, setPhotoPreview] = useState('');
+  const [photoError, setPhotoError] = useState('');
+  useEffect(() => {
+    if (!photoFile) { setPhotoPreview(''); return; }
+    const objectUrl = URL.createObjectURL(photoFile); setPhotoPreview(objectUrl);
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [photoFile]);
   useEffect(() => {
     let current = true;
-    setReady(false); setError('');
+    setReady(false); setError(''); setPhotoFile(null); setRemovePhoto(false); setPhotoError('');
     getDoc(doc(db, 'profileDetails', uid)).then(snapshot => { if (current) { setDetails(snapshot.exists() ? snapshot.data() as ProfileDetails : emptyDetails()); setReady(true); } }).catch(issue => { if (current) setError(issue.message); });
     return () => { current = false; };
   }, [uid]);
@@ -41,17 +77,40 @@ export function ProfileEditor({ uid, name, onNameChange, save, onSaved }: { uid:
   if (!ready) return error ? <p role="alert">{error}</p> : <p>Loading profile details…</p>;
   return <><form className="space-y-5" onSubmit={async event => {
     event.preventDefault(); setBusy(true); setError('');
-    try { const validated = validateProfileEdit({ name, ...details }); await save({ name: validated.name, ...validated.details }); setDetails(validated.details); onSaved('Profile saved.'); }
+    try {
+      const validated = validateProfileEdit({ name, ...details });
+      let photoUpload: { contentType: string; base64: string } | null | undefined;
+      if (photoFile) {
+        const encoded = await new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve((reader.result as string).split(',')[1]); reader.onerror = () => reject(new Error('Photo could not be read. Choose it again.')); reader.readAsDataURL(photoFile); });
+        photoUpload = { contentType: photoFile.type, base64: encoded };
+      } else if (removePhoto) photoUpload = null;
+      const result = await save({ name: validated.name, ...validated.details, ...(photoUpload !== undefined ? { photoUpload } : {}) }) as { details?: ProfileDetails };
+      setDetails(result?.details || validated.details); setPhotoFile(null); setRemovePhoto(false); setPhotoError(''); onSaved('Profile saved.');
+    }
     catch (issue) { setError((issue as Error).message); } finally { setBusy(false); }
   }}>
-    <label className="block">Name<input className={inputClass} value={name} onChange={event => onNameChange(event.target.value)} required maxLength={100} /></label>
+    <label className="block">Name<input className={inputClass} disabled={busy} value={name} onChange={event => onNameChange(event.target.value)} required maxLength={100} /></label>
     <p>Your name is visible to members. Every optional field starts private. Choose which professional details members can see.</p>
-    <p className="text-sm">Photo: paste a public HTTPS image URL you control. No upload is provided. External image hosts receive image requests. Clear the URL and save to remove it from your profile; the original stays with its host.</p>
-    <fieldset className="space-y-4"><legend className="font-bold">Professional details</legend>{professionalFields.map(field => <div key={field}>
+    <fieldset disabled={busy} className="space-y-4"><legend className="font-bold">Professional details</legend>{professionalFields.map(field => <div key={field}>
+      {field === 'avatarUrl' ? <div className="space-y-2">
+        <label htmlFor="profile-photo" className="block">Photo (optional)</label>
+        <p id="photo-help" className="text-sm">Choose a still JPEG, PNG or WebP photo up to 2 MB. Your photo stays private unless you choose to show it to members. Save to apply a new photo or removal.</p>
+        <input id="profile-photo" type="file" accept="image/jpeg,image/png,image/webp" aria-describedby="photo-help photo-error" aria-invalid={!!photoError} onChange={event => {
+          const file = event.target.files?.[0]; event.target.value = '';
+          if (!file) return;
+          if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || !file.size || file.size > maxPhotoUploadBytes) { setPhotoError('Choose a JPEG, PNG or WebP photo up to 2 MB.'); return; }
+          setPhotoFile(file); setRemovePhoto(false); setPhotoError('');
+        }} />
+        {photoPreview ? <img src={photoPreview} alt="New photo preview" className="w-24 h-24 rounded-full object-cover" /> : !removePhoto && details.professional.avatarUrl ? <ProfilePhoto url={details.professional.avatarUrl} /> : null}
+        {(photoFile || (!removePhoto && details.professional.avatarUrl)) && <button type="button" className="underline" onClick={() => { setPhotoFile(null); setRemovePhoto(true); setPhotoError(''); }}>Remove photo</button>}
+        {removePhoto && <p>Photo will be removed when you save.</p>}
+        <p id="photo-error" role={photoError ? 'alert' : undefined}>{photoError}</p>
+      </div> : field === 'skills' ? <SkillsCombobox value={details.professional.skills || ''} onChange={value => setDetails(previous => ({ ...previous, professional: { ...previous.professional, skills: value } }))} disabled={busy} /> : <>
       <label className="block" htmlFor={`professional-${field}`}>{fieldLabels[field]}</label><textarea id={`professional-${field}`} rows={field === 'bio' || field === 'work' ? 3 : 1} className={inputClass} value={details.professional[field] || ''} maxLength={field === 'bio' || field === 'work' ? 2000 : 500} onChange={event => setDetails(previous => ({ ...previous, professional: { ...previous.professional, [field]: event.target.value } }))} />
+      </>}
       <label><input type="checkbox" checked={details.communityFields.includes(field)} onChange={event => setDetails(previous => ({ ...previous, communityFields: event.target.checked ? [...previous.communityFields, field] : previous.communityFields.filter(value => value !== field) }))} /> Show {fieldLabels[field]} to members</label>
     </div>)}</fieldset>
-    <fieldset className="space-y-4"><legend className="font-bold">Private contact details</legend>
+    <fieldset disabled={busy} className="space-y-4"><legend className="font-bold">Private contact details</legend>
       <p>All contacts are visible only to you in this release. Contact email is separate from your sign-in email.</p>
       <p>Choose one global selection for all future accepted connections. Sharing activates after the next connection release; these selections share nothing today.</p>
       {contactFields.map(field => <div key={field}><label className="block">{fieldLabels[field]}<input className={inputClass} type={field === 'contactEmail' ? 'email' : 'text'} value={details.contacts[field] || ''} maxLength={500} onChange={event => setDetails(previous => ({ ...previous, contacts: { ...previous.contacts, [field]: event.target.value } }))} /></label>
@@ -61,5 +120,5 @@ export function ProfileEditor({ uid, name, onNameChange, save, onSaved }: { uid:
     <button disabled={busy} className="p-3 bg-emerald-700 rounded-lg disabled:opacity-50">Save profile</button>
   </form>
   <button type="button" className="underline" onClick={() => setPreview(value => !value)}>Preview community view</button>
-  {preview && <section aria-label="Community preview" className="border border-zinc-600 rounded-lg p-4 space-y-3"><h2 className="text-xl">{name}</h2><p>Preview of your current edits. Save to apply them.</p><ProfessionalView values={communityProjection(details)} /><p>Contacts are hidden.</p></section>}</>;
+  {preview && <section aria-label="Community preview" className="border border-zinc-600 rounded-lg p-4 space-y-3"><h2 className="text-xl">{name}</h2><p>Preview of your current edits. Save to apply them.</p><ProfessionalView values={communityProjection({ ...details, professional: { ...details.professional, ...((photoFile || removePhoto) ? { avatarUrl: undefined } : {}) } })} />{photoPreview && details.communityFields.includes('avatarUrl') && <img src={photoPreview} alt="New photo preview" className="w-24 h-24 rounded-full object-cover" />}<p>Contacts are hidden.</p></section>}</>;
 }
