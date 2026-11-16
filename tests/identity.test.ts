@@ -28,6 +28,7 @@ test('profile source is owner-only, generated projection exposes only selected p
   assert.equal(registered.status, 200);
   const priorParticipant = (await fixtureDb.doc(`participants/${registered.data.participantId}`).get()).data();
   const payload = { name: 'Reusable member', ...emptyDetails(), professional: { title: 'Engineer', bio: 'Private biography', avatarUrl: 'https://example.test/avatar.png', github: 'https://github.com/synthetic' }, contacts: { contactEmail: 'separate@example.test', phone: '+65 1234 5678', signal: 'private-handle' }, communityFields: ['title', 'github'], connectionFields: ['contactEmail'] };
+  if (payload.professional?.avatarUrl) await fixtureDb.doc(`profileDetails/${(await fixtureAuth.verifyIdToken(token)).uid}`).set({ ...emptyDetails(), professional: { avatarUrl: payload.professional.avatarUrl } });
   assert.equal((await callIdentity(token, 'save-profile', payload)).status, 200);
   assert.deepEqual((await fixtureDb.doc('profiles/profile-owner').get()).data(), { name: payload.name, state: 'active' });
   assert.equal((await fixtureAuth.getUser('profile-owner')).email, 'profile-owner@example.test');
@@ -66,7 +67,7 @@ test('server rejects malicious fields/links without partial writes; token owns e
   assert.deepEqual((await fixtureDb.doc('profiles/other').get()).data(), originalOther);
   assert.equal((await callIdentity(undefined, 'save-profile', payload)).status, 401);
   assert.equal((await callIdentity(await signInFixture('unverified'), 'save-profile', payload)).status, 403);
-  assert.equal((await callIdentity(token, 'save-profile', payload)).status, 200);
+  assert.equal((await callIdentity(token, 'save-profile', { ...payload, professional: { avatarUrl: beforeSource!.professional.avatarUrl }, photoUpload: null })).status, 200);
   assert.deepEqual((await fixtureDb.doc('users/profile-owner').get()).data(), { role: 'admin' });
   assert.deepEqual((await fixtureDb.doc('registrationDefaults/profile-owner').get()).data(), { adjective: 'Curious', designThinkingProficiency: 'Trained' });
 });
@@ -76,6 +77,7 @@ test('name-only compatibility and delete/retry clear private source and photo pr
   const token = await signInFixture('profile-delete');
   assert.equal((await getDoc(doc(memberContext('other'), 'memberDetails/profile-delete'))).exists(), false);
   const payload = { name: 'Existing name only', ...emptyDetails(), professional: { avatarUrl: 'https://example.test/photo.png', title: 'Designer' }, communityFields: ['avatarUrl'], contacts: { phone: '+65 1234 5678' }, connectionFields: ['phone'] };
+  await fixtureDb.doc('profileDetails/profile-delete').set({ ...emptyDetails(), professional: { avatarUrl: payload.professional.avatarUrl } });
   assert.equal((await callIdentity(token, 'save-profile', payload)).status, 200);
   assert.deepEqual((await fixtureDb.doc('memberDetails/profile-delete').get()).data(), { avatarUrl: 'https://example.test/photo.png' });
   await fixtureDb.doc('users/profile-delete').set({ role: 'admin' });

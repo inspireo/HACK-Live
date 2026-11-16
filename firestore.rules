@@ -49,6 +49,7 @@ service cloud.firestore {
       allow get: if isAuthenticated() && get(/databases/$(database)/documents/profiles/$(memberId)).data.state == 'active';
       allow write, list: if false;
     }
+    match /profilePhotos/{memberId} { allow read, write: if false; }
     function hasAcceptedConnection(memberId) {
       let ownView = get(/databases/$(database)/documents/connectionViews/$(request.auth.uid)/peers/$(memberId)).data;
       let peerView = get(/databases/$(database)/documents/connectionViews/$(memberId)/peers/$(request.auth.uid)).data;
