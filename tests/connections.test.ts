@@ -1,5 +1,7 @@
 import { after, before, test } from 'node:test';
 import assert from 'node:assert/strict';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import { readFile } from 'node:fs/promises';
 import { assertFails, assertSucceeds, initializeTestEnvironment, type RulesTestEnvironment } from '@firebase/rules-unit-testing';
 import { collection, doc, getDoc, getDocs, setDoc } from 'firebase/firestore';
@@ -9,6 +11,7 @@ import { beginProfileDeletion, createProfileCleanup, releaseProfileDeletion } fr
 import { retireSignalContact } from '../server/retired-contacts';
 import { emptyDetails } from '../shared/profile';
 
+const execFileAsync = promisify(execFile);
 let environment: RulesTestEnvironment;
 const tokens: Record<string, string> = {};
 const memberDb = (uid: string, verified = true, provider: 'password' | 'anonymous' = 'password') => environment.authenticatedContext(uid, { email_verified: verified, firebase: { sign_in_provider: provider } }).firestore();
@@ -357,4 +360,27 @@ test('stale migration discovery never resurrects deleted projections or clobbers
   assert.equal((await reference.get()).data()!.signal, 'retired');
   await reference.delete();
   assert.equal(await retireSignalContact(fixtureDb, owner, true), 'missing');
+});
+
+
+test('synthetic migration CLI defaults to dry-run, applies delete-only cleanup and is repeatable without logging contacts', async () => {
+  const owner = 'migration-cli';
+  await createFixtureUser(owner);
+  const reference = fixtureDb.doc(`connectionContacts/${owner}`);
+  const mixed = { phone: '+6581234567', signal: 'CLI-PRIVATE-RETIRED', futureContact: { preserve: true } };
+  await reference.set(mixed);
+  const runMigration = async (args: string[] = []) => {
+    const result = await execFileAsync(process.execPath, ['--import', 'tsx', 'scripts/retire-signal-contacts.ts', ...args], { env: { ...process.env, GCLOUD_PROJECT: projectId } });
+    assert.equal(result.stdout.includes('CLI-PRIVATE-RETIRED'), false);
+    assert.equal(result.stdout.includes('+6581234567'), false);
+    return JSON.parse(result.stdout.trim());
+  };
+  const dryRun = await runMigration();
+  assert.equal(dryRun.mode, 'dry-run'); assert.ok(dryRun.counts.candidate >= 1);
+  assert.deepEqual((await reference.get()).data(), mixed);
+  const applied = await runMigration(['--apply']);
+  assert.equal(applied.mode, 'apply'); assert.ok(applied.counts.retired >= 1);
+  assert.deepEqual((await reference.get()).data(), { phone: '+6581234567', futureContact: { preserve: true } });
+  const repeated = await runMigration(['--apply']);
+  assert.equal(repeated.counts.retired, 0);
 });

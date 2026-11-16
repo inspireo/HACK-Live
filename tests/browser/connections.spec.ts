@@ -136,7 +136,7 @@ test('legacy Signal denies an accepted snapshot until cleanup; invalid legacy ro
   expect(await retireSignalContact(fixtureDb, owner, true)).toBe('retired');
   await page.reload(); await expect(actionLinks).toHaveCount(4);
   await reference.set({ phone: '555-local', telegram: 'https://evil.test/route', whatsapp: '+6581234567?text=secret', contactEmail: 'member@contact.test?bcc=secret' });
-  await expect(page.getByText('555-local', { exact: true })).toBeVisible();
+  await expect(page.getByRole('definition').filter({ hasText: '555-local' })).toBeVisible();
   await expect(actionLinks).toHaveCount(0);
   await expect(page.getByText('Ask this member to correct this contact in their profile.', { exact: true })).toHaveCount(4);
   await expect(page.getByRole('link', { name: 'https://evil.test/route', exact: true })).toHaveCount(0);

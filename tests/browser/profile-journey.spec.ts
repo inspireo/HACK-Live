@@ -69,7 +69,7 @@ test('real Firebase profile edits, community preview, other-member privacy, revo
   await expect(page.getByLabel('Use my mobile number for WhatsApp', { exact: true })).not.toBeChecked();
   await page.getByLabel('Use my mobile number for WhatsApp', { exact: true }).check();
   await expect(page.getByLabel('WhatsApp number', { exact: true })).toHaveValue('+65 1234 5678');
-  await page.getByRole('group', { name: 'Private contact details' }).scrollIntoViewIfNeeded();
+  await page.getByRole('group', { name: 'Contact details and sharing' }).scrollIntoViewIfNeeded();
   await reviewerHold(page);
   await page.getByLabel('Show Professional title or role to members', { exact: true }).check();
   await page.getByLabel('Show Skills to members', { exact: true }).check();
