@@ -22,7 +22,8 @@ async function signIn(page: Page, uid: string) {
 test.beforeAll(async () => {
   await clearFixtures(); await seedEvents();
   await createFixtureUser('organizer'); await createFixtureUser('badge-browser');
-  const saved = await callIdentity(await signInFixture('badge-browser'), 'save-profile', { name: 'Alex Morgan', ...emptyDetails(), professional: { title: 'Software architect', bio: 'PRIVATE-BADGE-BIO' }, communityFields: ['title'], contacts: { phone: 'PRIVATE-BADGE-CONTACT' } });
+  const selectedPhoto = await photoFixture('#32776c');
+  const saved = await callIdentity(await signInFixture('badge-browser'), 'save-profile', { name: 'Alex Morgan', ...emptyDetails(), professional: { title: 'Software architect', bio: 'PRIVATE-BADGE-BIO' }, communityFields: ['title', 'avatarUrl'], contacts: { phone: 'PRIVATE-BADGE-CONTACT' }, photoUpload: { contentType: selectedPhoto.mimeType, base64: selectedPhoto.buffer.toString('base64') } });
   expect(saved.status).toBe(200);
   await fixtureDb.doc('resources/mentor-handbook').set({ sessionId: 'event-one', title: 'Mentor handbook', summary: '<p>Support members without joining a solution team.</p>', category: 'Guide', isPublished: true });
 });
@@ -69,6 +70,10 @@ test('staff issues roles → mobile member badge → decoded profile destination
     await expect(badge.getByText('volunteer', { exact: true })).toBeVisible();
     await expect(badge.getByText('participant', { exact: true })).toHaveCount(0);
     await expect(badge.getByText('Software architect', { exact: true })).toBeVisible();
+    const selectedAvatar = badge.getByRole('img', { name: 'Member avatar' });
+    await expect(selectedAvatar).toHaveAttribute('src', /^blob:/);
+    await expect.poll(() => selectedAvatar.evaluate(image => (image as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
+    expect(await selectedAvatar.evaluate(image => image.getBoundingClientRect().width)).toBe(56);
     await expect(member.getByText('PRIVATE-BADGE-CONTACT', { exact: true })).toHaveCount(0);
     await expect(member.getByText('PRIVATE-BADGE-BIO', { exact: true })).toHaveCount(0);
     expect(await member.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
@@ -120,6 +125,7 @@ test('staff issues roles → mobile member badge → decoded profile destination
       await expect(viewer).toHaveURL(`${decoded!.data}?scan=badge`);
       await expect(viewer.getByRole('heading', { name: 'Alex Morgan' })).toBeVisible();
       await expect(viewer.getByText('Community member', { exact: true })).toBeVisible();
+      await expect(viewer.getByRole('img', { name: 'Member avatar' })).toHaveAttribute('src', /^blob:/);
       await expect(viewer.getByRole('button', { name: 'Request connection', exact: true })).toBeVisible();
       await expect(viewer.getByText('PRIVATE-BADGE-CONTACT', { exact: true })).toHaveCount(0);
       await evidence(viewer, 'member-visible-profile');
@@ -142,6 +148,7 @@ test('staff issues roles → mobile member badge → decoded profile destination
     await member.getByRole('button', { name: 'Delete profile', exact: true }).click();
     await expect(member.getByRole('heading', { name: 'Create your profile' })).toBeVisible();
     expect((await fixtureDb.doc(`participants/${registration.participantId}`).get()).data()!.officialRoles).toBeUndefined();
+    expect((await fixtureDb.doc('profilePhotos/badge-browser').get()).exists).toBe(false);
     if (pacedDemo) await writeFile('test-results/pr5-demo.json', JSON.stringify({ mode: 'paced-real-emulator-browser', securityMocks: false, physicalDevice: false, shareAndClipboardAdaptersMocked: true, viewport: { width: 320, height: 740 }, qrDecoded: decoded!.data, sourceRevision: process.env.PARTICIPATION_SOURCE_REVISION, parentHead: '37fca8cc9907add4ce39227535b4b49f2325757b', nodeVersion: process.version, browserVersion: browser.version(), journey: 'staff-role-issue/resources/badge/selector/profile-signin/revocation/deletion' }, null, 2));
   } finally { await mobile.close(); }
 });
