@@ -6,7 +6,7 @@ export function PhoneInput({ label, draft, onChange, disabled, inputClass, helpI
     <label className="block min-w-0">{label === "Mobile number" ? "Mobile country code" : "WhatsApp country code"}
       <select className={inputClass} value={draft.country} disabled={disabled} autoComplete="tel-country-code" aria-describedby={helpId} onChange={event => onChange({ national: draft.national, country: event.target.value })}>
         <option value="">Choose country code</option>
-        {neutralCallingCodes.map(code => <option key={code} value={`+${code}`}>+{code} (country unspecified)</option>)}
+        {neutralCallingCodes.map(({ code, label: codeLabel }) => <option key={code} value={`+${code}`}>+{code} ({codeLabel})</option>)}
         {phoneCountries.map(({ country, code, name }) => <option key={country} value={country}>{name} (+{code})</option>)}
       </select>
     </label>
