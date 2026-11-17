@@ -2,8 +2,11 @@ import { applicationDefault, getApps, initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 import { Router } from 'express';
+import { randomUUID } from 'node:crypto';
+import { normalizePhotoUpload } from './profile-photo';
 import { identityDatabaseTarget } from './database-config';
 import { beginProfileDeletion, createProfileCleanup, releaseProfileDeletion } from './profile-cleanup';
+import { communityProjection, isManagedPhotoUrl, validateProfileEdit } from '../shared/profile';
 
 // Emulator mode must be explicit and must never fall through to production.
 const target = identityDatabaseTarget();
@@ -20,6 +23,7 @@ const validProficiency = ['Experienced', 'Trained', 'Some exposure', 'New to it'
 const registrationKey = (sessionId: string, uid: string) => `${sessionId}~${uid}`;
 
 router.use(async (req, res, next) => {
+  if (req.path.startsWith('/photo/')) res.set({ 'Cache-Control': 'private, no-store', 'Vary': 'Authorization', 'X-Content-Type-Options': 'nosniff' });
   try {
     const bearer = req.headers.authorization?.match(/^Bearer (.+)$/)?.[1];
     if (!bearer) throw fail(401, 'Sign in to continue.');
@@ -157,6 +161,59 @@ router.post('/finalize-team', async (req, res) => {
       transaction.delete(formingRef);
     });
     res.json({ teamId: teamRef.id });
+  } catch (error) { res.status((error as any).status || 500).json({ error: (error as Error).message }); }
+});
+
+router.get('/photo/:memberId/:version', async (req, res) => {
+  res.set({ 'Cache-Control': 'private, no-store', 'Vary': 'Authorization', 'X-Content-Type-Options': 'nosniff' });
+  try {
+    const { memberId, version } = req.params;
+    if (!/^[A-Za-z0-9_-]{1,128}$/.test(memberId) || !/^[a-f0-9-]{36}$/.test(version)) throw fail(404, 'Photo unavailable.');
+    const photo = await identityDb.runTransaction(async transaction => {
+      const [profile, caller, source, asset] = await Promise.all([
+        transaction.get(identityDb.doc(`profiles/${memberId}`)),
+        transaction.get(identityDb.doc(`profiles/${res.locals.uid}`)),
+        transaction.get(identityDb.doc(`${res.locals.uid === memberId ? 'profileDetails' : 'memberDetails'}/${memberId}`)),
+        transaction.get(identityDb.doc(`profilePhotos/${memberId}`)),
+      ]);
+      const values = res.locals.uid === memberId ? source.data()?.professional : source.data();
+      if (profile.data()?.state !== 'active' || caller.data()?.state !== 'active' || asset.data()?.version !== version || values?.avatarUrl !== `/api/identity/photo/${memberId}/${version}`) throw fail(404, 'Photo unavailable.');
+      return asset.data()!;
+    });
+    res.type('image/webp').send(photo.bytes);
+  } catch (error) { res.status((error as any).status || 500).json({ error: (error as Error).message }); }
+});
+
+router.post('/save-profile', async (req, res) => {
+  try {
+    let edit: ReturnType<typeof validateProfileEdit>;
+    try { edit = validateProfileEdit(req.body); } catch (issue) { throw fail(400, (issue as Error).message); }
+    let photo: Buffer | undefined;
+    try { photo = await normalizePhotoUpload(req.body.photoUpload); } catch (issue) { throw fail(400, (issue as Error).message); }
+    const photoVersion = photo ? randomUUID() : undefined;
+    const uid = res.locals.uid as string;
+    const savedDetails = await identityDb.runTransaction(async transaction => {
+      const details = structuredClone(edit.details);
+      const profileRef = identityDb.doc(`profiles/${uid}`);
+      const [profile, currentDetails] = await Promise.all([transaction.get(profileRef), transaction.get(identityDb.doc(`profileDetails/${uid}`))]);
+      if (profile.data()?.state !== 'active') throw fail(409, 'An active profile is required.');
+      const avatarUrl = details.professional.avatarUrl;
+      // Never let a stale draft resurrect a removed/replaced photo or borrow another uid's asset.
+      if (avatarUrl !== currentDetails.data()?.professional?.avatarUrl || (avatarUrl && isManagedPhotoUrl(avatarUrl) && !avatarUrl.startsWith(`/api/identity/photo/${uid}/`))) throw fail(409, 'Photo changed. Reload your profile and try again.');
+      if (photo) {
+        details.professional.avatarUrl = `/api/identity/photo/${uid}/${photoVersion}`;
+        transaction.set(identityDb.doc(`profilePhotos/${uid}`), { version: photoVersion, bytes: photo });
+      } else if (req.body.photoUpload === null || !avatarUrl) {
+        delete details.professional.avatarUrl;
+        transaction.delete(identityDb.doc(`profilePhotos/${uid}`));
+      }
+      // Replace source, projection and bytes together; removing consent removes old fields.
+      transaction.set(profileRef, { name: edit.name, state: 'active' });
+      transaction.set(identityDb.doc(`profileDetails/${uid}`), details);
+      transaction.set(identityDb.doc(`memberDetails/${uid}`), communityProjection(details));
+      return details;
+    });
+    res.json({ saved: true, details: savedDetails });
   } catch (error) { res.status((error as any).status || 500).json({ error: (error as Error).message }); }
 });
 

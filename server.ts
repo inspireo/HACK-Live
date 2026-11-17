@@ -21,8 +21,14 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
+  app.use('/api/identity/save-profile', express.json({ limit: '3mb' }));
   app.use(express.json());
   app.use('/api/identity', identityRoutes);
+  app.use((error: any, _req: express.Request, res: express.Response, next: express.NextFunction) => {
+    if (error.type === 'entity.too.large') { res.status(413).json({ error: 'Photo upload is too large. Choose a photo up to 2 MB.' }); return; }
+    if (error.type === 'entity.parse.failed') { res.status(400).json({ error: 'Invalid profile request.' }); return; }
+    next(error);
+  });
 
   // API routes FIRST
   app.get("/api/health", (req, res) => {

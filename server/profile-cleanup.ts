@@ -42,6 +42,8 @@ type CleanupMutation = { reference: DocumentReference; changes?: UpdateData<Docu
 export function createProfileCleanup(database: Firestore, uid: string, attemptId: string) {
   const mutations: CleanupMutation[] = [];
   const jobRef = database.doc(`profileDeletionJobs/${uid}`);
+  // PR2 extension seam: bytes and details share the same fenced transaction queue.
+  for (const collectionName of ['profileDetails', 'memberDetails', 'profilePhotos']) mutations.push({ reference: database.doc(`${collectionName}/${uid}`) });
   return {
     update: (reference: DocumentReference, changes: UpdateData<DocumentData>) => { mutations.push({ reference, changes }); },
     delete: (reference: DocumentReference) => { mutations.push({ reference }); },

@@ -40,6 +40,18 @@ service cloud.firestore {
         return request.resource.data.keys().hasOnly(['name', 'state']) && request.resource.data.state == 'active' && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 100;
       }
     }
+    // These documents are generated only by the validated server transaction.
+    match /profileDetails/{memberId} {
+      allow get: if isAuthenticated() && request.auth.uid == memberId && hasActiveProfile();
+      allow write, list: if false;
+    }
+    match /memberDetails/{memberId} {
+      allow get: if isAuthenticated() && get(/databases/$(database)/documents/profiles/$(memberId)).data.state == 'active';
+      allow write, list: if false;
+    }
+    // Reserved for the next slice. No accepted-connection access exists yet.
+    match /profilePhotos/{memberId} { allow read, write: if false; }
+    match /connectionContacts/{memberId} { allow read, write: if false; }
     match /registrationDefaults/{memberId} {
       allow read: if isAuthenticated() && request.auth.uid == memberId;
       allow create, update: if isAuthenticated() && request.auth.uid == memberId && get(/databases/$(database)/documents/profiles/$(memberId)).data.state == 'active' && request.resource.data.keys().hasOnly(['adjective', 'designThinkingProficiency']) && request.resource.data.adjective is string && request.resource.data.adjective.size() <= 100 && request.resource.data.designThinkingProficiency in ['Experienced', 'Trained', 'Some exposure', 'New to it'];
