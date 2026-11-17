@@ -14,11 +14,13 @@ type BadgeData = { sessionId: string; eventName: string; eventDate: string | nul
 type BadgeDetails = { avatarUrl?: string; title?: string };
 export default function MyBadge() {
   const [badges, setBadges] = useState<BadgeData[]>([]);
-  const [details, setDetails] = useState<BadgeDetails>({});
+  const [memberDetails, setMemberDetails] = useState<{ uid: string; values: BadgeDetails } | null>(null);
   const [parameters, setParameters] = useSearchParams();
   const [message, setMessage] = useState('');
   const [loaded, setLoaded] = useState(false);
   const uid = auth.currentUser!.uid;
+  const currentDetails = memberDetails?.uid === uid ? memberDetails : null;
+  const details = currentDetails?.values || {};
   useEffect(() => {
     let mounted = true;
     let revision = 0;
@@ -36,8 +38,8 @@ export default function MyBadge() {
     ];
     // On the PR1 preparation base this collection is denied; name-only still works.
     subscriptions.push(onSnapshot(doc(db, 'memberDetails', uid), snapshot => {
-      setDetails(badgeMemberDetails(snapshot.data()));
-    }, () => setDetails({})));
+      if (mounted) setMemberDetails({ uid, values: badgeMemberDetails(snapshot.data()) });
+    }, () => { if (mounted) setMemberDetails({ uid, values: {} }); }));
     return () => { mounted = false; subscriptions.forEach(unsubscribe => unsubscribe()); };
   }, [uid]);
   const selected = badges.find(badge => badge.sessionId === parameters.get('event')) || badges[0];
@@ -53,7 +55,7 @@ export default function MyBadge() {
       <article aria-label="Personal event badge" className="rounded-2xl bg-white text-zinc-950 overflow-hidden shadow-xl">
         <div className="bg-emerald-950 text-white px-5 py-4"><p className="font-black text-2xl tracking-tight">#hack<span className="text-emerald-300"> live</span></p><p className="mt-2 break-words font-medium">{selected.eventName}</p>{selected.eventDate && <p className="text-sm">{selected.eventDate}</p>}</div>
         <div className="p-4 space-y-4">
-          <div className="flex items-center gap-3">{details.avatarUrl && <div className="shrink-0 [&_img]:w-14 [&_img]:h-14"><ProfilePhoto url={details.avatarUrl} /></div>}<div className="min-w-0"><h2 className="text-2xl font-bold break-words">{selected.name}</h2>{details.title && <p className="text-sm break-words">{details.title}</p>}</div></div>
+          <div className="flex items-center gap-3" data-badge-profile-header><ProfilePhoto url={details.avatarUrl} loading={!currentDetails} size={56} /><div className="min-w-0"><h2 className="text-2xl font-bold break-words">{selected.name}</h2>{details.title && <p className="text-sm break-words">{details.title}</p>}</div></div>
           <div><h3 className="text-xs uppercase font-bold tracking-wide mb-2">Official event roles</h3><div className="flex flex-wrap gap-2">{selected.roles.map(role => <span key={role} className="rounded-full bg-emerald-100 text-emerald-950 px-3 py-1 text-sm font-semibold capitalize">{role}</span>)}</div></div>
           {selected.teams.map(team => <div key={team.kind}><p className="text-xs font-bold uppercase">{team.kind}</p><p className="break-words">{team.name}</p>{team.role && <p className="text-sm capitalize">Team role: {team.role}</p>}</div>)}
           <figure className="text-center"><QRCodeSVG value={url} size={240} level="M" marginSize={4} title="Member profile QR code" className="w-full max-w-[240px] h-auto mx-auto bg-white" /><figcaption className="text-sm font-medium mt-2">Scan to view my member profile</figcaption></figure>

@@ -231,7 +231,7 @@ test('legacy solution aliases clear through member leave and admin removal befor
 });
 
 
-test('badge uses authenticated selected photo and removes it when sharing is revoked', async ({ page, context, browser }) => {
+test('badge reserves compact photo geometry through authenticated loading and late sharing revocation', async ({ page, context, browser }) => {
   await createFixtureUser('badge-photo');
   await createFixtureUser('badge-photo-viewer');
   expect((await fixtureDb.doc('profiles/badge-photo-viewer').get()).data()!.state).toBe('active');
@@ -253,7 +253,34 @@ test('badge uses authenticated selected photo and removes it when sharing is rev
   const badge = page.getByRole('article', { name: 'Personal event badge' });
   await expect(badge).toContainText('Photo badge member');
   await expect(badge.getByRole('img', { name: 'Member avatar' })).toHaveCount(0);
+  const loading = badge.getByRole('status', { name: 'Loading profile photo' });
+  await expect(loading).toHaveCount(0);
+  const header = badge.locator('[data-badge-profile-header]');
+  const geometry = () => badge.evaluate(element => {
+    const profileHeader = element.querySelector('[data-badge-profile-header]')!;
+    const bounds = (target: Element) => { const rectangle = target.getBoundingClientRect(); return { x: rectangle.x, y: rectangle.y, width: rectangle.width, height: rectangle.height }; };
+    return { header: bounds(profileHeader), slot: bounds(profileHeader.firstElementChild!), name: bounds(profileHeader.querySelector('h2')!), qr: bounds(element.querySelector('svg')!) };
+  });
+  const before = await geometry();
+  expect(before.slot.width).toBe(56); expect(before.slot.height).toBe(56);
+  expect(before.name.x).toBeGreaterThan(before.slot.x + before.slot.width);
+  expect(before.name.y).toBeLessThan(before.slot.y + before.slot.height);
   expect(photoRequests).toEqual([]); // Even its owner cannot bypass the selected projection on the badge.
+  const releasePhotos: (() => void)[] = [];
+  async function holdNextPhoto() {
+    let release!: () => void; let started!: () => void; let completed!: () => void;
+    const held = new Promise<void>(resolve => { release = resolve; });
+    const requested = new Promise<void>(resolve => { started = resolve; });
+    const delivered = new Promise<void>(resolve => { completed = resolve; });
+    releasePhotos.push(release);
+    await page.route('**/api/identity/photo/**', async route => {
+      expect(route.request().headers().authorization).toMatch(/^Bearer /);
+      const response = await route.fetch(); started(); await held;
+      await route.fulfill({ response }).catch(() => {});
+      completed();
+    }, { times: 1 });
+    return { requested, delivered, release };
+  }
   const editor = await context.newPage();
   const viewerContext = await browser.newContext();
   const viewer = await viewerContext.newPage();
@@ -262,22 +289,51 @@ test('badge uses authenticated selected photo and removes it when sharing is rev
     await expect(viewer.getByRole('heading', { name: 'Photo badge member' })).toBeVisible();
     await expect(viewer.getByRole('img', { name: 'Member avatar' })).toHaveCount(0);
     await editor.goto('/account');
+    const initialPhoto = await holdNextPhoto();
     await editor.getByLabel('Show Photo to members', { exact: true }).check();
+    const initialSave = editor.waitForResponse(response => response.url().endsWith('/api/identity/save-profile') && response.request().method() === 'POST');
     await editor.getByRole('button', { name: 'Save profile', exact: true }).click();
+    expect((await initialSave).status()).toBe(200);
     await expect(editor.getByRole('status')).toHaveText('Profile saved.');
+    await initialPhoto.requested;
+    await expect(loading).toBeVisible();
+    await expect(header.locator(':scope > span')).toHaveAttribute('aria-busy', 'true');
+    expect(await geometry()).toEqual(before);
+    await evidence(page, 'selected-photo-loading');
+    initialPhoto.release();
     const avatar = badge.getByRole('img', { name: 'Member avatar' });
     await expect(avatar).toHaveAttribute('src', /^blob:/);
     await expect.poll(() => avatar.evaluate(image => (image as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
+    await expect(avatar).toBeVisible();
+    await expect(loading).toHaveCount(0);
+    expect(await geometry()).toEqual(before);
     expect(photoRequests.length).toBeGreaterThan(0); expect(photoRequests.every(authenticated => authenticated)).toBe(true);
     const sharedPhoto = viewer.getByRole('img', { name: 'Member avatar' });
     await expect(sharedPhoto).toHaveAttribute('src', /^blob:/);
     await expect.poll(() => sharedPhoto.evaluate(image => (image as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     await evidence(page, 'selected-photo-badge');
-    await editor.getByLabel('Show Photo to members', { exact: true }).uncheck();
+    // Hold a real replacement response, then revoke selection before it arrives.
+    const replacementPhoto = await holdNextPhoto();
+    await editor.getByLabel('Photo (optional)', { exact: true }).setInputFiles(await photoFixture('#663344'));
+    const replacementSave = editor.waitForResponse(response => response.url().endsWith('/api/identity/save-profile') && response.request().method() === 'POST');
     await editor.getByRole('button', { name: 'Save profile', exact: true }).click();
-    await expect(editor.getByRole('status')).toHaveText('Profile saved.');
+    expect((await replacementSave).status()).toBe(200);
+    await expect(editor.getByRole('button', { name: 'Save profile', exact: true })).toBeEnabled();
+    await replacementPhoto.requested;
+    await expect(loading).toBeVisible();
     await expect(avatar).toHaveCount(0);
+    expect(await geometry()).toEqual(before);
+    await editor.getByLabel('Show Photo to members', { exact: true }).uncheck();
+    const revokedSave = editor.waitForResponse(response => response.url().endsWith('/api/identity/save-profile') && response.request().method() === 'POST');
+    await editor.getByRole('button', { name: 'Save profile', exact: true }).click();
+    expect((await revokedSave).status()).toBe(200);
+    await expect(editor.getByRole('status')).toHaveText('Profile saved.');
+    await expect(loading).toHaveCount(0);
+    replacementPhoto.release();
+    await replacementPhoto.delivered;
+    await expect(avatar).toHaveCount(0);
+    expect(await geometry()).toEqual(before);
     await expect(badge).toBeVisible(); // The live projection listener unmounted only the selected photo.
     await expect(page).toHaveURL(/\/badge$/);
     await expect(sharedPhoto).toHaveCount(0);
@@ -287,5 +343,5 @@ test('badge uses authenticated selected photo and removes it when sharing is rev
     await expect(badge).toContainText('Photo badge member');
     await expect(avatar).toHaveCount(0);
     expect(photoRequests).toHaveLength(requestsBeforeReload);
-  } finally { await viewerContext.close(); await editor.close(); }
+  } finally { releasePhotos.forEach(release => release()); await viewerContext.close(); await editor.close(); }
 });
