@@ -1,3 +1,4 @@
+import { readingHold, reviewRecording } from '../review-recording';
 import { test, expect, Page } from '@playwright/test';
 import { clearFixtures, createFixtureUser, fixtureAuth, fixtureDb, password, seedEvents } from '../fixtures';
 
@@ -14,6 +15,7 @@ test.beforeAll(async () => {
 });
 
 test('demo: signup verify return register reuse across events and devices view member delete profile', async ({ page, browser, request }) => {
+  if (reviewRecording) test.setTimeout(240000);
   await page.goto('/session/event-one?from=invitation');
   await expect(page.getByRole('heading', { name: 'Sign in to #HACK Live' })).toBeVisible();
   await expect(page.getByText('Synthetic Design Workshop', { exact: true })).toHaveCount(0);
@@ -22,6 +24,7 @@ test('demo: signup verify return register reuse across events and devices view m
   await page.getByLabel('Password', { exact: true }).fill(password);
   await page.getByRole('button', { name: 'Create account', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Verify your email' })).toBeVisible();
+  await readingHold(page, 'verify-email');
   // Real Auth-emulator delivered code and verification operation, no mock user.
   const outbox = await (await request.get('http://127.0.0.1:9099/emulator/v1/projects/demo-hack-live/oobCodes')).json();
   const verification = outbox.oobCodes.find((entry: any) => entry.email === 'journey@example.test' && entry.requestType === 'VERIFY_EMAIL');
@@ -39,6 +42,7 @@ test('demo: signup verify return register reuse across events and devices view m
   await page.locator('select').selectOption('Trained');
   await page.getByRole('button', { name: 'Continue', exact: true }).click();
   await expect(page.getByText('Design a welcoming community', { exact: true }).first()).toBeVisible();
+  await readingHold(page, 'registered-first-event');
   const journeyUser = await fixtureAuth.getUserByEmail('journey@example.test');
   const registration = (await fixtureDb.doc(`registrations/event-one~${journeyUser.uid}`).get()).data()!;
   expect(registration).toBeTruthy();
@@ -52,6 +56,7 @@ test('demo: signup verify return register reuse across events and devices view m
   await expect(page.getByText('Register as', { exact: false })).toContainText('Synthetic Journey Member');
   await page.getByRole('button', { name: 'Continue', exact: true }).click();
   await expect(page.getByText('Design a welcoming community', { exact: true }).first()).toBeVisible();
+  await readingHold(page, 'second-event-reuse');
   const freshContext = await browser.newContext({ recordVideo: { dir: 'test-results/fresh-device', size: { width: 1100, height: 760 } } });
   const freshPage = await freshContext.newPage();
   await freshPage.goto('/session/event-one');
@@ -60,6 +65,7 @@ test('demo: signup verify return register reuse across events and devices view m
   await freshPage.getByRole('button', { name: 'Sign in with email', exact: true }).click();
   await expect(freshPage.getByText('Design a welcoming community', { exact: true }).first()).toBeVisible();
   await expect(freshPage.getByRole('button', { name: 'Continue', exact: true })).toHaveCount(0);
+  await readingHold(freshPage, 'fresh-browser-resumed');
   await freshContext.close();
   await page.goto('/members/other-browser');
   await expect(page.getByRole('heading', { name: 'Synthetic other-browser' })).toBeVisible();
@@ -68,6 +74,7 @@ test('demo: signup verify return register reuse across events and devices view m
   await page.getByLabel('Name', { exact: true }).fill('Synthetic Journey Renamed');
   await page.getByRole('button', { name: 'Save profile' }).click();
   await expect(page.getByRole('status')).toHaveText('Profile saved.');
+  await readingHold(page, 'profile-edited');
   page.once('dialog', dialog => dialog.accept());
   await page.getByRole('button', { name: 'Delete profile', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Create your profile' })).toBeVisible();
@@ -92,6 +99,7 @@ test('organizer legacy linking and existing registration reuse', async ({ page }
 });
 
 test('event code join, team and projector regression; deleted social profile retains admin', async ({ page }) => {
+  if (reviewRecording) test.setTimeout(180000);
   await page.goto('/?code=DEMO2'); await signIn(page, 'other-browser');
   await expect(page).toHaveURL(/\/session\/event-two$/);
   await page.getByPlaceholder('e.g. Curious, Builder, Explorer').fill('Builder');
@@ -115,9 +123,11 @@ test('event code join, team and projector regression; deleted social profile ret
   await expect(page.getByRole('button', { name: 'Saved', exact: true })).toBeVisible();
   await fixtureDb.doc('sessions/event-two').update({ status: 'Live' });
   await expect(page.getByText('Synthetic Browser Builders', { exact: true }).first()).toBeVisible();
+  await readingHold(page, 'team-named');
   await page.goto('/display/event-two');
   await expect(page.getByText('Design a welcoming community', { exact: true }).first()).toBeVisible();
   await expect(page.getByRole('link', { name: /Account/ })).toHaveCount(0);
+  await readingHold(page, 'actual-projector');
   await page.goto('/account'); await page.getByRole('button', { name: 'Sign out', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Sign in to #HACK Live' })).toBeVisible();
   await page.goto('/admin/event-one'); await signIn(page, 'organizer');
