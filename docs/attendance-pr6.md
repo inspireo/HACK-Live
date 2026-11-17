@@ -75,3 +75,7 @@ FFMPEG_PATH=/path/to/ffmpeg node scripts/collect-attendance-demo.mjs
 ## Inherited connection lifecycle regression
 
 The [connection sign-out/account-switch fix](connections-pr4.md#sign-out-and-account-change-lifecycle) suppresses prior-viewer rows/contacts and fences queued callbacks/actions. Attendance, profile-photo authorization and all deletion plans/fences are unchanged. The full composed checkpoint `bace893411be5ec9e9722bdd10f79a0c678da1f1` passed **26 pure + 72 API/rules + 18 Chromium tests**, including two deterministic connection component regressions and the original real legacy-link/sign-out journey. Recorded attendance evidence retains its original source and bytes.
+
+## Retained history after event deletion
+
+Soft-deleted events retain registrations, verified attendance, snapshots, audits and member history selections. New check-ins stop. Current authorized staff can still read attendance and correct an existing record with its current revision, actual date, evidence and reason, including from the deleted event administration page. No correction creates a missing record. Member history remains private by default and selected summaries retain their existing audience; active badge filtering does not erase history.

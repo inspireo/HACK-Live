@@ -1,3 +1,4 @@
+import { isEventDeleted } from '../shared/eventLifecycle';
 import type { Router } from 'express';
 import type { Auth } from 'firebase-admin/auth';
 import type { Firestore, Transaction } from 'firebase-admin/firestore';
@@ -92,6 +93,7 @@ export function installAwardRoutes(router: Router, database: Firestore, accounts
       const response = await database.runTransaction(async transaction => {
         const { permitted, event } = await eventStaff(database, transaction, sessionId, res.locals.uid, res.locals.claims.email);
         if (!permitted) throw fail(403, 'Only event staff can manage official awards.');
+        if (isEventDeleted(event) && !['correct', 'revoke'].includes(action)) throw fail(404, 'Event unavailable.');
         const actorProfile = await transaction.get(database.doc(`profiles/${res.locals.uid}`));
         // Social-profile deletion never removes staff authority, but subsequent
         // actions must not reintroduce its deleted personal attribution.

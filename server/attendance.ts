@@ -1,3 +1,4 @@
+import { isEventDeleted } from '../shared/eventLifecycle';
 import { createHash } from 'node:crypto';
 import type { Router } from 'express';
 import type { Auth } from 'firebase-admin/auth';
@@ -34,6 +35,7 @@ export function installAttendanceRoutes(router: Router, database: Firestore, acc
       const fingerprint = createHash('sha256').update(JSON.stringify({ sessionId, memberUid, action, method, occurredAt, evidence, reason, expectedRevision, status })).digest('hex');
       const result = await database.runTransaction(async transaction => {
         const event = await attendanceStaff(database, transaction, sessionId, res.locals.uid, res.locals.claims.email);
+        if (isEventDeleted(event.data()) && action !== 'correct') throw fail(404, 'Event unavailable.');
         const account = await accounts.getUser(memberUid).catch(issue => {
           if (issue.code === 'auth/user-not-found') throw fail(409, 'A verified member is required.');
           throw issue;

@@ -98,3 +98,7 @@ The focused paced actual capture passed **1/1 award journey** after full cumulat
 ## Connection lifecycle follow-up validation
 
 The inherited [connection sign-out/account-switch fix](connections-pr4.md#sign-out-and-account-change-lifecycle) cancels queued private state and prevents old actions from using a new viewer's token. Award/attendance/photo contracts and generation-fenced cleanup are unchanged. Full normal validation at `bace893411be5ec9e9722bdd10f79a0c678da1f1` passed **26 pure + 72 API/rules + 18 Chromium tests (116 total)**: 16 real Firebase journeys plus two deterministic React connection component regressions with controlled transports. Existing recordings keep their historical source revisions and bytes.
+
+## Historical management after event deletion
+
+Soft deletion retains published wins, recipient/event/team snapshots, private drafts and audits, and member sharing selections. Authorized staff can still open the deleted event administration route to read, correct an existing published category using an existing category, or revoke a published result with the existing private reason/revision checks. New categories, drafts, publication, discards, finalization and reopening are closed. Retained member and selected-community achievements keep their existing privacy, independently of active badge filtering. No event deletion cleanup removes historical records; explicit historical correction/revocation remains audited.
