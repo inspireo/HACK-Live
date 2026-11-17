@@ -45,6 +45,8 @@ test.beforeEach(async () => {
 for (const width of [320, 390]) {
   test(`profile help at ${width}px preserves unsaved data consent and global sharing without submitting`, async ({ page }) => {
     await page.setViewportSize({ width, height: 844 }); await login(page);
+    await expect(page.getByLabel('Name', { exact: true })).toBeVisible();
+    await page.screenshot({ path: `docs/evidence/ui8-profile-builder-${width}.png`, fullPage: true });
     const source = fixtureDb.doc('profileDetails/help-owner'); const before = (await source.get()).data();
     const posts: string[] = [];
     page.on('request', request => { if (request.method() === 'POST' && request.url().includes('/api/identity/save-profile')) posts.push(request.url()); });
@@ -87,6 +89,7 @@ for (const width of [320, 390]) {
     await overview.tap(); await expect(page.getByRole('dialog')).toContainText('Sharing a team or attending an event does not connect you.');
     await noOverflow(page); await page.screenshot({ path: `docs/evidence/ui8-connections-${width}.png` });
     await page.getByRole('heading', { name: 'Connections', exact: true }).click(); await expect(page.getByRole('dialog')).toHaveCount(0);
+    await page.screenshot({ path: `docs/evidence/ui8-connections-collapsed-${width}.png` });
     await help(page, 'Connections and contact sharing', 'Space'); await page.keyboard.press('Escape'); await expect(overview).toBeFocused();
     await page.goto('/members/help-peer');
     await expect(page.getByRole('button', { name: 'Request connection', exact: true })).toBeVisible();
@@ -107,6 +110,8 @@ test('admin field help preserves publication values flags primary actions and pu
   await login(page, 'organizer', '/admin/event-one');
   await page.getByRole('button', { name: 'Public invitation', exact: true }).click();
   const title = page.getByLabel('Public event title', { exact: true }); await title.fill('Unsaved public title');
+  await page.getByRole('heading', { name: 'Public event invitation', exact: true }).scrollIntoViewIfNeeded();
+  await page.screenshot({ path: 'docs/evidence/ui8-admin-form.png' });
   const trigger = await help(page, 'Event timezone (IANA)');
   await expect(page.getByRole('dialog')).toContainText('Asia/Singapore');
   await page.screenshot({ path: 'docs/evidence/ui8-admin-field-help.png' });

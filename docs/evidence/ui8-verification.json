@@ -33,6 +33,12 @@
       "sha256": "686d6b3904e91b0f97db342dbd460fd2a4d48b91bdb9178b3e289b8c154f2735"
     },
     {
+      "path": "docs/evidence/ui8-admin-form.png",
+      "width": 1100,
+      "height": 760,
+      "sha256": "e7c4587471de926889ac5d01cd03d8d01c6d82691aee0f6e94bb0235a4c0cb16"
+    },
+    {
       "path": "docs/evidence/ui8-connections-320.png",
       "width": 320,
       "height": 844,
@@ -45,22 +51,46 @@
       "sha256": "702db392671cb298d73372108845a5094f426f9e1c87ca013a037efa27ccbd77"
     },
     {
+      "path": "docs/evidence/ui8-connections-collapsed-320.png",
+      "width": 320,
+      "height": 844,
+      "sha256": "7aa4821bc09d4c4d4e1e9866f2adaff7f00e39bac05f9b9e637c5f406badbc88"
+    },
+    {
+      "path": "docs/evidence/ui8-connections-collapsed-390.png",
+      "width": 390,
+      "height": 844,
+      "sha256": "287c97e5ff34517191c3c3bdb7939438d18ff1f6f1ce27ce481d7646c1b0c66d"
+    },
+    {
       "path": "docs/evidence/ui8-light-badge-help-320.png",
       "width": 320,
       "height": 844,
       "sha256": "32293a932fef4fbb6e3930961d08dded4e2da5ce60e65b79ff36c161453a7495"
     },
     {
+      "path": "docs/evidence/ui8-profile-builder-320.png",
+      "width": 320,
+      "height": 3955,
+      "sha256": "2089fd2eaa7fbcc8e79f3c85bceeeae3bf5a0a4cb49c8d0306cdeb7aeb07b454"
+    },
+    {
+      "path": "docs/evidence/ui8-profile-builder-390.png",
+      "width": 390,
+      "height": 3769,
+      "sha256": "b05699ffc46fafe59d41e135eec18b7709fe5211e4f195a498216094aee9f1b3"
+    },
+    {
       "path": "docs/evidence/ui8-profile-mobile-help-320.png",
       "width": 320,
       "height": 844,
-      "sha256": "b61e06bbbb0df8b5695212a8f432901a49cd2f7244df7ee38c61cb8037103240"
+      "sha256": "f13581e1f546471d877ff8e1d7511ba3316422ccbd0df303482a06e5d96994af"
     },
     {
       "path": "docs/evidence/ui8-profile-mobile-help-390.png",
       "width": 390,
       "height": 844,
-      "sha256": "3eea6454650204ade92690ad988a3b39a0e5c3aa4f955b105de8c32417c907a3"
+      "sha256": "22a74c6ccfcf55fb5d0cc740899e306effbefa40f3e0c0f76fc1f0790f70e2d0"
     },
     {
       "path": "docs/evidence/ui8-profile-sharing-320.png",
@@ -80,5 +110,6 @@
       "height": 844,
       "sha256": "74913c830642409f3785ff049e98078961de7598c4eb5975a7b8989324fb50ee"
     }
-  ]
+  ],
+  "supplementaryCapture": "Six help browser cases reran successfully after adding only closed-state screenshot calls; product source unchanged. Added collapsed profile320/390, connections320/390 and admin form for root visual review."
 }
