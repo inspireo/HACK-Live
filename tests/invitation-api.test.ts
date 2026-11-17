@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { after, before, test } from 'node:test';
 import { readFile } from 'node:fs/promises';
 import { initializeTestEnvironment, assertFails, RulesTestEnvironment } from '@firebase/rules-unit-testing';
-import { collection, doc, getDoc, getDocs, setDoc } from 'firebase/firestore';
+import { collection, deleteDoc, doc, getDoc, getDocs, setDoc } from 'firebase/firestore';
 import { clearFixtures, createFixtureUser, fixtureDb, seedEvents, signInFixture, callIdentity, projectId } from './fixtures';
 import { invitationRequest, publicFields, publishFixture } from './invitation-fixtures';
 import { INVITATION_TTL_MS } from '../server/event-invitations';
@@ -130,4 +130,26 @@ test('calendar-only attendance never needs an account; changed flags preserve re
   await fixtureDb.doc('sessions/event-one').delete();
   const publication = (await fixtureDb.doc('eventPublications/event-one').get()).data()!;
   assert.equal((await invitationRequest(`/api/invitations/${publication.currentToken}`)).status, 404);
+});
+
+test('same-ID session replacement cannot inherit public links, publication or calendar UID', async () => {
+  const published = await publishFixture('event-two');
+  const oldPublication = (await fixtureDb.doc('eventPublications/event-two').get()).data()!;
+  const oldSession = await fixtureDb.doc('sessions/event-two').get();
+  assert.equal(oldPublication.sessionCreatedAt, `${oldSession.createTime!.seconds}:${oldSession.createTime!.nanoseconds}`);
+  const sdkOwner = environment.authenticatedContext('organizer', { email: 'organizer@example.test', email_verified: true, firebase: { sign_in_provider: 'password' } }).firestore();
+  const sdkReplacement = environment.authenticatedContext('member', { email: 'member@example.test', email_verified: true, firebase: { sign_in_provider: 'password' } }).firestore();
+  await deleteDoc(doc(sdkOwner, 'sessions/event-two'));
+  assert.equal((await invitationRequest(`/api/invitations/${published.token}`)).status, 404);
+  await setDoc(doc(sdkReplacement, 'sessions/event-two'), { title: 'Replacement event', ownerId: 'member', status: 'Draft', createdAt: oldSession.createTime!.toMillis() });
+  for (const suffix of ['', '/calendar.ics']) assert.equal((await invitationRequest(`/api/invitations/${published.token}${suffix}`)).status, 404);
+  assert.equal((await invitationRequest(`/api/identity/invitations/${published.token}/destination`, member, {})).status, 404);
+  assert.equal((await invitationRequest('/api/identity/events/event-two/invitation', member)).status, 404);
+  const fresh = (await invitationRequest('/api/identity/events/event-two/publication', member)).data;
+  assert.deepEqual(fresh, { revision: 0, published: false, fields: { registrationRequired: true, calendarEnabled: false } });
+  assert.equal((await invitationRequest('/api/identity/events/event-two/publication/publish', member, { revision: 0, fields: publicFields })).status, 200);
+  const replacement = (await fixtureDb.doc('eventPublications/event-two').get()).data()!;
+  assert.notEqual(replacement.calendarUid, oldPublication.calendarUid); assert.notEqual(replacement.currentToken, published.token);
+  assert.equal((await invitationRequest(`/api/invitations/${replacement.currentToken}`)).status, 200);
+  assert.equal((await invitationRequest(`/api/invitations/${published.token}`)).status, 404);
 });
