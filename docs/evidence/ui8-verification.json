@@ -1,24 +1,46 @@
 {
   "date": "2026-11-17",
   "functionalParent": "072ceb91b08bf8eac42739a78cfbf7b1a6bec114",
-  "sourceCheckpoint": "3556e0b4f796ed303d2c5e96c94dbbf38863391e",
-  "finalSourceDelta": "Whitespace-only cleanup of an empty profile-details.tsx line, present during the final browser run.",
-  "typecheck": "pass",
-  "build": "pass",
-  "unitApiRulesTests": 130,
-  "browserTests": 41,
-  "total": 171,
-  "baselineTests": 165,
-  "newHelpRegressions": 6,
-  "skipped": 0,
-  "suite": "npm run test:emulators",
+  "sourceCheckpoint": "4cd1166d704d5763e15978725917b99bce3c7cd1",
+  "latestValidation": {
+    "typecheck": "pass",
+    "build": "pass",
+    "focusedBrowserCases": 8,
+    "geometryWidths": [
+      320,
+      390
+    ],
+    "geometryChecks": [
+      "44px trigger dimensions",
+      "text and trigger vertical centers differ by less than2px",
+      "text right edge does not overlap trigger left edge",
+      "viewport bounds and document overflow"
+    ],
+    "preservedSemantics": [
+      "full original accessible checkbox names",
+      "global all-current-and-future sharing scope",
+      "no automatic save or selection changes",
+      "actual unchanged destructive confirmation dismissed",
+      "exact pending shared fields",
+      "pending phone values hidden",
+      "accepted selected contact action",
+      "peer states unchanged by help"
+    ]
+  },
+  "priorFullCumulativeValidation": {
+    "checkpoint": "e0f46711cb7d0a9b0256cb3eb573d52688388e08",
+    "unitApiRules": 130,
+    "browser": 41,
+    "total": 171,
+    "skipped": 0
+  },
+  "fullApiRerun": "Not repeated for the bounded presentation follow-up, per root direction. Later workflow recording and CI own final cumulative validation.",
   "mode": "real Chromium app with synthetic Auth/Firestore emulator fixtures",
   "securityMocks": false,
   "physicalDevice": false,
   "production": false,
   "mediaRecording": "Separate task38; no demo recordings made here. Existing automated test videos are test artifacts only.",
-  "sourceReview": "Reviewer37 static PASS3556e0b; no concrete P1/P2 or schema/API/auth/payload drift.",
-  "selectorChange": "Existing QR decoding workflow now targets the named Member profile QR code image because the page contains decorative info SVGs. Rasterization, pixel decode and exact profile URL assertion remain unchanged.",
+  "sourceReview": "Reviewer37 is reviewing the bounded source checkpoint. Prior immutable source e0f46711 passed static review.",
   "portsReleased": [
     3000,
     8080,
@@ -30,79 +52,103 @@
       "path": "docs/evidence/ui8-admin-field-help.png",
       "width": 1100,
       "height": 760,
-      "sha256": "686d6b3904e91b0f97db342dbd460fd2a4d48b91bdb9178b3e289b8c154f2735"
+      "sha256": "ef4849bfe1a73e414372acdc1e99df9cfe64cc3dc35e7793d1d155b8144aa240"
     },
     {
       "path": "docs/evidence/ui8-admin-form.png",
       "width": 1100,
       "height": 760,
-      "sha256": "e7c4587471de926889ac5d01cd03d8d01c6d82691aee0f6e94bb0235a4c0cb16"
+      "sha256": "b2e5ed3be77c0408bc856f0dce502a37778c3c8af4f4ffdc024a7d794014289b"
     },
     {
       "path": "docs/evidence/ui8-connections-320.png",
       "width": 320,
       "height": 844,
-      "sha256": "03dff680134ca987f0ff37654c9b39f0ce348c746b25cd8a4312543268cfa8f4"
+      "sha256": "3f3643bc69dc1f70379857aae063ed3016fdcf34611b6fdc6bcdff723125ffff"
     },
     {
       "path": "docs/evidence/ui8-connections-390.png",
       "width": 390,
       "height": 844,
-      "sha256": "702db392671cb298d73372108845a5094f426f9e1c87ca013a037efa27ccbd77"
+      "sha256": "6a206c05362eb1ea580054770ae9f1907383d3cf8e5ce801d9455d00c702a92f"
     },
     {
       "path": "docs/evidence/ui8-connections-collapsed-320.png",
       "width": 320,
       "height": 844,
-      "sha256": "7aa4821bc09d4c4d4e1e9866f2adaff7f00e39bac05f9b9e637c5f406badbc88"
+      "sha256": "9eb0d4f2a55178ded5fa55e7c43676c464938332753ebf39162fd99034a7cace"
     },
     {
       "path": "docs/evidence/ui8-connections-collapsed-390.png",
       "width": 390,
       "height": 844,
-      "sha256": "287c97e5ff34517191c3c3bdb7939438d18ff1f6f1ce27ce481d7646c1b0c66d"
+      "sha256": "1ed56c128047771a9c0715030665d284b73a1bd7365b7ff3180a5752c8970ff5"
+    },
+    {
+      "path": "docs/evidence/ui8-connections-populated-320.png",
+      "width": 320,
+      "height": 1546,
+      "sha256": "b4053c761436e475fe817d90c8f8c266c25e4c53035b6d1654d901d766577b9a"
+    },
+    {
+      "path": "docs/evidence/ui8-connections-populated-390.png",
+      "width": 390,
+      "height": 1357,
+      "sha256": "f11d76dee61cb06f25fc114b4ee010ae066cf397ed2178bb9cdef6303885f69c"
+    },
+    {
+      "path": "docs/evidence/ui8-connections-populated-help-320.png",
+      "width": 320,
+      "height": 844,
+      "sha256": "e28d479f25c7fc4de8bf7bc4fa3453e8b435d418ab5b32e133b553d4160c5cd3"
+    },
+    {
+      "path": "docs/evidence/ui8-connections-populated-help-390.png",
+      "width": 390,
+      "height": 844,
+      "sha256": "10a4a210b84b51f01e5c68a7c11f57986be0d0ea3c3018b35935b5ac741fe715"
     },
     {
       "path": "docs/evidence/ui8-light-badge-help-320.png",
       "width": 320,
       "height": 844,
-      "sha256": "32293a932fef4fbb6e3930961d08dded4e2da5ce60e65b79ff36c161453a7495"
+      "sha256": "c17f04c6bd9810b423086efe1ab088a557965c077cd863068b8e4805a5ba3526"
     },
     {
       "path": "docs/evidence/ui8-profile-builder-320.png",
       "width": 320,
-      "height": 3955,
-      "sha256": "2089fd2eaa7fbcc8e79f3c85bceeeae3bf5a0a4cb49c8d0306cdeb7aeb07b454"
+      "height": 3509,
+      "sha256": "7c2fb0820b7a181fc03ee8005aa0037c16e51a14de345594846c1e20c95824d0"
     },
     {
       "path": "docs/evidence/ui8-profile-builder-390.png",
       "width": 390,
-      "height": 3769,
-      "sha256": "b05699ffc46fafe59d41e135eec18b7709fe5211e4f195a498216094aee9f1b3"
+      "height": 3407,
+      "sha256": "31bc8c0e9decd036352b26b4c620347c239b7b38d44cd8b7f5c8bb7e9371aa3f"
     },
     {
       "path": "docs/evidence/ui8-profile-mobile-help-320.png",
       "width": 320,
       "height": 844,
-      "sha256": "f13581e1f546471d877ff8e1d7511ba3316422ccbd0df303482a06e5d96994af"
+      "sha256": "c1f064e4b947fb7f41579dc58e9d385f97ad025b8cd46e0bb4c91188809fc20a"
     },
     {
       "path": "docs/evidence/ui8-profile-mobile-help-390.png",
       "width": 390,
       "height": 844,
-      "sha256": "22a74c6ccfcf55fb5d0cc740899e306effbefa40f3e0c0f76fc1f0790f70e2d0"
+      "sha256": "ec752d90fa381bb2898c929fd6b341d42c857f80b24f36e93ec532f984d62c80"
     },
     {
       "path": "docs/evidence/ui8-profile-sharing-320.png",
       "width": 320,
       "height": 844,
-      "sha256": "cfff28b47df0013cf0b47e8ea9f7b9be8c1ac34b18f03c3043c40bb4429452bd"
+      "sha256": "a0715cf168575c55ab8ed4c156f23e127ee4f3e535aade5241a1b02a0b7eb2fe"
     },
     {
       "path": "docs/evidence/ui8-profile-sharing-390.png",
       "width": 390,
       "height": 844,
-      "sha256": "16856f570cef7ca3ac9eb004cade3e10203ef42075bea941b397f2a6aabdb329"
+      "sha256": "7e3ddb18b3c86cb80571cd0cf8e42dee822d6c535e2b3423710dbb40bb6dbfbf"
     },
     {
       "path": "docs/evidence/ui8-public-content-320.png",
@@ -110,6 +156,5 @@
       "height": 844,
       "sha256": "74913c830642409f3785ff049e98078961de7598c4eb5975a7b8989324fb50ee"
     }
-  ],
-  "supplementaryCapture": "Six help browser cases reran successfully after adding only closed-state screenshot calls; product source unchanged. Added collapsed profile320/390, connections320/390 and admin form for root visual review."
+  ]
 }

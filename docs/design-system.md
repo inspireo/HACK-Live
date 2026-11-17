@@ -1,6 +1,6 @@
 # HACK Live UI foundations
 
-This UI slice follows the full functional stack at `b5dd048`. It preserves the dark zinc/emerald identity and the light member badge. It changes presentation only: labels, validation errors, choice meanings, API requests, authorization, privacy projections and schemas are unchanged.
+This UI slice follows the full functional stack at `b5dd048`. It preserves the dark zinc/emerald identity and the light member badge. It changes presentation only: field labels, accessible choice names, validation errors, choice meanings, API requests, authorization, privacy projections and schemas are unchanged.
 
 ## Tokens
 
@@ -44,3 +44,11 @@ Reviewer37 passed committed source `3556e0b4f796ed303d2c5e96c94dbbf38863391e`; f
 Collapsed views: [profile builder at 320 px](evidence/ui8-profile-builder-320.png), [profile builder at 390 px](evidence/ui8-profile-builder-390.png), [connections at 320 px](evidence/ui8-connections-collapsed-320.png), [connections at 390 px](evidence/ui8-connections-collapsed-390.png), and [admin form](evidence/ui8-admin-form.png).
 
 Open-help evidence: [320 px profile help](evidence/ui8-profile-mobile-help-320.png), [390 px global sharing](evidence/ui8-profile-sharing-390.png), [connections](evidence/ui8-connections-320.png), [admin field help](evidence/ui8-admin-field-help.png), [light badge](evidence/ui8-light-badge-help-320.png), and [public primary content](evidence/ui8-public-content-320.png). These are actual app screenshots with synthetic test data. Recording all review videos remains a separate task after root acceptance.
+
+### Bounded visual follow-up (2026-11-17)
+
+The subsequent presentation checkpoint `4cd1166d704d5763e15978725917b99bce3c7cd1` keeps help in a single shrink-safe text row with a fixed 44 px trigger, including long summaries at 320/390 px. Repeated visible checkbox labels are now “Visible to members” and “Share with connections” within each field; the **full original accessible names**, checked states, handlers and global sharing meaning remain unchanged. Profile deletion keeps a short visible consequence, full explanatory help and the unchanged actual confirmation. Awards keep a short empty state with interpretive guidance in help. Connections use one empty-state card and show only nonempty queues; populated pending/accepted cards retain exact fields, status and actions.
+
+Typecheck/build and **8/8 focused real browser cases** pass on this bounded follow-up. Geometry asserts 44 px dimensions, aligned text/trigger centers within 2 px and no text overlap, in addition to existing viewport and interaction checks. Cases verify every full checkbox name, dismiss the real deletion confirmation, and verify populated pending/accepted contact projection and actions. The prior cumulative **171/171** result above belongs to `e0f46711`; the full API suite was not repeated solely for this CSS/copy follow-up, per root direction. Later workflow recording and CI validate final cumulative behavior.
+
+Updated screenshots include [populated connections at 320 px](evidence/ui8-connections-populated-320.png), [populated connections at 390 px](evidence/ui8-connections-populated-390.png), and [peer-action help near the mobile viewport edge](evidence/ui8-connections-populated-help-320.png). The manifest indexes eighteen PNGs; profile, collapsed/populated connections, mobile help, light badge and admin screenshots were visually inspected. Ports are released. No demo recording, push or publication was performed.
