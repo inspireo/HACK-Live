@@ -11,7 +11,8 @@ async function login(page: Page, uid = 'help-owner', route = '/account') {
   await expect(page.getByRole('heading', { name: 'Sign in to #HACK Live', exact: true })).toHaveCount(0);
 }
 async function noOverflow(page: Page) {
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  const layout = await page.evaluate(() => ({ width: innerWidth, scrollWidth: document.documentElement.scrollWidth, overflowing: [...document.querySelectorAll('body *')].filter(element => element.getBoundingClientRect().right > innerWidth).map(element => ({ tag: element.tagName, className: element.className, right: element.getBoundingClientRect().right })).slice(0, 12) }));
+  expect(layout.scrollWidth, JSON.stringify(layout)).toBeLessThanOrEqual(layout.width);
   const dialog = page.getByRole('dialog');
   if (await dialog.count()) {
     const bounds = await dialog.boundingBox();
@@ -63,6 +64,12 @@ for (const width of [320, 390]) {
     await expect(consent).toBeChecked(); await expect(name).toHaveValue('Unsaved Help Member');
     await expect(page.getByLabel('Share Contact email with all approved connections', { exact: true })).toBeChecked();
     await expect(page.getByLabel('Show Bio to members', { exact: true })).not.toBeChecked();
+    await help(page, 'WhatsApp number'); await page.keyboard.press('Escape');
+    await expect(page.getByLabel('Use my mobile number for WhatsApp', { exact: true })).not.toBeChecked();
+    await help(page, 'Organizer-assisted legacy linking');
+    await expect(page.getByRole('textbox', { name: 'Account ID', exact: true })).toHaveValue('help-owner');
+    await expect(page.getByRole('textbox', { name: 'Account ID', exact: true })).toHaveAttribute('readonly', '');
+    await page.keyboard.press('Escape');
     expect(posts).toEqual([]); expect((await source.get()).data()).toEqual(before);
     await page.getByRole('button', { name: 'Save profile', exact: true }).click();
     await expect(page.getByRole('status').filter({ hasText: /^Profile saved\.$/ })).toBeVisible();

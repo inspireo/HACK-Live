@@ -25,7 +25,7 @@ Move examples, repeated mechanics, technical formats, optional explanations and 
 - A concise privacy/visibility summary. Profile contacts state **one selection for ALL current and future approved connections**. WhatsApp states that sharing exposes its registered phone number. Connection confirmation still lists the exact fields shared after acceptance.
 - Consequences of revocation and destructive actions, attendance verification/evidence requirements, and public publication scope.
 
-Do not place personal data or a user's current selection exclusively in help. Help does not save, select, toggle a checkbox, grant access or alter form payloads. Use click/tap/Enter/Space; support Escape, close, outside pointer/focus dismissal. Avoid custom global event handlers or mirrored open state when the primitive already owns them.
+Keep primary profile/contact data and the user's current choices visible. Rare organizer-support identifiers (such as the account UID used for legacy linking) may appear in clearly named support help with a selectable, copyable value. Help does not save, select, toggle a checkbox, grant access or alter form payloads. Use click/tap/Enter/Space; support Escape, close, outside pointer/focus dismissal. Avoid custom global event handlers or mirrored open state when the primitive already owns them.
 
 ## Inventory applied
 

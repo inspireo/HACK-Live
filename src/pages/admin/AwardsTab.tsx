@@ -70,7 +70,7 @@ export default function AwardsTab({ sessionId, historicalOnly = false }: { sessi
         {result.status === 'published' && <><button className={control} disabled={busy || !reason.trim() || !data.categories.some(category => category.id === correctionCategory && category.kind === result.kind)} onClick={() => mutate('correct', { resultId: result.id, categoryId: correctionCategory, reason })}>Correct category</button> <button className={control} disabled={busy || !reason.trim()} onClick={() => mutate('revoke', { resultId: result.id, reason })}>Revoke award</button></>}
       </article>)}</div>
       {!historicalOnly && <button className={control} disabled={busy || (data.state.finalized && !reason.trim())} onClick={() => mutate(data.state.finalized ? 'reopen' : 'finalize', data.state.finalized ? { reason } : {})}>{data.state.finalized ? 'Reopen results' : 'Finalize results'}</button>}
-      <p className="ui-privacy">Finalizing closes award entry.</p><InfoHelp label="Result finalization">Finalization explicitly closes award entry. It makes no claim about who competed or lost. Corrections and revocations remain audited.</InfoHelp>
+      <div className="ui-heading-row"><p className="ui-privacy">Finalizing closes award entry.</p><InfoHelp label="Result finalization">Finalization explicitly closes award entry. It makes no claim about who competed or lost. Corrections and revocations remain audited.</InfoHelp></div>
       <details><summary>Staff audit trail</summary>{[...data.audits].sort((left, right) => right.revision - left.revision).map(audit => <p key={audit.id}>Revision {audit.revision} · {audit.action} · {audit.at} · {audit.actorUid || 'Deleted actor'}{audit.reason && ` · ${audit.reason}`}</p>)}</details>
     </>}
   </section>;

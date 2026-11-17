@@ -83,7 +83,7 @@ test('staff issues roles → mobile member badge → decoded profile destination
     await member.screenshot({ path: 'test-results/pr5-mobile/badge-320.png', fullPage: true });
     await evidence(member, 'badge-320');
     // Decode the actually rendered qrcode.react SVG, rasterized in the browser.
-    const pixels = await member.locator('svg').evaluate(async element => {
+    const pixels = await badge.getByRole('img', { name: 'Member profile QR code', exact: true }).evaluate(async element => {
       const markup = new XMLSerializer().serializeToString(element);
       const image = new Image(); image.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(markup)}`;
       await image.decode();

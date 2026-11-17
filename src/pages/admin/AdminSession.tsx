@@ -590,13 +590,12 @@ export default function AdminSession() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {/* Left Side: Add Facilitator */}
                 <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-4 h-fit">
-                  <h3 className="font-semibold text-lg text-zinc-100">Add Session Admin</h3>
-                  <p className="ui-privacy">Use a Google-associated email address.</p><InfoHelp label="Adding a session admin">Collaborators must authenticate via Google Login. Enter their Google-associated email address to grant co-facilitator privileges inside this session.</InfoHelp>
+                  <div className="ui-heading-row"><h3 className="font-semibold text-lg text-zinc-100">Add Session Admin</h3><InfoHelp label="Adding a session admin">Collaborators must authenticate via Google Login. Enter their Google-associated email address to grant co-facilitator privileges inside this session.</InfoHelp></div>
                   
                   <div className="space-y-3 pt-2">
                     <div>
                       <label className="block text-xs font-semibold text-zinc-405 text-zinc-400 uppercase tracking-wider mb-2">
-                        Email Address
+                        Google account email address
                       </label>
                       <input
                         type="email"

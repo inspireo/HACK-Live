@@ -33,6 +33,7 @@
   body { background: var(--ui-canvas); font-size: var(--ui-body); line-height: 1.5; }
   :where(button, a, input, select, textarea, summary):focus-visible { outline: 2px solid var(--ui-focus); outline-offset: 3px; }
   :where(input, select, textarea) { min-width: 0; max-width: 100%; }
+  fieldset { min-inline-size: 0; }
   :where(input[type=checkbox], input[type=radio]) { accent-color: var(--ui-accent); }
   :where(button, summary) { cursor: pointer; }
   button:disabled { cursor: not-allowed; }
