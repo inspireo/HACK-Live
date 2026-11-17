@@ -101,3 +101,39 @@ test('explicit country corrections reject destination changes without writing un
   await page.reload(); await expect(mobile).toHaveValue('30123456'); await expect(country).toHaveValue('DE');
   expect((await sourceRef.get()).data()!.contacts.phone).toBe('+4930123456');
 });
+
+
+test('reloaded shared calling codes require explicit country for edited national prefixes', async ({ page }) => {
+  test.setTimeout(120000);
+  await clearFixtures(); await createFixtureUser('shared-code-correction');
+  const sourceRef = fixtureDb.doc('profileDetails/shared-code-correction');
+  await sourceRef.set({ ...emptyDetails(), contacts: { phone: '+447700900123' } });
+  await page.goto('/account');
+  await page.getByLabel('Email', { exact: true }).fill('shared-code-correction@example.test');
+  await page.getByLabel('Password', { exact: true }).fill(password);
+  await page.getByRole('button', { name: 'Sign in with email', exact: true }).click();
+  const mobile = page.getByLabel('Mobile number', { exact: true });
+  const country = page.getByRole('combobox', { name: 'Mobile country code', exact: true });
+  const save = page.getByRole('button', { name: 'Save profile', exact: true });
+  for (const [canonical, national, countryCode, callingCode] of [
+    ['+447700900123', '07700 900123', 'GB', '+44'],
+    ['+12025550199', '1 202 555 0199', 'US', '+1'],
+    ['+390236618300', '02 36618 300', 'IT', '+39'],
+  ]) {
+    await mobile.fill(canonical); await save.click(); await expect(page.getByRole('status')).toHaveText('Profile saved.');
+    await page.reload(); await expect(country).toHaveValue(callingCode);
+    await expect(country.locator('option:checked')).toContainText('shared calling code');
+    const beforeEdit = (await sourceRef.get()).data();
+    await mobile.fill(national); await save.click();
+    await expect(page.getByRole('alert')).toContainText('Choose a country before editing');
+    expect((await sourceRef.get()).data()).toEqual(beforeEdit);
+    if (countryCode === 'GB') {
+      await mobile.fill('0049 30 123456'); await save.click();
+      await expect(page.getByRole('alert')).toContainText('Choose a country before editing');
+      expect((await sourceRef.get()).data()).toEqual(beforeEdit);
+      await mobile.fill(national);
+    }
+    await country.selectOption(countryCode); await save.click(); await expect(page.getByRole('status')).toHaveText('Profile saved.');
+    expect((await sourceRef.get()).data()!.contacts.phone).toBe(canonical);
+  }
+});
