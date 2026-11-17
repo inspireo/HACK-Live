@@ -1,3 +1,4 @@
+import { InfoHelp } from './ui/InfoHelp';
 import { useEffect, useState } from 'react';
 import { auth } from '../firebase';
 import { identityRequest } from '../identity';
@@ -20,7 +21,7 @@ export default function MemberHistory({ memberUid, sessionId }: { memberUid?: st
   useEffect(() => { const refresh = () => setRevision(value => value + 1); window.addEventListener('focus', refresh); return () => window.removeEventListener('focus', refresh); }, []);
   return <section className="my-4 space-y-3" aria-label={sessionId ? 'Event attendance' : 'Event history'}>
     <h2 className="text-xl font-semibold">{sessionId ? 'Your attendance' : 'Event history'}</h2>
-    {own && !sessionId && <p className="text-sm">Select which history entries to show on your profile. Event rosters and official results may independently show participation. Attendance times and verification details stay protected; choosing an entry shares its safe summary and attendance occurrence, never its private audit.</p>}
+    {own && !sessionId && <div className="ui-heading-row"><p className="ui-privacy">Profile history private unless selected · Event rosters and official results may show participation.</p><InfoHelp label="History visibility">Select which history entries to show on your profile. Attendance times and verification details stay protected; choosing an entry shares its safe summary and attendance occurrence, never its private audit.</InfoHelp></div>}
     {entries.map(entry => <article key={entry.sessionId} className="border border-zinc-700 rounded p-3 space-y-2">
       {!sessionId && <h3 className="font-semibold">{entry.eventName}</h3>}
       <p>{entry.registered ? 'Registered' : 'Historical registration'} · {entry.attendanceStatus === 'verified-attended' ? 'Verified attended' : 'Attendance not verified'}</p>

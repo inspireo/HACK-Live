@@ -1,3 +1,4 @@
+import { InfoHelp } from './components/ui/InfoHelp';
 import MemberHistory from './components/MemberHistory';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { GoogleAuthProvider, EmailAuthProvider, User, createUserWithEmailAndPassword, linkWithCredential, linkWithPopup, onIdTokenChanged, reload, sendEmailVerification, sendPasswordResetEmail, signInWithCredential, signInWithEmailAndPassword, signInWithPopup, signOut } from 'firebase/auth';
@@ -104,7 +105,7 @@ function SignIn({ user }: { user: User | null }) {
     </form>
     <button onClick={() => setSignup(!signup)}>{signup ? 'Use an existing account' : 'Create an account with email'}</button>
     <button disabled={busy || !email} onClick={() => attempt(async () => { await sendPasswordResetEmail(auth, email); setMessage('If the account exists, a reset email has been sent.'); })}>Reset password</button>
-    <p>Old name and phone passcodes cannot recover registrations. Ask your event organizer to link a legacy registration to your verified account.</p>
+    <InfoHelp label="Legacy registration recovery">Old name and phone passcodes cannot recover registrations. Ask your event organizer to link a legacy registration to your verified account.</InfoHelp>
     <p role="status">{message}</p>
   </Panel>;
 }
@@ -114,15 +115,15 @@ function ProfileForm({ profile }: { profile?: Profile }) {
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
   return <Panel><h1 className="text-3xl font-bold">{profile ? 'Your profile' : 'Create your profile'}</h1>
-    <p>Creating a profile does not register you for an event.</p>
+    <p className="ui-privacy">Event registration is separate.</p>
     {profile ? <ProfileEditor uid={auth.currentUser!.uid} name={name} onNameChange={setName} save={payload => identityRequest('save-profile', payload)} onSaved={setMessage} /> : <form className="space-y-4" onSubmit={async event => {
       event.preventDefault(); setBusy(true);
       try { await setDoc(doc(db, 'profiles', auth.currentUser!.uid), { name: name.trim(), state: 'active' }); setMessage('Profile saved.'); } catch (issue: any) { setMessage(issue.message); } finally { setBusy(false); }
     }}><label>Name<input className={inputClass} value={name} onChange={event => setName(event.target.value)} required maxLength={100} /></label><button disabled={busy || !name.trim()} className={buttonClass}>Save profile</button></form>}
     <p role="status">{message}</p>
     {profile && <><Achievements /><Link className="block underline" to="/badge">My badge</Link><Link to="/">Find an event</Link><button className="block" onClick={() => signOut(auth)}>Sign out</button>
-      <p>Deleting removes your social profile and reusable details. Workshop contributions retain a deleted-member label. Your sign-in and event administrator permissions remain. You can create a new social profile later.</p>
-      <p className="text-xs">Account ID for organizer-assisted legacy linking: <code>{auth.currentUser?.uid}</code></p>
+      <div className="ui-heading-row"><p className="ui-privacy">Deletes profile and reusable details. Sign-in and admin access remain.</p><InfoHelp label="Profile deletion"><p>Deleting removes your social profile and reusable details. Workshop contributions retain a deleted-member label. Your sign-in and event administrator permissions remain. You can create a new social profile later.</p><p>Deletion cannot be undone. The confirmation appears before deletion starts.</p></InfoHelp></div>
+      <InfoHelp label="Organizer-assisted legacy linking"><p>Give your account ID to your organizer to link a previous registration.</p><label>Account ID<input className="ui-control" readOnly value={auth.currentUser?.uid || ''} onFocus={event => event.currentTarget.select()} /></label></InfoHelp>
       <button className="text-red-400" disabled={busy} onClick={async () => {
         if (!window.confirm('Delete your social profile and personal workshop details? This cannot be undone. Your sign-in and administrator permissions remain.')) return;
         setBusy(true);

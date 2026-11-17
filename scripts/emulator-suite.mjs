@@ -16,7 +16,9 @@ try {
   }
   if (!healthy) throw new Error('App did not start');
   // Evidence-only modes retain the same real app/emulator lifecycle.
-  if (process.env.INVITATION_DEMO === 'true' && process.env.INVITATION_RECORD_ONLY === 'true') {
+  if (process.env.REVIEW_RECORDINGS === 'true' && process.env.REVIEW_CAPTURE_ONLY === 'true') {
+    await run('npx', ['playwright', 'test', 'tests/browser/event-invitation.spec.ts', 'tests/browser/participation-journey.spec.ts', '--grep', 'recording: organizer publishes|recording: real browser copy']);
+  } else if (process.env.INVITATION_DEMO === 'true' && process.env.INVITATION_RECORD_ONLY === 'true') {
     await run('npx', ['playwright', 'test', 'tests/browser/event-invitation.spec.ts', '--grep', 'organizer publication|anonymous recipient']);
   } else if (process.env.AWARDS_DEMO === 'true' && process.env.AWARDS_RECORD_ONLY === 'true') {
     await run('npx', ['playwright', 'test', 'tests/browser/awards-journey.spec.ts']);

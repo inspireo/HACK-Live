@@ -1,4 +1,5 @@
 import React, { useId, useState } from 'react';
+import { InfoHelp } from './components/ui/InfoHelp';
 import { normalizeSkills, skillSuggestions } from '../shared/profile';
 
 export function SkillsCombobox({ value, onChange, disabled }: { value: string; onChange: (value: string) => void; disabled?: boolean }) {
@@ -24,10 +25,9 @@ export function SkillsCombobox({ value, onChange, disabled }: { value: string; o
     } catch (issue) { setError((issue as Error).message); }
   }
   return <div onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget as Node)) setOpen(false); }}>
-    <label htmlFor={`${listId}-input`} className="block">Skills</label>
-    <p id={`${listId}-help`} className="text-sm">Search or add your own skills. Choose up to 20. Use arrow keys and Enter to select; Escape closes the list.</p>
+    <div className="ui-heading-row"><label htmlFor={`${listId}-input`} className="block">Skills</label><span className="ui-privacy">Up to 20</span><InfoHelp label="Skills">Search or add your own skills. Choose up to 20. Use arrow keys and Enter to select; Escape closes the list.</InfoHelp></div>
     <div className="flex gap-2">
-      <input id={`${listId}-input`} role="combobox" autoComplete="off" aria-autocomplete="list" aria-expanded={open} aria-controls={listId} aria-activedescendant={open && options.length ? `${listId}-${Math.min(active, options.length - 1)}` : undefined} aria-describedby={`${listId}-help`} aria-invalid={!!error} disabled={disabled} maxLength={60} className="block w-full p-3 bg-zinc-900 border border-zinc-600 rounded-lg" value={query} onFocus={() => setOpen(true)} onChange={event => { setQuery(event.target.value); setOpen(true); setActive(0); }} onKeyDown={event => {
+      <input id={`${listId}-input`} role="combobox" autoComplete="off" aria-autocomplete="list" aria-expanded={open} aria-controls={listId} aria-activedescendant={open && options.length ? `${listId}-${Math.min(active, options.length - 1)}` : undefined} aria-invalid={!!error} disabled={disabled} maxLength={60} className="block w-full p-3 bg-zinc-900 border border-zinc-600 rounded-lg" value={query} onFocus={() => setOpen(true)} onChange={event => { setQuery(event.target.value); setOpen(true); setActive(0); }} onKeyDown={event => {
         if (['ArrowDown', 'ArrowUp'].includes(event.key)) { event.preventDefault(); setOpen(true); setActive(previous => (previous + (event.key === 'ArrowDown' ? 1 : -1) + options.length) % (options.length || 1)); }
         else if (event.key === 'Escape') { event.preventDefault(); setOpen(false); }
         else if (event.key === 'Enter') { event.preventDefault(); if (open && options.length) toggle(options[Math.min(active, options.length - 1)]); else setOpen(true); }

@@ -2,6 +2,7 @@ import { test, expect, type Page } from '@playwright/test';
 import { writeFile } from 'node:fs/promises';
 import { clearFixtures, createFixtureUser, fixtureDb, password, seedEvents, signInFixture } from '../fixtures';
 import { invitationRequest, publicFields, publishFixture } from '../invitation-fixtures';
+import { readingHold, readHelp, reviewRecording } from '../review-recording';
 
 test.use({ viewport: { width: 1100, height: 900 }, video: { mode: 'on', size: { width: 1100, height: 900 } } });
 const hold = async (page: Page) => { if (process.env.INVITATION_DEMO === 'true') await page.waitForTimeout(2800); };
@@ -86,6 +87,40 @@ test('organizer publication and sender native copy manual cancellation', async (
   for (const suffix of ['', '/calendar.ics']) expect((await invitationRequest(`/api/invitations/${publication.currentToken}${suffix}`)).status).toBe(404);
   await page.screenshot({ path: 'test-results/invitation-soft-deleted.png' }); await hold(page);
   if (process.env.INVITATION_DEMO === 'true') await writeFile('test-results/invitation-demo.json', JSON.stringify({ mode: 'paced-emulator-browser', shared, osContractsMocked: true, physicalDevice: false, actualApp: true, softDeletionShown: true, fixtures: 'synthetic' }, null, 2));
+});
+
+// A separate recorded path leaves every original OS contract regression above intact.
+test('recording: organizer publishes and uses actual browser clipboard then soft deletion', async ({ page, context }) => {
+  test.skip(!reviewRecording, 'Only in the explicitly authorized recording window');
+  test.setTimeout(180000);
+  await context.grantPermissions(['clipboard-write'], { origin: 'http://127.0.0.1:3000' });
+  await page.goto('/admin/event-one'); await signIn(page, 'organizer');
+  expect(await page.evaluate(() => typeof navigator.share)).toBe('undefined');
+  await page.getByRole('button', { name: 'Public invitation', exact: true }).click();
+  for (const [label, value] of [['Public event title', publicFields.title], ['Public description', publicFields.description], ['Public venue', publicFields.venue], ['Public viewing URL', publicFields.viewingUrl], ['Event starts', publicFields.startLocal], ['Event ends', publicFields.endLocal], ['Event timezone (IANA)', publicFields.timeZone]]) await page.getByLabel(label, { exact: true }).fill(value);
+  await page.getByLabel('Add to calendar', { exact: true }).check();
+  await readHelp(page, 'Event timezone (IANA)');
+  await page.getByRole('button', { name: 'Publish event details', exact: true }).click();
+  await expect(page.getByText('Published · current invitation active', { exact: false })).toBeVisible();
+  await readingHold(page, 'publication-saved');
+  await page.reload(); await page.getByRole('button', { name: 'Public invitation', exact: true }).click();
+  await expect(page.getByLabel('Event timezone (IANA)', { exact: true })).toHaveValue(publicFields.timeZone);
+  const publication = (await fixtureDb.doc('eventPublications/event-one').get()).data()!;
+  const share = page.getByRole('button', { name: 'Share event', exact: true });
+  await expect(share).toBeEnabled(); await share.click();
+  await expect(page.getByText('Event invitation copied. Paste it to invite friends.', { exact: true })).toBeVisible();
+  await readingHold(page, 'actual-browser-copy');
+  // Native/failed/denied/manual/cancel payload assertions remain in the original
+  // platform-contract regression; recorded footage shows actual successful copy.
+  expect(publication.currentToken).toBeTruthy();
+  expect((await fixtureDb.collection('registrations').get()).size).toBe(0);
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await page.getByRole('button', { name: 'Delete event', exact: true }).click();
+  await readingHold(page, 'retained-history-consequences');
+  await page.getByRole('button', { name: 'Confirm delete event', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Event deleted', exact: true })).toBeVisible();
+  for (const suffix of ['', '/calendar.ics']) expect((await invitationRequest(`/api/invitations/${publication.currentToken}${suffix}`)).status).toBe(404);
+  await readingHold(page, 'soft-deleted');
 });
 
 test('anonymous recipient calendar preview then real auth profile and explicit registration', async ({ browser }) => {

@@ -1,3 +1,4 @@
+import { InfoHelp } from '../../components/ui/InfoHelp';
 import TeamRoleEditor from '../../components/TeamRoleEditor';
 import { allocationEligible, solutionTeamId } from '../../../shared/participation';
 import { useState, useEffect, useMemo } from 'react';
@@ -1417,10 +1418,7 @@ export default function TeamsTab({
       {/* Collaboration Scope Switcher */}
       <div className="flex justify-between items-center bg-zinc-900/50 border border-zinc-800 p-5 rounded-2xl gap-4 flex-wrap">
         <div>
-          <h3 className="text-lg font-bold text-zinc-200">Collaboration Management</h3>
-          <p className="text-xs text-zinc-400 mt-1">
-            Toggle context to manage upstream challenge discovery workgroups or downstream solution teams.
-          </p>
+          <div className="ui-heading-row"><h3 className="text-lg font-bold text-zinc-200">Collaboration Management</h3><InfoHelp label="Collaboration management">Toggle context to manage upstream challenge discovery workgroups or downstream solution teams.</InfoHelp></div>
         </div>
         
         <div className="flex p-1 bg-zinc-950 border border-zinc-800 rounded-xl w-fit shrink-0">

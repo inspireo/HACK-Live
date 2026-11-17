@@ -1,5 +1,6 @@
 import { publishFixture } from '../invitation-fixtures';
-import { test, expect, Page } from '@playwright/test';
+import { test, expect, type Page, type Browser } from '@playwright/test';
+import { readingHold, reviewRecording } from '../review-recording';
 import jsQR from 'jsqr';
 import { writeFile } from 'node:fs/promises';
 import { photoFixture } from '../photo-fixture';
@@ -20,7 +21,7 @@ async function signIn(page: Page, uid: string) {
   await expect(page.getByRole('heading', { name: 'Sign in to #HACK Live' })).toHaveCount(0);
 }
 
-test.beforeAll(async () => {
+async function seedParticipation() {
   await clearFixtures(); await seedEvents();
   await createFixtureUser('organizer'); await createFixtureUser('badge-browser');
   await publishFixture();
@@ -28,9 +29,14 @@ test.beforeAll(async () => {
   const saved = await callIdentity(await signInFixture('badge-browser'), 'save-profile', { name: 'Alex Morgan', ...emptyDetails(), professional: { title: 'Software architect', bio: 'PRIVATE-BADGE-BIO' }, communityFields: ['title', 'avatarUrl'], contacts: { phone: '+6585550199' }, photoUpload: { contentType: selectedPhoto.mimeType, base64: selectedPhoto.buffer.toString('base64') } });
   expect(saved.status).toBe(200);
   await fixtureDb.doc('resources/mentor-handbook').set({ sessionId: 'event-one', title: 'Mentor handbook', summary: '<p>Support members without joining a solution team.</p>', category: 'Guide', isPublished: true });
-});
+}
+test.beforeAll(seedParticipation);
 
 test('staff issues roles → mobile member badge → decoded profile destination survives real sign-in → revoke/delete', async ({ page, browser }) => {
+  await roleBadgeJourney(page, browser);
+});
+
+async function roleBadgeJourney(page: Page, browser: Browser, browserCopy = false) {
   if (pacedDemo) test.setTimeout(180000);
   await page.goto('/admin/event-one'); await signIn(page, 'organizer');
   await page.getByRole('button', { name: 'Participants Roster' }).click();
@@ -46,10 +52,11 @@ test('staff issues roles → mobile member badge → decoded profile destination
   expect(registration.participantId).toBeTruthy();
   expect((await fixtureDb.doc(`participants/${registration.participantId}`).get()).data()!.teamId).toBeNull();
 
-  const mobile = await browser.newContext({ viewport: { width: 320, height: 740 }, recordVideo: { dir: 'test-results/pr5-mobile', size: { width: 320, height: 740 } } });
-  // Only the share adapter is mocked. Auth, role issuance, registration pointer,
-  // profile destination, badge rendering and QR pixels are real browser/emulators.
-  await mobile.addInitScript(() => Object.defineProperty(navigator, 'share', { configurable: true, value: async (data: ShareData) => { (window as any).__sharedProfile = data; } }));
+  const mobile = await browser.newContext({ viewport: { width: 320, height: 740 }, recordVideo: { dir: browserCopy ? 'test-results/pr5-mobile-real-copy' : 'test-results/pr5-mobile', size: { width: 320, height: 740 } } });
+  // The original regression keeps its share/clipboard contract stubs. The separate
+  // recording variant exercises actual Chromium permissions and clipboard instead.
+  if (browserCopy) await mobile.grantPermissions(['clipboard-write'], { origin: 'http://127.0.0.1:3000' });
+  else await mobile.addInitScript(() => Object.defineProperty(navigator, 'share', { configurable: true, value: async (data: ShareData) => { (window as any).__sharedProfile = data; } }));
   const member = await mobile.newPage();
   try {
     await fixtureDb.doc('sessions/event-one').update({ status: 'Opening' });
@@ -63,7 +70,12 @@ test('staff issues roles → mobile member badge → decoded profile destination
     await member.getByRole('button', { name: 'Close resource details', exact: true }).click();
     await member.getByRole('button', { name: 'Share event', exact: true }).click();
     const published = (await fixtureDb.doc('eventPublications/event-one').get()).data()!;
+    if (browserCopy) {
+      expect(await member.evaluate(() => typeof navigator.share)).toBe('undefined');
+      await expect(member.getByText('Event invitation copied. Paste it to invite friends.', { exact: true })).toBeVisible();
+    } else {
     expect((await member.evaluate(() => (window as any).__sharedProfile)).url).toBe(`http://127.0.0.1:3000/invite/${published.currentToken}`);
+    }
     await evidence(member, 'staff-resources');
     await member.getByRole('link', { name: 'My badge', exact: true }).click();
     await expect(member.getByRole('article', { name: 'Personal event badge' })).toBeVisible();
@@ -83,7 +95,7 @@ test('staff issues roles → mobile member badge → decoded profile destination
     await member.screenshot({ path: 'test-results/pr5-mobile/badge-320.png', fullPage: true });
     await evidence(member, 'badge-320');
     // Decode the actually rendered qrcode.react SVG, rasterized in the browser.
-    const pixels = await member.locator('svg').evaluate(async element => {
+    const pixels = await badge.getByRole('img', { name: 'Member profile QR code', exact: true }).evaluate(async element => {
       const markup = new XMLSerializer().serializeToString(element);
       const image = new Image(); image.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(markup)}`;
       await image.decode();
@@ -93,6 +105,12 @@ test('staff issues roles → mobile member badge → decoded profile destination
     });
     const decoded = jsQR(new Uint8ClampedArray(pixels), 600, 600);
     expect(decoded?.data).toBe('http://127.0.0.1:3000/members/badge-browser');
+    if (browserCopy) {
+      await member.getByRole('button', { name: 'Copy profile link', exact: true }).click();
+      await expect(member.getByRole('status')).toHaveText('Profile link copied.');
+      await readingHold(member, 'real-profile-clipboard');
+      await expect(member.getByRole('link', { name: decoded!.data, exact: true })).toHaveAttribute('href', decoded!.data);
+    } else {
     await member.getByRole('button', { name: 'Share profile', exact: true }).click();
     expect(await member.evaluate(() => (window as any).__sharedProfile)).toEqual({ title: 'My #hack member profile', url: decoded!.data });
     // Force clipboard failure to exercise the selectable-link fallback.
@@ -100,6 +118,8 @@ test('staff issues roles → mobile member badge → decoded profile destination
     await member.getByRole('button', { name: 'Copy profile link' }).click();
     await expect(member.getByRole('status')).toHaveText('Copy the profile link below.');
     await expect(member.getByRole('link', { name: decoded!.data, exact: true })).toHaveAttribute('href', decoded!.data);
+
+    }
 
     // Another event reuses the SAME member/profile with a separate pointer.
     await page.goto('/admin/event-two');
@@ -152,9 +172,9 @@ test('staff issues roles → mobile member badge → decoded profile destination
     await expect(member.getByRole('heading', { name: 'Create your profile' })).toBeVisible();
     expect((await fixtureDb.doc(`participants/${registration.participantId}`).get()).data()!.officialRoles).toBeUndefined();
     expect((await fixtureDb.doc('profilePhotos/badge-browser').get()).exists).toBe(false);
-    if (pacedDemo) await writeFile('test-results/pr5-demo.json', JSON.stringify({ mode: 'paced-real-emulator-browser', securityMocks: false, physicalDevice: false, shareAndClipboardAdaptersMocked: true, viewport: { width: 320, height: 740 }, qrDecoded: decoded!.data, sourceRevision: process.env.PARTICIPATION_SOURCE_REVISION, parentHead: '37fca8cc9907add4ce39227535b4b49f2325757b', nodeVersion: process.version, browserVersion: browser.version(), journey: 'staff-role-issue/resources/badge/selector/profile-signin/revocation/deletion' }, null, 2));
+    if (pacedDemo) await writeFile(browserCopy ? 'test-results/pr5-recorded-demo.json' : 'test-results/pr5-demo.json', JSON.stringify({ mode: 'paced-real-emulator-browser', securityMocks: false, physicalDevice: false, shareAndClipboardAdaptersMocked: !browserCopy, realBrowserClipboard: browserCopy, viewport: { width: 320, height: 740 }, qrDecoded: decoded!.data, sourceRevision: process.env.PARTICIPATION_SOURCE_REVISION, parentHead: '37fca8cc9907add4ce39227535b4b49f2325757b', nodeVersion: process.version, browserVersion: browser.version(), journey: 'staff-role-issue/resources/badge/selector/profile-signin/revocation/deletion' }, null, 2));
   } finally { await mobile.close(); }
-});
+}
 
 test('mixed participant mentor forms a real solution team and retains leadership and team label through finalization', async ({ page }) => {
   if (pacedDemo) test.setTimeout(120000);
@@ -234,7 +254,9 @@ test('legacy solution aliases clear through member leave and admin removal befor
 });
 
 
-test('badge reserves compact photo geometry through authenticated loading and late sharing revocation', async ({ page, context, browser }) => {
+test('badge reserves compact photo geometry through authenticated loading and late sharing revocation', async ({ page: fixturePage, context: fixtureContext, browser }) => {
+  const context = reviewRecording ? await browser.newContext({ viewport: { width: 320, height: 740 }, recordVideo: { dir: 'test-results/pr5-photo-real', size: { width: 320, height: 740 } } }) : fixtureContext;
+  const page = reviewRecording ? await context.newPage() : fixturePage;
   await createFixtureUser('badge-photo');
   await createFixtureUser('badge-photo-viewer');
   expect((await fixtureDb.doc('profiles/badge-photo-viewer').get()).data()!.state).toBe('active');
@@ -346,5 +368,13 @@ test('badge reserves compact photo geometry through authenticated loading and la
     await expect(badge).toContainText('Photo badge member');
     await expect(avatar).toHaveCount(0);
     expect(photoRequests).toHaveLength(requestsBeforeReload);
-  } finally { releasePhotos.forEach(release => release()); await viewerContext.close(); await editor.close(); }
+  } finally { releasePhotos.forEach(release => release()); await viewerContext.close(); await editor.close(); if (reviewRecording) await context.close(); }
+});
+
+
+test('recording: real browser copy role badge QR workflow', async ({ page, browser }) => {
+  test.skip(!reviewRecording, 'Only in the explicitly authorized recording window');
+  test.setTimeout(240000);
+  await clearFixtures(); await seedParticipation();
+  await roleBadgeJourney(page, browser, true);
 });

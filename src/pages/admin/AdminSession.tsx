@@ -1,3 +1,4 @@
+import { InfoHelp } from '../../components/ui/InfoHelp';
 import AttendanceEditor from '../../components/AttendanceEditor';
 import { invitationApi } from '../../utils/invitationApi';
 import { isEventDeleted } from '../../../shared/eventLifecycle';
@@ -580,27 +581,21 @@ export default function AdminSession() {
           {activeTab === 'admins' && (
             <div className="space-y-6">
               <div className="flex flex-col gap-1">
-                <h1 className="text-2xl font-bold flex items-center gap-2">
+                <div className="ui-heading-row"><h1 className="text-2xl font-bold flex items-center gap-2">
                   <Shield className="text-emerald-500" />
                   Session Admins
-                </h1>
-                <p className="text-sm text-zinc-400">
-                  Manage collaborative workshop facilitators and co-facilitators for this session.
-                </p>
+                </h1><InfoHelp label="Session admins">Manage collaborative workshop facilitators and co-facilitators for this session.</InfoHelp></div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {/* Left Side: Add Facilitator */}
                 <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-4 h-fit">
-                  <h3 className="font-semibold text-lg text-zinc-100">Add Session Admin</h3>
-                  <p className="text-xs text-zinc-400 leading-relaxed font-normal">
-                    Collaborators must authenticate via Google Login. Enter their Google-associated email address to grant co-facilitator privileges inside this session.
-                  </p>
+                  <div className="ui-heading-row"><h3 className="font-semibold text-lg text-zinc-100">Add Session Admin</h3><InfoHelp label="Adding a session admin">Collaborators must authenticate via Google Login. Enter their Google-associated email address to grant co-facilitator privileges inside this session.</InfoHelp></div>
                   
                   <div className="space-y-3 pt-2">
                     <div>
                       <label className="block text-xs font-semibold text-zinc-405 text-zinc-400 uppercase tracking-wider mb-2">
-                        Email Address
+                        Google account email address
                       </label>
                       <input
                         type="email"
@@ -750,10 +745,7 @@ export default function AdminSession() {
               {/* 1. Challenge Discovery Configuration Card */}
               <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-6">
                 <div>
-                  <h3 className="text-lg font-semibold text-zinc-200">Challenge Discovery Configuration</h3>
-                  <p className="text-xs text-zinc-400 mt-1 mb-4">
-                    Configure upstream collaborative drafting, focus area interest parameters, and discovery workgroups.
-                  </p>
+                  <div className="ui-heading-row"><h3 className="text-lg font-semibold text-zinc-200">Challenge Discovery Configuration</h3><InfoHelp label="Challenge discovery configuration">Configure upstream collaborative drafting, focus area interest parameters, and discovery workgroups.</InfoHelp></div>
                   
                   <div className="flex items-center gap-2 p-3 bg-zinc-950 rounded-xl border border-zinc-800">
                     <input 
@@ -879,10 +871,7 @@ export default function AdminSession() {
               {/* 2. Solutioning Configuration Card */}
               <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-6">
                 <div>
-                  <h3 className="text-lg font-semibold text-zinc-200">Solutioning Configuration</h3>
-                  <p className="text-xs text-zinc-400 mt-1 mb-4">
-                    Configure downstream team formation, solution building size parameters, and peer self-selection traits.
-                  </p>
+                  <div className="ui-heading-row"><h3 className="text-lg font-semibold text-zinc-200">Solutioning Configuration</h3><InfoHelp label="Solutioning configuration">Configure downstream team formation, solution building size parameters, and peer self-selection traits.</InfoHelp></div>
 
                   <div className="space-y-4">
                     <label className="block text-xs font-bold uppercase tracking-widest text-zinc-400">
@@ -958,8 +947,7 @@ export default function AdminSession() {
             <div className="space-y-6">
               <div className="flex justify-between items-center bg-zinc-900 border border-zinc-800 p-4 rounded-2xl">
                 <div>
-                  <h1 className="text-2xl font-bold">Projector Display Control</h1>
-                  <p className="text-xs text-zinc-400 mt-1">Manage what is currently shown on the big screen in the room.</p>
+                  <div className="ui-heading-row"><h1 className="text-2xl font-bold">Projector Display Control</h1><InfoHelp label="Room display">Manage what is currently shown on the big screen in the room.</InfoHelp></div>
                 </div>
                 <button
                   onClick={() => window.open(`/display/${sessionId}`, '_blank')}
@@ -972,8 +960,7 @@ export default function AdminSession() {
 
               <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-6">
                 <div>
-                  <h3 className="text-lg font-semibold text-zinc-200 mb-1">Active View</h3>
-                  <p className="text-xs text-zinc-500 mb-6">Select a screen view to project it instantly to the room display.</p>
+                  <div className="ui-heading-row"><h3 className="text-lg font-semibold text-zinc-200 mb-1">Active View</h3><InfoHelp label="Projecting a screen view">Select a screen view to project it instantly to the room display.</InfoHelp></div>
                   
                   {session.enableChallengeDiscovery ? (
                     <div className="space-y-8 animate-fadeIn">
@@ -1117,8 +1104,7 @@ export default function AdminSession() {
                       <Sparkles size={20} />
                     </div>
                     <div>
-                      <h3 className="text-base font-bold text-zinc-100">Collaboration Styles Reveal Mode</h3>
-                      <p className="text-xs text-zinc-500 mt-0.5">Control the suspense and reveal when the group results are displayed on the projector screen.</p>
+                      <div className="ui-heading-row"><h3 className="text-base font-bold text-zinc-100">Collaboration Styles Reveal Mode</h3><InfoHelp label="Collaboration styles reveal">Control the suspense and reveal when the group results are displayed on the projector screen.</InfoHelp></div>
                     </div>
                   </div>
 
@@ -1167,13 +1153,10 @@ export default function AdminSession() {
               {/* HEADER CONTAINER */}
               <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 bg-zinc-900/60 border border-zinc-800 p-6 rounded-2xl">
                 <div className="space-y-1">
-                  <h1 className="text-2xl font-bold font-sans tracking-tight text-white flex items-center gap-2">
+                  <div className="ui-heading-row"><h1 className="text-2xl font-bold font-sans tracking-tight text-white flex items-center gap-2">
                     <Sparkles size={24} className="text-emerald-400" />
                     Participant Experience Dashboard
-                  </h1>
-                  <p className="text-zinc-400 text-xs">
-                    Curate Icebreakers, Question Packs, Archetypes, Live Polls, and Participant Profile Signals to build the optimal participant onboarding flow.
-                  </p>
+                  </h1><InfoHelp label="Participant experience dashboard">Curate Icebreakers, Question Packs, Archetypes, Live Polls, and Participant Profile Signals to build the optimal participant onboarding flow.</InfoHelp></div>
                 </div>
                 {session.activeWelcomeQuestion && (
                   <button 
@@ -1241,9 +1224,7 @@ export default function AdminSession() {
                         <MonitorPlay size={20} className="text-emerald-400" />
                         <h2 className="text-base font-bold text-zinc-100">Live Projector Polls</h2>
                       </div>
-                      <p className="text-xs text-zinc-450 leading-relaxed">
-                        Select an active question to project dynamic visual analytics (live Word Cloud or Multiple Choice bars) on the screen.
-                      </p>
+                      <InfoHelp label="Live projector polls">Select an active question to project dynamic visual analytics (live Word Cloud or Multiple Choice bars) on the screen.</InfoHelp>
 
                       {projectorQuestions.length === 0 ? (
                         <div className="text-center p-8 bg-zinc-950 rounded-xl border border-dashed border-zinc-800 space-y-2">
@@ -1313,13 +1294,10 @@ export default function AdminSession() {
                     <div className="space-y-5">
                       <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
                         <div className="space-y-0.5">
-                          <h2 className="text-base font-bold text-zinc-100 flex items-center gap-2">
+                          <div className="ui-heading-row"><h2 className="text-base font-bold text-zinc-100 flex items-center gap-2">
                             <Shield size={18} className="text-emerald-400" />
                             Curate Onboarding Flow Pack Sequence
-                          </h2>
-                          <p className="text-xs text-zinc-500">
-                            Reorder, enable, or disable packs. Participants will encounter them in this exact order.
-                          </p>
+                          </h2><InfoHelp label="Onboarding pack sequence">Reorder, enable, or disable packs. Participants will encounter them in this exact order.</InfoHelp></div>
                         </div>
 
                         {/* CATEGORY FILTER TABS */}

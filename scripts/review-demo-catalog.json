@@ -1,0 +1,296 @@
+{
+  "version": 1,
+  "assets": [
+    {
+      "logicalId": "pr1-sign-in-reuse",
+      "intendedPR": 1,
+      "replacesURL": "https://github.com/user-attachments/assets/4201f849-4d34-446a-be3b-762021f8be4b",
+      "coverage": "signup/verify/profile/register/reload/second-event/member/edit/delete",
+      "output": "pr1-sign-in-reuse.webm",
+      "sourceTest": "member-journey.spec.ts",
+      "titleIncludes": "demo: signup",
+      "osSeams": []
+    },
+    {
+      "logicalId": "pr1-fresh-device",
+      "intendedPR": 1,
+      "replacesURL": "https://github.com/user-attachments/assets/fe19d3dc-5164-4126-a5d8-cf404e7bee23",
+      "coverage": "fresh empty-storage browser sign-in resumes registration",
+      "output": "pr1-fresh-device.webm",
+      "sourceTest": "member-journey.spec.ts",
+      "titleIncludes": "demo: signup",
+      "customDirectory": "fresh-device",
+      "osSeams": []
+    },
+    {
+      "logicalId": "pr1-workshop-team-display",
+      "intendedPR": 1,
+      "replacesURL": "https://github.com/user-attachments/assets/8ffb6d61-0f55-4e4c-8b0b-05eacd710afe",
+      "coverage": "code join/challenge/team/naming/projector/admin survives deletion",
+      "output": "pr1-workshop-team-display.webm",
+      "sourceTest": "member-journey.spec.ts",
+      "titleIncludes": "event code join",
+      "osSeams": []
+    },
+    {
+      "logicalId": "pr2-profile-photo-loading",
+      "intendedPR": 2,
+      "replacesURL": "https://github.com/user-attachments/assets/2390f949-5b84-43b9-a094-e6b8776e8bac",
+      "coverage": "owner preview/shared profile/real protected response + actual decode/stable slot",
+      "output": "pr2-profile-photo-loading.webm",
+      "sourceTest": "profile-photo-loading.spec.ts",
+      "titleIncludes": "shared header reserves",
+      "osSeams": [
+        "Real protected response delivery and real image decode completion are held for visibility; image/API body unchanged."
+      ]
+    },
+    {
+      "logicalId": "pr2-profile-owner",
+      "intendedPR": 2,
+      "replacesURL": "https://github.com/user-attachments/assets/0acc3f53-262c-4dba-ae43-f8442d985df8",
+      "coverage": "upload/skills/custom skills/private contacts/preview/save/reload/narrow layout",
+      "output": "pr2-profile-owner.webm",
+      "sourceTest": "profile-journey.spec.ts",
+      "titleIncludes": "real Firebase profile edits",
+      "osSeams": []
+    },
+    {
+      "logicalId": "pr2-profile-other-member",
+      "intendedPR": 2,
+      "replacesURL": "https://github.com/user-attachments/assets/c320170e-09e5-424c-8fa4-8d5cc821f97c",
+      "coverage": "independent member selected fields/photo/replacement/revoke/delete",
+      "output": "pr2-profile-other-member.webm",
+      "sourceTest": "profile-journey.spec.ts",
+      "titleIncludes": "real Firebase profile edits",
+      "customDirectory": "profile-other-member",
+      "osSeams": []
+    },
+    {
+      "logicalId": "pr2-profile-country-selectors",
+      "intendedPR": 2,
+      "replacesURL": "https://github.com/user-attachments/assets/d1fa6db2-80c4-445f-aadf-5763a99ed5eb",
+      "coverage": "SG/+1/US/Canada/UK/Italy/link/separate/Telegram/clear/save/reload/mobile",
+      "output": "pr2-profile-country-selectors.webm",
+      "sourceTest": "profile-contacts.spec.ts",
+      "titleIncludes": "private contact drafts",
+      "osSeams": []
+    },
+    {
+      "logicalId": "pr3-invitation-mobile",
+      "intendedPR": 3,
+      "replacesURL": "https://github.com/user-attachments/assets/0b07d4ac-6601-4ed0-80a9-fe4633f474df",
+      "coverage": "organizer publish/reload/actual browser copy/soft-delete; manual/cancellation behavior verified separately in unchanged OS contract regression",
+      "output": "pr3-invitation-mobile.webm",
+      "sourceTest": "event-invitation.spec.ts",
+      "titleIncludes": "recording: organizer publishes",
+      "osSeams": [
+        "Desktop Chromium with WebShare feature disabled; no native phone share sheet shown.",
+        "Actual browser clipboard-write permission and app success feedback. Clipboard content is never read. Denied/manual/native OS edges remain in the separate original contract regressions and are not shown here."
+      ]
+    },
+    {
+      "logicalId": "pr3-invitation-recipient",
+      "intendedPR": 3,
+      "replacesURL": "https://github.com/user-attachments/assets/de5d6aa7-9678-4c3d-83e2-1c10005d76e1",
+      "coverage": "public anonymous preview/real ICS download/auth/profile/explicit registration/reload",
+      "output": "pr3-invitation-recipient.webm",
+      "sourceTest": "event-invitation.spec.ts",
+      "titleIncludes": "anonymous recipient",
+      "customDirectory": "invitation-recipient",
+      "osSeams": [
+        "Desktop Chromium with WebShare feature disabled; no native phone share sheet shown."
+      ]
+    },
+    {
+      "logicalId": "pr4-connections-sender",
+      "intendedPR": 4,
+      "replacesURL": "https://github.com/user-attachments/assets/c042e2b8-6087-4c1a-8913-0e71883fa95b",
+      "coverage": "request/global field selection/contact updates/unfriend/decline/cancel/block",
+      "output": "pr4-connections-sender.webm",
+      "sourceTest": "connections.spec.ts",
+      "titleIncludes": "two members request",
+      "osSeams": []
+    },
+    {
+      "logicalId": "pr4-connections-recipient",
+      "intendedPR": 4,
+      "replacesURL": "https://github.com/user-attachments/assets/3999d25f-5953-4e40-9f2e-19f1106294bd",
+      "coverage": "accept/private contact access/actions/live changes/revocation",
+      "output": "pr4-connections-recipient.webm",
+      "sourceTest": "connections.spec.ts",
+      "titleIncludes": "two members request",
+      "customDirectory": "connections-second",
+      "osSeams": []
+    },
+    {
+      "logicalId": "pr5-mobile-badge-integrated",
+      "intendedPR": 5,
+      "replacesURL": "https://github.com/user-attachments/assets/066c76d8-1f5a-4e30-a675-1314523549b7",
+      "coverage": "roles/resources/event selector/320px badge/QR decode/profile sign-in/selection/loading/revocation/delete",
+      "output": "pr5-mobile-badge-integrated.webm",
+      "sourceTest": "participation-journey.spec.ts",
+      "titleIncludes": "recording: real browser copy role badge",
+      "customDirectory": "pr5-mobile-real-copy",
+      "appendTest": {
+        "sourceTest": "participation-journey.spec.ts",
+        "titleIncludes": "badge reserves compact",
+        "customDirectory": "pr5-photo-real",
+        "customPagePolicy": "first-opened-last-closed"
+      },
+      "osSeams": [
+        "Desktop Chromium with WebShare feature disabled; no native phone share sheet shown.",
+        "Actual browser clipboard-write permission and app success feedback. Clipboard content is never read. Denied/manual/native OS edges remain in the separate original contract regressions and are not shown here.",
+        "Honest cut from real role/QR actor footage to separately recorded real compact badge loading/revocation journey; native speed."
+      ]
+    },
+    {
+      "logicalId": "pr5-legacy-alias-removal",
+      "intendedPR": 5,
+      "replacesURL": "https://github.com/user-attachments/assets/c3f9b895-1adc-4577-8798-e4b1b73f7c3c",
+      "coverage": "member leave/admin removal clear aliases before staff-only roles",
+      "output": "pr5-legacy-alias-removal.webm",
+      "sourceTest": "participation-journey.spec.ts",
+      "titleIncludes": "legacy solution aliases",
+      "osSeams": [
+        "Desktop Chromium with WebShare feature disabled; no native phone share sheet shown."
+      ]
+    },
+    {
+      "logicalId": "pr5-mixed-participant-team-label",
+      "intendedPR": 5,
+      "replacesURL": "https://github.com/user-attachments/assets/b4bc75b2-23b8-4382-bf85-e94fcfc57c01",
+      "coverage": "mentor+participant forms/finalizes team/leader label",
+      "output": "pr5-mixed-participant-team-label.webm",
+      "sourceTest": "participation-journey.spec.ts",
+      "titleIncludes": "mixed participant mentor",
+      "osSeams": [
+        "Desktop Chromium with WebShare feature disabled; no native phone share sheet shown."
+      ]
+    },
+    {
+      "logicalId": "pr5-staff-role-assignment",
+      "intendedPR": 5,
+      "replacesURL": "https://github.com/user-attachments/assets/bc281e54-4822-4b26-9a48-8eee71c03e3c",
+      "coverage": "official role assignment/resources/revoke/delete; staff actor",
+      "output": "pr5-staff-role-assignment.webm",
+      "sourceTest": "participation-journey.spec.ts",
+      "titleIncludes": "recording: real browser copy role badge",
+      "osSeams": [
+        "Desktop Chromium with WebShare feature disabled; no native phone share sheet shown.",
+        "Actual browser clipboard-write permission and app success feedback. Clipboard content is never read. Denied/manual/native OS edges remain in the separate original contract regressions and are not shown here."
+      ]
+    },
+    {
+      "logicalId": "pr6-attendance-history",
+      "intendedPR": 6,
+      "replacesURL": "https://github.com/user-attachments/assets/9382d954-4290-4840-861e-efd2a76a3a75",
+      "coverage": "honest actor-cut overview of verified attendance/privacy/correction",
+      "output": "pr6-attendance-history.webm",
+      "sourceTest": "attendance-journey.spec.ts",
+      "titleIncludes": "real staff check-in",
+      "overviewManifest": "pr6-demo.json",
+      "staffTest": {
+        "sourceTest": "attendance-journey.spec.ts",
+        "titleIncludes": "real staff check-in"
+      },
+      "roleDirectories": {
+        "member": "attendance-member",
+        "viewer": "attendance-viewer"
+      },
+      "osSeams": []
+    },
+    {
+      "logicalId": "pr6-member-full",
+      "intendedPR": 6,
+      "replacesURL": "https://github.com/user-attachments/assets/75bf20af-112e-435f-b2df-848317175fcf",
+      "coverage": "private history/registered is not attended/opt in/out/correction",
+      "output": "pr6-member-full.webm",
+      "sourceTest": "attendance-journey.spec.ts",
+      "titleIncludes": "real staff check-in",
+      "customDirectory": "attendance-member",
+      "osSeams": []
+    },
+    {
+      "logicalId": "pr6-staff-full",
+      "intendedPR": 6,
+      "replacesURL": "https://github.com/user-attachments/assets/7512bd81-a95c-4e1d-9030-f5fb9b93d539",
+      "coverage": "verify attendance/correct private audit",
+      "output": "pr6-staff-full.webm",
+      "sourceTest": "attendance-journey.spec.ts",
+      "titleIncludes": "real staff check-in",
+      "osSeams": []
+    },
+    {
+      "logicalId": "pr6-viewer-full",
+      "intendedPR": 6,
+      "replacesURL": "https://github.com/user-attachments/assets/62030ee0-1819-4402-8da8-4e9eef541cdb",
+      "coverage": "safe selected summaries/unselected hidden/revocation",
+      "output": "pr6-viewer-full.webm",
+      "sourceTest": "attendance-journey.spec.ts",
+      "titleIncludes": "real staff check-in",
+      "customDirectory": "attendance-viewer",
+      "osSeams": []
+    },
+    {
+      "logicalId": "pr7-official-awards",
+      "intendedPR": 7,
+      "replacesURL": "https://github.com/user-attachments/assets/691b5cc8-92a6-4e50-9f66-9c25a67af7fa",
+      "coverage": "honest actor-cut publish/select/history/correct/revoke overview",
+      "output": "pr7-official-awards.webm",
+      "sourceTest": "awards-journey.spec.ts",
+      "titleIncludes": "staff publish individual",
+      "overviewManifest": "pr7-demo.json",
+      "staffTest": {
+        "sourceTest": "awards-journey.spec.ts",
+        "titleIncludes": "staff publish individual"
+      },
+      "roleDirectories": {
+        "member": "award-member",
+        "viewer": "award-viewer"
+      },
+      "osSeams": []
+    },
+    {
+      "logicalId": "pr7-member-full",
+      "intendedPR": 7,
+      "replacesURL": "https://github.com/user-attachments/assets/eb775f82-bec1-4a7a-9ac1-44c7e65e6dcc",
+      "coverage": "private achievements/selection/snapshot credit survives team changes/revoke",
+      "output": "pr7-member-full.webm",
+      "sourceTest": "awards-journey.spec.ts",
+      "titleIncludes": "staff publish individual",
+      "customDirectory": "award-member",
+      "osSeams": []
+    },
+    {
+      "logicalId": "pr7-staff-full",
+      "intendedPR": 7,
+      "replacesURL": "https://github.com/user-attachments/assets/8ae21471-d003-4be7-8def-f33488cbb165",
+      "coverage": "draft/publish/team+individual/finalize/category correction/revocation",
+      "output": "pr7-staff-full.webm",
+      "sourceTest": "awards-journey.spec.ts",
+      "titleIncludes": "staff publish individual",
+      "osSeams": []
+    },
+    {
+      "logicalId": "pr7-viewer-full",
+      "intendedPR": 7,
+      "replacesURL": "https://github.com/user-attachments/assets/8697c42a-8d10-4400-98f1-1352c048910d",
+      "coverage": "selected profile/independent official results/correction/revocation",
+      "output": "pr7-viewer-full.webm",
+      "sourceTest": "awards-journey.spec.ts",
+      "titleIncludes": "staff publish individual",
+      "customDirectory": "award-viewer",
+      "osSeams": []
+    },
+    {
+      "logicalId": "logical-pr8-design-system-help",
+      "intendedPR": null,
+      "replacesURL": null,
+      "coverage": "new shared UI: contextual help entry/read/close/keyboard focus/desktop+narrow layout; representative actual profile/event/admin/badge screens, exact surfaces to follow UI36 immutable pass",
+      "output": "logical-pr8-design-system-help.webm",
+      "sourceTest": "review-ui-walkthrough.spec.ts",
+      "titleIncludes": "recording: shared design system",
+      "osSeams": []
+    }
+  ]
+}

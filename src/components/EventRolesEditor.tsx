@@ -1,3 +1,4 @@
+import { InfoHelp } from './ui/InfoHelp';
 import { useState } from 'react';
 import { EVENT_ROLES } from '../../shared/participation';
 import { identityRequest } from '../identity';
@@ -10,7 +11,7 @@ export default function EventRolesEditor({ sessionId, participants, challenges }
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
   return <details className="rounded-xl border border-zinc-700 p-4"><summary>Official event roles</summary>
-    <p className="my-3">Issue roles to a verified member, including yourself if you already administer this event. Roles describe event participation and do not grant administration access. Keep Participant selected for people joining discovery or solution teams.</p>
+    <div className="ui-heading-row"><p className="ui-privacy">Participant role required for discovery and solution teams.</p><InfoHelp label="Official event roles">Issue roles to a verified member, including yourself if you already administer this event. Roles describe event participation and do not grant administration access. Keep Participant selected for people joining discovery or solution teams.</InfoHelp></div>
     <form className="space-y-3" onSubmit={async event => {
       event.preventDefault(); setBusy(true); setMessage('');
       try { await identityRequest('event-roles', { sessionId, memberUid, roles, challengeId: roles.includes('challenge owner') && challengeId ? challengeId : null, participationState }); setMessage('Official event roles saved.'); }

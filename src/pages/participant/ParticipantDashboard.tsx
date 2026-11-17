@@ -1,3 +1,4 @@
+import { InfoHelp } from '../../components/ui/InfoHelp';
 import MemberHistory from '../../components/MemberHistory';
 import TeamRoleEditor from '../../components/TeamRoleEditor';
 import { allocationEligible, solutionTeamId } from '../../../shared/participation';
@@ -1145,7 +1146,7 @@ export default function ParticipantDashboard() {
 
           <form onSubmit={handleJoin} className="space-y-4 bg-zinc-900 p-6 rounded-2xl border border-zinc-800">
             <p>Register as <strong>{profile.name}</strong>. <a href="/account" className="underline">Edit your profile</a></p>
-            <p className="text-sm text-zinc-400">Returning from the old sign-in? Ask your organizer to link your previous registration before continuing. Phone passcodes cannot recover it.</p>
+            <InfoHelp label="Previous event registration">Returning from the old sign-in? Ask your organizer to link your previous registration before continuing. Phone passcodes cannot recover it.</InfoHelp>
               <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
                 <div className="bg-zinc-800/50 p-4 rounded-xl">
                   <p className="text-zinc-300 text-sm">Tell us a little about yourself so we can form great teams.</p>
@@ -1250,12 +1251,9 @@ export default function ParticipantDashboard() {
         <div className="w-full max-w-xl space-y-8 py-8">
           <ShareEventButton sessionId={sessionId!} />
           <div className="text-center space-y-4">
-            <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">
+            <div className="ui-heading-row"><h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">
               Participant Onboarding
-            </h1>
-            <p className="text-zinc-400 text-xs max-w-xs mx-auto">
-              Welcome to the workshop! Let's cultivate your profile and share lightweight signals before we begin.
-            </p>
+            </h1><InfoHelp label="Participant onboarding">Welcome to the workshop! Let's cultivate your profile and share lightweight signals before we begin.</InfoHelp></div>
 
             {/* Overall Progress Indicator */}
             {totalCount > 0 && (
@@ -1296,11 +1294,8 @@ export default function ParticipantDashboard() {
                 <div className="space-y-1 px-1 mb-2">
                   <div className="flex items-center gap-2">
                     <span className="text-lg">{sec.emoji}</span>
-                    <h2 className="text-base font-bold text-zinc-100">{sec.title}</h2>
+                    <div className="ui-heading-row"><h2 className="text-base font-bold text-zinc-100">{sec.title}</h2><InfoHelp label={`${sec.title} guidance`}>{sec.helperText}</InfoHelp></div>
                   </div>
-                  <p className="text-xs text-zinc-500 leading-relaxed max-w-sm">
-                    {sec.helperText}
-                  </p>
                 </div>
 
                 <div className="space-y-4">
@@ -1590,9 +1585,7 @@ export default function ParticipantDashboard() {
                           </div>
                         </div>
 
-                        <p className="text-[10px] text-zinc-500 p-2 bg-zinc-900/20 rounded-lg text-center font-medium italic">
-                          "This style analysis outlines your natural contribution leanings neutrally and softly as a collaboration signal rather than standardising identities."
-                        </p>
+                        <InfoHelp label="Collaboration style analysis">"This style analysis outlines your natural contribution leanings neutrally and softly as a collaboration signal rather than standardising identities."</InfoHelp>
                       </div>
                     ) : (
                       <div className="bg-zinc-900/40 border border-zinc-900 p-4 rounded-xl space-y-2">
@@ -1600,9 +1593,7 @@ export default function ParticipantDashboard() {
                           <span>🌱</span>
                           <span>You are currently in an explorer posture</span>
                         </p>
-                        <p className="text-zinc-400 text-[10px] leading-relaxed">
-                          You are keeping your options open and exploring where you can best support your team. You are a valuable, highly adaptive collaborator ready to build collective momentum!
-                        </p>
+                        <InfoHelp label="Explorer posture">You are keeping your options open and exploring where you can best support your team. You are a valuable, highly adaptive collaborator ready to build collective momentum!</InfoHelp>
                       </div>
                     )}
                   </div>
@@ -1842,12 +1833,9 @@ export default function ParticipantDashboard() {
               <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 rounded-full blur-xl pointer-events-none" />
               
               <div className="space-y-2">
-                <h2 className="text-lg font-bold text-blue-400 flex items-center gap-2">
+                <div className="ui-heading-row"><h2 className="text-lg font-bold text-blue-400 flex items-center gap-2">
                   <Users size={20} /> Your Challenge Workgroup
-                </h2>
-                <p className="text-xs text-zinc-400 leading-relaxed font-normal">
-                  Collaborate with your group to explore tensions and shape challenge ideas.
-                </p>
+                </h2><InfoHelp label="Challenge workgroup collaboration">Collaborate with your group to explore tensions and shape challenge ideas.</InfoHelp></div>
               </div>
               
               <div className="space-y-5">
@@ -1930,12 +1918,9 @@ export default function ParticipantDashboard() {
             <section className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl relative overflow-hidden animate-in fade-in duration-300">
               <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/10 rounded-full blur-xl pointer-events-none" />
               
-              <h2 className="text-xl font-bold flex items-center gap-2 text-blue-400">
+              <div className="ui-heading-row"><h2 className="text-xl font-bold flex items-center gap-2 text-blue-400">
                 <Users size={22} className="text-blue-400 animate-pulse" /> Group Up!
-              </h2>
-              <p className="text-zinc-300 text-sm mt-2 leading-relaxed">
-                Join or form a workgroup to explore tensions, shape ideas, and collaboratively draft challenge proposals.
-              </p>
+              </h2><InfoHelp label="Joining a challenge workgroup">Join or form a workgroup to explore tensions, shape ideas, and collaboratively draft challenge proposals.</InfoHelp></div>
 
               {enableParticipantWgFormation ? (
                 formingDiscTeam ? (
@@ -1951,9 +1936,7 @@ export default function ParticipantDashboard() {
                       </div>
                     </div>
 
-                    <p className="text-xs text-zinc-400 leading-relaxed">
-                      Share this code with other participants so they can join your forming Challenge Workgroup.
-                    </p>
+                    <InfoHelp label="Workgroup codeword">Share this code with other participants so they can join your forming Challenge Workgroup.</InfoHelp>
                     
                     {/* Members list */}
                     <div className="space-y-2.5">
@@ -1997,9 +1980,7 @@ export default function ParticipantDashboard() {
                 ) : (
                   /* Start / Join options inside Group Up! panel */
                   <div className="mt-4 pt-4 border-t border-zinc-800/60 space-y-4 animate-in fade-in duration-200">
-                    <p className="text-xs text-zinc-400 leading-relaxed">
-                      Form a new workgroup or join an existing dynamic workspace using its codeword!
-                    </p>
+                    <InfoHelp label="Forming a challenge workgroup">Form a new workgroup or join an existing dynamic workspace using its codeword!</InfoHelp>
                     <div className="grid grid-cols-2 gap-3">
                       <button 
                         onClick={handleStartDiscTeam}
@@ -2146,19 +2127,13 @@ export default function ParticipantDashboard() {
               <div className="space-y-4">
                 <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl relative overflow-hidden">
                   <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/10 rounded-full blur-xl pointer-events-none" />
-                  <h2 className="text-xl font-bold flex items-center gap-2 text-amber-400">
+                  <div className="ui-heading-row"><h2 className="text-xl font-bold flex items-center gap-2 text-amber-400">
                     <Sparkles size={22} className="text-amber-400" /> Challenge Drafting
-                  </h2>
-                  <p className="text-zinc-300 text-sm mt-2 leading-relaxed">
-                    This is a collaborative working phase. Work with your group to brainstorm tensions, explore friction, and refine potential challenge statements.
-                  </p>
+                  </h2><InfoHelp label="Challenge drafting">This is a collaborative working phase. Work with your group to brainstorm tensions, explore friction, and refine potential challenge statements.</InfoHelp></div>
                 </div>
 
                 <div className="bg-zinc-900/60 border border-zinc-800 p-6 rounded-2xl space-y-4">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400">Collaborative Prompts</h3>
-                  <p className="text-zinc-400 text-xs leading-relaxed font-normal">
-                    Revisiting your experiences can reveal surprising friction. Discuss these prompts with your workgroup to deepen your focus:
-                  </p>
+                  <div className="ui-heading-row"><h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400">Collaborative Prompts</h3><InfoHelp label="Using collaborative prompts">Revisiting your experiences can reveal surprising friction. Discuss these prompts with your workgroup to deepen your focus:</InfoHelp></div>
                   
                   <ul className="space-y-3 pt-1">
                     <li className="flex gap-2.5 items-start">
@@ -2193,12 +2168,9 @@ export default function ParticipantDashboard() {
               <div className="space-y-4">
                 <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl space-y-3 relative overflow-hidden">
                   <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/10 rounded-full blur-xl pointer-events-none" />
-                  <h2 className="text-xl font-bold flex items-center gap-2 text-blue-400">
+                  <div className="ui-heading-row"><h2 className="text-xl font-bold flex items-center gap-2 text-blue-400">
                     <Sparkles size={22} className="text-blue-400 animate-pulse" /> Pitch Your Challenges
-                  </h2>
-                  <p className="text-zinc-300 text-sm leading-relaxed">
-                    Brainstorm and propose challenge statements with your team or focus group. Pitch any tension, friction, or missional opportunity you see.
-                  </p>
+                  </h2><InfoHelp label="Pitching challenges">Brainstorm and propose challenge statements with your team or focus group. Pitch any tension, friction, or missional opportunity you see.</InfoHelp></div>
                   
                   {!isPcFormOpen && (
                     <button
@@ -2883,9 +2855,7 @@ export default function ParticipantDashboard() {
 
                 {isWgRecapExpanded && (
                   <div className="px-4 pb-4 pt-1.5 border-t border-zinc-900 bg-zinc-950/20 space-y-3 animate-in slide-in-from-top-1 duration-200">
-                    <p className="text-[11px] text-zinc-500 leading-normal font-normal">
-                      You worked with this group during the Challenge Discovery phase to explore tensions, brainstorm opportunities, and draft challenge ideas.
-                    </p>
+                    <InfoHelp label="Previous challenge workgroup">You worked with this group during the Challenge Discovery phase to explore tensions, brainstorm opportunities, and draft challenge ideas.</InfoHelp>
                     {discTeammates && discTeammates.length > 0 && (
                       <div className="space-y-1.5">
                         <p className="text-[10px] font-bold uppercase text-zinc-500 tracking-wider">Group Teammates ({discTeammates.length})</p>
