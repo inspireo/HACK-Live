@@ -1,3 +1,4 @@
+import { isEventDeleted } from '../../../shared/eventLifecycle';
 import React, { useState, useEffect } from 'react';
 import { signOut } from 'firebase/auth';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -1110,6 +1111,10 @@ export default function ParticipantDashboard() {
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
+
+  if (isEventDeleted(session)) return <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col items-center justify-center gap-3">
+    <h1 className="text-2xl font-bold">Event unavailable</h1><p>This event is closed. Event records and history are retained.</p>
+  </div>;
 
   if (loading || !session || !registrationReady) return <div className="min-h-screen bg-zinc-950 text-zinc-100 flex items-center justify-center">Loading...</div>;
 

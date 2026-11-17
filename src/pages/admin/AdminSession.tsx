@@ -1,3 +1,5 @@
+import { invitationApi } from '../../utils/invitationApi';
+import { isEventDeleted } from '../../../shared/eventLifecycle';
 import { useState, useEffect } from 'react';
 import EventPublicationPanel from '../../components/EventPublicationPanel';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -89,6 +91,9 @@ export default function AdminSession() {
   const { sessionId } = useParams();
   const navigate = useNavigate();
   const [session, setSession] = useState<any>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deletingEvent, setDeletingEvent] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
   const [challenges, setChallenges] = useState<any[]>([]);
   const [resources, setResources] = useState<any[]>([]);
   const [participants, setParticipants] = useState<any[]>([]);
@@ -295,6 +300,11 @@ export default function AdminSession() {
   if (!session) {
     return <div className="min-h-screen bg-zinc-950 text-zinc-100 flex items-center justify-center">Loading Session Details...</div>;
   }
+
+  if (isEventDeleted(session)) return <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col items-center justify-center gap-4">
+    <h1 className="text-2xl font-bold">Event deleted</h1><p>Participation is closed. Event records and history are retained.</p>
+    <button onClick={() => navigate('/admin')}>Back to Sessions List</button>
+  </div>;
 
   const sessionSteps = getStepsForSession(session?.enableChallengeDiscovery || false);
   const currentStepIndex = sessionSteps.findIndex(s => s.id === session?.status);
@@ -715,6 +725,21 @@ export default function AdminSession() {
           {activeTab === 'settings' && (
             <div className="space-y-6">
               <h1 className="text-2xl font-bold">Session Settings</h1>
+              <section className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-3">
+                <h2 className="text-lg font-semibold">Delete event</h2>
+                <p className="text-sm text-zinc-400">Removes this event from active lists and closes participation and invitation links. Event records, participants, teams, awards, attendance and history are retained.</p>
+                {confirmDelete ? <div className="space-y-3">
+                  <p>Delete this event? Participation will close immediately. There is no restore action.</p>
+                  <button disabled={deletingEvent} className="text-red-400 mr-5" onClick={async () => {
+                    setDeletingEvent(true); setDeleteError('');
+                    try { await invitationApi(`events/${sessionId}/soft-delete`, {}); }
+                    catch (issue) { setDeleteError((issue as Error).message); }
+                    finally { setDeletingEvent(false); }
+                  }}>{deletingEvent ? 'Deleting event…' : 'Confirm delete event'}</button>
+                  <button disabled={deletingEvent} onClick={() => setConfirmDelete(false)}>Cancel</button>
+                </div> : <button className="text-red-400" onClick={() => setConfirmDelete(true)}>Delete event</button>}
+                {deleteError && <p role="alert" className="text-red-400">{deleteError}</p>}
+              </section>
               
               {/* 1. Challenge Discovery Configuration Card */}
               <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-6">
