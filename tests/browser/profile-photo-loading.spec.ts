@@ -20,7 +20,10 @@ async function login(page: Page, uid = 'photo-loading-viewer') {
 }
 async function geometry(page: Page) {
   return page.locator('[data-profile-header]').evaluate(element => {
-    const rect = (target: Element) => { const bounds = target.getBoundingClientRect(); return { x: bounds.x, y: bounds.y, width: bounds.width, height: bounds.height }; };
+    // Other member sections may settle or scroll the page independently of photo loading.
+    // Keep every size/alignment assertion local to the header rather than its viewport origin.
+    const headerBounds = element.getBoundingClientRect();
+    const rect = (target: Element) => { const bounds = target.getBoundingClientRect(); return { x: bounds.x - headerBounds.x, y: bounds.y - headerBounds.y, width: bounds.width, height: bounds.height }; };
     return { header: rect(element), slot: rect(element.firstElementChild!), name: rect(element.lastElementChild!) };
   });
 }
