@@ -68,6 +68,7 @@ test('organizer publication and sender native copy manual cancellation', async (
   await shareMode(page, 'clipboard-denied'); await share.click();
   const manual = page.getByRole('textbox', { name: 'Event invitation', exact: true });
   await expect(manual).toHaveValue(`${shared.payload.text}\n${shared.payload.url}`);
+  await manual.scrollIntoViewIfNeeded();
   await manual.focus(); expect(await manual.evaluate((field: HTMLTextAreaElement) => field.selectionEnd - field.selectionStart)).toBe((await manual.inputValue()).length);
   await page.screenshot({ path: 'test-results/invitation-manual-copy.png' }); await hold(page);
   await shareMode(page, 'cancelled'); await share.click();
@@ -96,6 +97,7 @@ test('anonymous recipient calendar preview then real auth profile and explicit r
   await expect(page.getByText('Design a welcoming community', { exact: true })).toHaveCount(0);
   expect(await page.locator('body').innerText()).not.toMatch(/PRIVATE-|DEMO1|Synthetic invitation|ownerEmail/);
   expect(privateReads).toEqual([]);
+  await page.screenshot({ path: 'test-results/invitation-public-preview.png' });
   await hold(page);
   const download = page.waitForEvent('download'); await page.getByRole('link', { name: 'Add to calendar', exact: true }).click();
   const calendar = await download; expect(calendar.suggestedFilename()).toBe('event.ics');
@@ -133,6 +135,7 @@ test('all CTA modes and post-auth revocation fail closed without accidental regi
   await expect(page.getByRole('link', { name: 'Register', exact: true })).toHaveCount(0);
   await expect(page.getByRole('link', { name: 'Add to calendar', exact: true })).toBeVisible();
   expect(calendarOnly.token).toBe(registerOnly.token);
+  await page.screenshot({ path: 'test-results/invitation-calendar-only.png' });
   const required = await publishFixture();
   await page.reload(); await page.getByRole('link', { name: 'Register', exact: true }).click();
   await invitationRequest('/api/identity/events/event-one/publication/revoke', owner, { revision: required.revision });
