@@ -65,6 +65,7 @@ test('real Firebase profile edits, community preview, other-member privacy, revo
   await page.getByLabel('Contact email', { exact: true }).fill('private-contact@example.test');
   await page.getByRole('combobox', { name: 'Mobile country code', exact: true }).selectOption('GB');
   await page.getByLabel('Mobile number', { exact: true }).fill('1234 5678');
+  await page.getByRole('combobox', { name: 'Mobile country code', exact: true }).evaluate(element => element.scrollIntoView({ block: 'start' }));
   await reviewerHold(page);
   await page.getByRole('combobox', { name: 'Mobile country code', exact: true }).selectOption('SG');
   await expect(page.getByLabel('Mobile number', { exact: true })).toHaveValue('1234 5678');

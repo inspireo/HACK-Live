@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { doc, getDoc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from './firebase';
 import { profileEditorDetails, normalizeTelegram, communityProjection, contactFields, emptyDetails, fieldLabels, professionalFields, isManagedPhotoUrl, maxPhotoUploadBytes, safeProfileUrl, validateProfileEdit, type ProfessionalValues, type ProfileDetails } from '../shared/profile';
@@ -55,6 +55,13 @@ export function MemberDetails({ memberId }: { memberId: string }) {
 }
 
 export function ProfileEditor({ uid, name, onNameChange, save, onSaved }: { uid: string; name: string; onNameChange: (name: string) => void; save: (payload: object) => Promise<unknown>; onSaved: (message: string) => void }) {
+  const editorOwner = useRef(uid);
+  editorOwner.current = uid;
+  const editorGeneration = useRef(0);
+  useEffect(() => {
+    editorGeneration.current += 1;
+    return () => { editorGeneration.current += 1; };
+  }, [uid]);
   const [details, setDetails] = useState<ProfileDetails>(emptyDetails);
   const [phones, setPhones] = useState<{ phone: PhoneDraft; whatsapp: PhoneDraft }>({ phone: hydratePhone(), whatsapp: hydratePhone() });
   const [ready, setReady] = useState(false);
@@ -79,7 +86,12 @@ export function ProfileEditor({ uid, name, onNameChange, save, onSaved }: { uid:
   const inputClass = 'block w-full p-3 bg-zinc-900 border border-zinc-600 rounded-lg';
   if (!ready) return error ? <p role="alert">{error}</p> : <p>Loading profile details…</p>;
   return <><form className="space-y-5" onSubmit={async event => {
-    event.preventDefault(); setBusy(true); setError('');
+    event.preventDefault();
+    const submittedUid = uid;
+    const submittedGeneration = editorGeneration.current;
+    const isCurrentOwner = () => auth.currentUser?.uid === submittedUid && editorOwner.current === submittedUid && editorGeneration.current === submittedGeneration;
+    if (!isCurrentOwner()) return;
+    setBusy(true); setError('');
     try {
       const validated = validateProfileEdit({ name, ...details, contacts: { ...details.contacts, phone: phoneDraftValue(phones.phone), whatsapp: phoneDraftValue(details.whatsappUsesMobile ? phones.phone : phones.whatsapp) } });
       let photoUpload: { contentType: string; base64: string } | null | undefined;
@@ -87,10 +99,12 @@ export function ProfileEditor({ uid, name, onNameChange, save, onSaved }: { uid:
         const encoded = await new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve((reader.result as string).split(',')[1]); reader.onerror = () => reject(new Error('Photo could not be read. Choose it again.')); reader.readAsDataURL(photoFile); });
         photoUpload = { contentType: photoFile.type, base64: encoded };
       } else if (removePhoto) photoUpload = null;
+      if (!isCurrentOwner()) return;
       const result = await save({ name: validated.name, ...validated.details, ...(photoUpload !== undefined ? { photoUpload } : {}) }) as { details?: ProfileDetails };
+      if (!isCurrentOwner()) return;
       const savedDetails = result?.details || validated.details; setDetails(savedDetails); setPhotoFile(null); setRemovePhoto(false); setPhotoError(''); onSaved('Profile saved.');
     }
-    catch (issue) { setError((issue as Error).message); } finally { setBusy(false); }
+    catch (issue) { if (isCurrentOwner()) setError((issue as Error).message); } finally { if (isCurrentOwner()) setBusy(false); }
   }}>
     <label className="block">Name<input className={inputClass} disabled={busy} value={name} onChange={event => onNameChange(event.target.value)} required maxLength={100} /></label>
     <p>Your name is visible to members. Every optional field starts private. Choose which professional details members can see.</p>
