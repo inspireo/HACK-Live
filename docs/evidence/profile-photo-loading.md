@@ -18,7 +18,7 @@ Full-run log: `.agents/memory/tasks/thr_y4xchxwxgs/full-suite-final.log`. Paced-
 
 ## Focused recording and stills
 
-The additional focused clip is `pr2-profile-photo-loading.webm`, **15.92 seconds**, 1100 × 760, 25 fps. Keep it ignored/uncommitted and publish through the root's native media flow. It supplements the three inherited PR2 profile assets. It is a continuous synthetic Chromium recording: shared loading/loaded around 2/5 seconds and owner preview loading/loaded around 11/14 seconds. Those actual decoded frames and all four screenshots were visually inspected; the name and slot stay fixed, and each loading/loaded state has a readable hold.
+The additional focused clip is `pr2-profile-photo-loading.webm`, **15.92 seconds**, 1100 × 760, 25 fps. The [verified native recording](https://github.com/user-attachments/assets/2390f949-5b84-43b9-a094-e6b8776e8bac) was uploaded through the official GitHub CLI; the downloaded attachment matched the frozen bytes and SHA-256 below. The local video remains ignored/uncommitted. It supplements the three inherited PR2 profile assets. It is a continuous synthetic Chromium recording: shared loading/loaded around 2/5 seconds and owner preview loading/loaded around 11/14 seconds. Those actual decoded frames and all four screenshots were visually inspected; the name and slot stay fixed, and each loading/loaded state has a readable hold.
 
 ![Shared profile loading](pr2-photo-loading-shared.png)
 ![Shared profile loaded](pr2-photo-loaded-shared.png)
