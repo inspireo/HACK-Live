@@ -115,7 +115,7 @@ function ProfileForm({ profile }: { profile?: Profile }) {
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
   return <Panel><h1 className="text-3xl font-bold">{profile ? 'Your profile' : 'Create your profile'}</h1>
-    <InfoHelp label="Profile and event registration">Creating a profile does not register you for an event.</InfoHelp>
+    <p className="ui-privacy">Event registration is separate.</p><InfoHelp label="Profile and event registration">Creating a profile does not register you for an event.</InfoHelp>
     {profile ? <ProfileEditor uid={auth.currentUser!.uid} name={name} onNameChange={setName} save={payload => identityRequest('save-profile', payload)} onSaved={setMessage} /> : <form className="space-y-4" onSubmit={async event => {
       event.preventDefault(); setBusy(true);
       try { await setDoc(doc(db, 'profiles', auth.currentUser!.uid), { name: name.trim(), state: 'active' }); setMessage('Profile saved.'); } catch (issue: any) { setMessage(issue.message); } finally { setBusy(false); }
@@ -123,7 +123,7 @@ function ProfileForm({ profile }: { profile?: Profile }) {
     <p role="status">{message}</p>
     {profile && <><Achievements /><Link className="block underline" to="/badge">My badge</Link><Link to="/">Find an event</Link><button className="block" onClick={() => signOut(auth)}>Sign out</button>
       <p>Deleting removes your social profile and reusable details. Workshop contributions retain a deleted-member label. Your sign-in and event administrator permissions remain. You can create a new social profile later.</p>
-      <InfoHelp label="Organizer-assisted legacy linking">Account ID for organizer-assisted legacy linking: <code>{auth.currentUser?.uid}</code></InfoHelp>
+      <div className="ui-heading-row"><p className="text-xs break-all">Account ID: <code>{auth.currentUser?.uid}</code></p><InfoHelp label="Organizer-assisted legacy linking">Give your account ID to your organizer to link a previous registration.</InfoHelp></div>
       <button className="text-red-400" disabled={busy} onClick={async () => {
         if (!window.confirm('Delete your social profile and personal workshop details? This cannot be undone. Your sign-in and administrator permissions remain.')) return;
         setBusy(true);
