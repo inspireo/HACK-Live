@@ -76,7 +76,16 @@ test('organizer publication and sender native copy manual cancellation', async (
   await expect(share).toBeEnabled();
   expect((await fixtureDb.doc(`eventInvitations/${publication.currentToken}`).get()).data()).toEqual(record);
   expect((await fixtureDb.collection('registrations').get()).size).toBe(0);
-  if (process.env.INVITATION_DEMO === 'true') await writeFile('test-results/invitation-demo.json', JSON.stringify({ mode: 'paced-emulator-browser', shared, osContractsMocked: true, physicalDevice: false, actualApp: true, fixtures: 'synthetic' }, null, 2));
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await page.getByRole('button', { name: 'Delete event', exact: true }).click();
+  await hold(page);
+  await page.getByRole('button', { name: 'Confirm delete event', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Event deleted', exact: true })).toBeVisible();
+  expect((await fixtureDb.doc('sessions/event-one').get()).data()!.deletedAt).toBeTruthy();
+  expect((await fixtureDb.doc('eventPublications/event-one').get()).exists).toBe(true);
+  for (const suffix of ['', '/calendar.ics']) expect((await invitationRequest(`/api/invitations/${publication.currentToken}${suffix}`)).status).toBe(404);
+  await page.screenshot({ path: 'test-results/invitation-soft-deleted.png' }); await hold(page);
+  if (process.env.INVITATION_DEMO === 'true') await writeFile('test-results/invitation-demo.json', JSON.stringify({ mode: 'paced-emulator-browser', shared, osContractsMocked: true, physicalDevice: false, actualApp: true, softDeletionShown: true, fixtures: 'synthetic' }, null, 2));
 });
 
 test('anonymous recipient calendar preview then real auth profile and explicit registration', async ({ browser }) => {

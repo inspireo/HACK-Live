@@ -7,7 +7,7 @@ import { chromium } from '@playwright/test';
 const run = JSON.parse(await readFile('test-results/.last-run.json', 'utf8'));
 if (run.status !== 'passed') throw new Error('Collect invitation evidence only after passing browser tests');
 const demo = JSON.parse(await readFile('test-results/invitation-demo.json', 'utf8'));
-if (demo.mode !== 'paced-emulator-browser' || !demo.osContractsMocked || demo.physicalDevice || !demo.actualApp) throw new Error('Expected actual-app paced emulator evidence with labelled OS substitutions');
+if (demo.mode !== 'paced-emulator-browser' || !demo.osContractsMocked || demo.physicalDevice || !demo.actualApp || !demo.softDeletionShown) throw new Error('Expected actual-app paced emulator evidence with labelled OS substitutions');
 const folders = await readdir('test-results');
 const sender = folders.filter(entry => entry.startsWith('event-invitation-organizer-') && entry.includes('cancellation'));
 const recipient = (await readdir('test-results/invitation-recipient')).filter(entry => entry.endsWith('.webm'));
@@ -35,6 +35,6 @@ for (const [folder, name] of [[`${sender[0]}/video.webm`, 'pr3-invitation-mobile
   artifacts.push({ path: destination, bytes: (await stat(destination)).size, sha256: createHash('sha256').update(bytes).digest('hex'), durationSeconds: Number(match[1]) * 3600 + Number(match[2]) * 60 + Number(match[3]), width: Number(dimensions[1]), height: Number(dimensions[2]) });
 }
 const sourceSha = spawnSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).stdout.trim();
-const manifest = { sourceSha, recordedAt: new Date().toISOString(), actualApp: true, fixtureData: 'synthetic emulator accounts/events', mocked: ['OS Web Share', 'OS clipboard'], real: ['application UI', 'Firebase auth', 'Firestore rules', 'invitation APIs', 'calendar download', 'explicit event registration'], physicalDevice: false, artifacts };
+const manifest = { sourceSha, recordedAt: new Date().toISOString(), actualApp: true, fixtureData: 'synthetic emulator accounts/events', mocked: ['OS Web Share', 'OS clipboard'], real: ['application UI', 'Firebase auth', 'Firestore rules', 'invitation APIs', 'calendar download', 'explicit event registration'], physicalDevice: false, softDeletionShown: true, artifacts };
 await writeFile('test-results/invitation-media-manifest.json', JSON.stringify(manifest, null, 2));
 console.log(JSON.stringify(manifest, null, 2));

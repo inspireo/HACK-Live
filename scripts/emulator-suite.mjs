@@ -15,6 +15,10 @@ try {
     await new Promise(resolve => setTimeout(resolve, 200));
   }
   if (!healthy) throw new Error('App did not start');
+  // Run only the two final invitation recordings after the full combined suite passes.
+  if (process.env.INVITATION_DEMO === 'true' && process.env.INVITATION_RECORD_ONLY === 'true') {
+    await run('npx', ['playwright', 'test', 'tests/browser/event-invitation.spec.ts', '--grep', 'organizer publication|anonymous recipient']);
+  } else {
   await run('node', ['--import', 'tsx', '--test', 'tests/profile-pure.test.ts']);
   await run('node', ['--import', 'tsx', '--test', 'tests/eventInvitation.test.ts']);
   await run('node', ['--import', 'tsx', '--test', 'tests/public-invitation-pure.test.ts']);
@@ -24,5 +28,6 @@ try {
   await run('node', ['--import', 'tsx', '--test', 'tests/invitation-api.test.ts']);
   await run('node', ['--import', 'tsx', '--test', 'tests/event-soft-delete.test.ts']);
   await run('npx', ['playwright', 'test']);
+  }
 } catch (issue) { console.error(issue); process.exitCode = 1; }
 finally { server.kill('SIGTERM'); }
