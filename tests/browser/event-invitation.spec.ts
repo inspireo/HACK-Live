@@ -78,9 +78,11 @@ test('organizer publication and sender native copy manual cancellation', async (
   if (process.env.INVITATION_DEMO === 'true') await writeFile('test-results/invitation-demo.json', JSON.stringify({ mode: 'paced-emulator-browser', shared, osContractsMocked: true, physicalDevice: false, actualApp: true, fixtures: 'synthetic' }, null, 2));
 });
 
-test('anonymous recipient calendar preview then real auth profile and explicit registration', async ({ page }) => {
+test('anonymous recipient calendar preview then real auth profile and explicit registration', async ({ browser }) => {
+  const context = await browser.newContext({ baseURL: 'http://127.0.0.1:3000', viewport: { width: 390, height: 844 }, recordVideo: { dir: 'test-results/invitation-recipient', size: { width: 390, height: 844 } } });
+  const page = await context.newPage();
+  try {
   if (process.env.INVITATION_DEMO === 'true') test.setTimeout(150000);
-  await page.setViewportSize({ width: 390, height: 844 });
   const publication = await publishFixture();
   await fixtureDb.doc('profiles/invitation-recipient').delete();
   const privateReads: string[] = [];
@@ -116,6 +118,7 @@ test('anonymous recipient calendar preview then real auth profile and explicit r
   await expect(page.getByText('Design a welcoming community', { exact: true }).first()).toBeVisible();
   expect((await fixtureDb.collection('registrations').where('sessionId', '==', 'event-one').where('uid', '==', 'invitation-recipient').get()).size).toBe(1);
   await page.screenshot({ path: 'test-results/invitation-recipient-return.png' }); await hold(page);
+  } finally { await context.close(); }
 });
 
 test('all CTA modes and post-auth revocation fail closed without accidental registration', async ({ page }) => {
