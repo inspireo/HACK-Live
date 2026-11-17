@@ -1,3 +1,4 @@
+import { InfoHelp } from '../../components/ui/InfoHelp';
 import React, { useState, useMemo, useEffect } from 'react';
 import { collection, addDoc, updateDoc, deleteDoc, doc, writeBatch, onSnapshot, query, where, deleteField } from 'firebase/firestore';
 import { db } from '../../firebase';
@@ -539,9 +540,7 @@ CONTEXT: ${editSupportingContext || 'N/A'}`;
           <h2 className="text-2xl font-bold flex items-center gap-2">
             <Sparkles className="text-emerald-500" /> Challenge Discovery Panel
           </h2>
-          <p className="text-sm text-zinc-400 mt-1">
-            Formulate shared ministry focus areas, view participant pitches, and curate them into official challenges.
-          </p>
+          <InfoHelp label="Challenge discovery">Formulate shared ministry focus areas, view participant pitches, and curate them into official challenges.</InfoHelp>
         </div>
         <div className="flex flex-wrap bg-zinc-900 border border-zinc-800 p-1 rounded-xl w-fit max-w-full">
           <button
@@ -716,7 +715,7 @@ CONTEXT: ${editSupportingContext || 'N/A'}`;
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-800 pb-4">
             <div>
               <h3 className="text-lg font-bold text-zinc-200">Participant Pitches</h3>
-              <p className="text-xs text-zinc-400 mt-0.5">Select multiple pitches to batch publish them or manage individually.</p>
+              <InfoHelp label="Publishing pitches">Select multiple pitches to batch publish them or manage individually.</InfoHelp>
             </div>
             <div className="flex items-center gap-3">
               {/* Filter Toggles */}
@@ -1223,9 +1222,7 @@ CONTEXT: ${editSupportingContext || 'N/A'}`;
           <div className="flex justify-between items-center bg-zinc-900 border border-zinc-800 p-5 rounded-2xl">
             <div>
               <h3 className="text-lg font-bold text-zinc-200">Challenge Workgroups</h3>
-              <p className="text-xs text-zinc-400 mt-1">
-                View launched and forming Challenge Workgroups. You can dissolve groups or inspect membership.
-              </p>
+              <InfoHelp label="Challenge workgroups">View launched and forming Challenge Workgroups. You can dissolve groups or inspect membership.</InfoHelp>
             </div>
           </div>
 

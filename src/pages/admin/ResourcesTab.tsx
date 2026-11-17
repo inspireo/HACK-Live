@@ -1,3 +1,4 @@
+import { InfoHelp } from '../../components/ui/InfoHelp';
 import React, { useState } from 'react';
 import { collection, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 import { db, auth } from '../../firebase';
@@ -335,7 +336,7 @@ export default function ResourcesTab({ sessionId, resources }: { sessionId: stri
       <div>
         <label className="block text-sm text-zinc-400 mb-1">External Link Button Label (Optional)</label>
         <input type="text" value={linkButtonLabel} onChange={e => setLinkButtonLabel(e.target.value)} className="w-full px-4 py-2 bg-zinc-950 border border-zinc-800 rounded-lg focus:ring-2 focus:ring-emerald-500" placeholder="e.g. Open Google Doc, View Full Guide" />
-        <p className="text-xs text-zinc-500 mt-1">If left blank, a default label based on the category will be used.</p>
+        <InfoHelp label="External link button label">If left blank, a default label based on the category will be used.</InfoHelp>
       </div>
       <div className="flex items-center gap-2">
         <input type="checkbox" id="published" checked={isPublished} onChange={e => setIsPublished(e.target.checked)} className="w-4 h-4 text-emerald-600 bg-zinc-900 border-zinc-700 rounded focus:ring-emerald-500" />

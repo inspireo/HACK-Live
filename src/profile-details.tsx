@@ -3,6 +3,8 @@ import { doc, getDoc, onSnapshot } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from './firebase';
 import { profileEditorDetails, normalizeTelegram, communityProjection, contactFields, emptyDetails, fieldLabels, professionalFields, isManagedPhotoUrl, maxPhotoUploadBytes, safeProfileUrl, validateProfileEdit, type ProfessionalValues, type ProfileDetails } from '../shared/profile';
+import { InfoHelp } from './components/ui/InfoHelp';
+import { Button, Field, controlClass } from './components/ui/patterns';
 import { PhoneInput } from './phone-input';
 import { hydratePhone, phoneDraftValue, type PhoneDraft } from '../shared/phone-draft';
 import { SkillsCombobox } from './skills-combobox';
@@ -107,7 +109,7 @@ export function ProfileEditor({ uid, name, onNameChange, save, onSaved }: { uid:
     getDoc(doc(db, 'profileDetails', uid)).then(snapshot => { if (current) { const loaded = snapshot.exists() ? profileEditorDetails(snapshot.data() as ProfileDetails) : emptyDetails(); setDetails(loaded); setPhones({ phone: hydratePhone(loaded.contacts.phone), whatsapp: hydratePhone(loaded.contacts.whatsapp) }); setReady(true); } }).catch(issue => { if (current) setError(issue.message); });
     return () => { current = false; };
   }, [uid]);
-  const inputClass = 'block w-full p-3 bg-zinc-900 border border-zinc-600 rounded-lg';
+  const inputClass = controlClass;
   if (!ready) return error ? <p role="alert">{error}</p> : <p>Loading profile details…</p>;
   return <><form className="space-y-5" onSubmit={async event => {
     event.preventDefault();
@@ -131,12 +133,11 @@ export function ProfileEditor({ uid, name, onNameChange, save, onSaved }: { uid:
     catch (issue) { if (isCurrentOwner()) setError((issue as Error).message); } finally { if (isCurrentOwner()) setBusy(false); }
   }}>
     <label className="block">Name<input className={inputClass} disabled={busy} value={name} onChange={event => onNameChange(event.target.value)} required maxLength={100} /></label>
-    <p>Your name is visible to members. Every optional field starts private. Choose which professional details members can see.</p>
+    <div className="ui-heading-row"><p className="ui-privacy">Name visible to members · Optional fields private unless selected.</p><InfoHelp label="Profile visibility">Choose which professional details members can see. Save to apply your selections.</InfoHelp></div>
     <fieldset disabled={busy} className="space-y-4"><legend className="font-bold">Professional details</legend>{professionalFields.map(field => <div key={field}>
       {field === 'avatarUrl' ? <div className="space-y-2">
-        <label htmlFor="profile-photo" className="block">Photo (optional)</label>
-        <p id="photo-help" className="text-sm">Choose a still JPEG, PNG or WebP photo up to 2 MB. Your photo stays private unless you choose to show it to members. Save to apply a new photo or removal.</p>
-        <input id="profile-photo" type="file" accept="image/jpeg,image/png,image/webp" aria-describedby="photo-help photo-error" aria-invalid={!!photoError} onChange={event => {
+        <div className="ui-heading-row"><label htmlFor="profile-photo" className="block">Photo (optional)</label><InfoHelp label="Profile photo">Choose a still JPEG, PNG or WebP photo up to 2 MB. Your photo stays private unless you choose to show it to members. Save to apply a new photo or removal.</InfoHelp></div>
+        <input id="profile-photo" type="file" accept="image/jpeg,image/png,image/webp" aria-describedby="photo-error" aria-invalid={!!photoError} onChange={event => {
           const file = event.target.files?.[0]; event.target.value = '';
           if (!file) return;
           if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || !file.size || file.size > maxPhotoUploadBytes) { setPhotoError('Choose a JPEG, PNG or WebP photo up to 2 MB.'); return; }
@@ -147,23 +148,21 @@ export function ProfileEditor({ uid, name, onNameChange, save, onSaved }: { uid:
         {removePhoto && <p>Photo will be removed when you save.</p>}
         <p id="photo-error" role={photoError ? 'alert' : undefined}>{photoError}</p>
       </div> : field === 'skills' ? <SkillsCombobox value={details.professional.skills || ''} onChange={value => setDetails(previous => ({ ...previous, professional: { ...previous.professional, skills: value } }))} disabled={busy} /> : <>
-      <label className="block" htmlFor={`professional-${field}`}>{fieldLabels[field]}</label><textarea id={`professional-${field}`} rows={field === 'bio' || field === 'work' ? 3 : 1} className={inputClass} value={details.professional[field] || ''} maxLength={field === 'bio' || field === 'work' ? 2000 : 500} onChange={event => setDetails(previous => ({ ...previous, professional: { ...previous.professional, [field]: event.target.value } }))} />
+      <Field label={fieldLabels[field]} htmlFor={`professional-${field}`}><textarea id={`professional-${field}`} rows={field === 'bio' || field === 'work' ? 3 : 1} className={inputClass} value={details.professional[field] || ''} maxLength={field === 'bio' || field === 'work' ? 2000 : 500} onChange={event => setDetails(previous => ({ ...previous, professional: { ...previous.professional, [field]: event.target.value } }))} /></Field>
       </>}
       <label><input type="checkbox" checked={details.communityFields.includes(field)} onChange={event => setDetails(previous => ({ ...previous, communityFields: event.target.checked ? [...previous.communityFields, field] : previous.communityFields.filter(value => value !== field) }))} /> Show {fieldLabels[field]} to members</label>
     </div>)}</fieldset>
     <fieldset disabled={busy} className="space-y-4"><legend className="font-bold">Contact details and sharing</legend>
-      <p>Contacts stay private unless you select them for approved connections. Contact email is separate from your sign-in email.</p>
-      <p>Choose one global selection for ALL approved connections. Saved selection and value changes apply to every current and future approved connection. Pending requests and other members cannot see your contacts.</p>
-      <p>Unfriend or block revokes future contact access in both directions immediately. Previously saved copies cannot be recalled.</p>
+      <div className="ui-heading-row"><p className="ui-privacy">Private unless selected · One selection for ALL current and future approved connections.</p><InfoHelp label="Contact sharing"><p>Contacts stay private unless you select them for approved connections. Contact email is separate from your sign-in email.</p><p>Saved selection and value changes apply to every current and future approved connection. Pending requests and other members cannot see your contacts.</p><p>Unfriend or block revokes future contact access in both directions immediately. Previously saved copies cannot be recalled.</p></InfoHelp></div>
       {contactFields.map(field => <div key={field} className="space-y-2">
-        {field === 'whatsapp' && <><label><input type="checkbox" checked={details.whatsappUsesMobile === true} onChange={event => { if (!event.target.checked) setPhones(previous => ({ ...previous, whatsapp: { ...previous.phone } })); setDetails(previous => ({ ...previous, whatsappUsesMobile: event.target.checked })); }} /> Use my mobile number for WhatsApp</label><p id="whatsapp-help">Optional. Choose this only if your WhatsApp uses this mobile number. You can enter a different number instead. Sharing WhatsApp also exposes its registered phone number.</p></>}
-        {field === 'phone' || field === 'whatsapp' ? <PhoneInput label={fieldLabels[field]} draft={field === 'whatsapp' && details.whatsappUsesMobile ? phones.phone : phones[field]} disabled={field === 'whatsapp' && details.whatsappUsesMobile === true} inputClass={inputClass} helpId={field === 'phone' ? 'mobile-help' : 'whatsapp-help'} onChange={draft => setPhones(previous => ({ ...previous, [field]: draft }))} /> : <label className="block">{fieldLabels[field]}<input className={inputClass} type={field === 'contactEmail' ? 'email' : 'text'} autoComplete={field === 'contactEmail' ? 'email' : 'off'} inputMode={field === 'contactEmail' ? 'email' : 'text'} aria-describedby={field === 'telegram' ? 'telegram-help' : undefined} value={details.contacts[field] || ''} maxLength={500} onChange={event => setDetails(previous => ({ ...previous, contacts: { ...previous.contacts, [field]: event.target.value } }))} /></label>}
-        {field === 'phone' && <p id="mobile-help">Optional. Choose a country code and enter your national number, or paste a full +international number. No country is selected by default. Clear the number to remove it. Shared calling codes reload without a country choice. Choose a country before editing their national number, or paste a full +international number.</p>}
-        {field === 'telegram' && <><p id="telegram-help">Type or paste your @username or https://t.me/username. This does not verify ownership. Clear an old value to remove it.</p><TelegramPreview value={details.contacts.telegram || ''} /></>}
+        {field === 'whatsapp' && <><label><input type="checkbox" checked={details.whatsappUsesMobile === true} onChange={event => { if (!event.target.checked) setPhones(previous => ({ ...previous, whatsapp: { ...previous.phone } })); setDetails(previous => ({ ...previous, whatsappUsesMobile: event.target.checked })); }} /> Use my mobile number for WhatsApp</label><p className="ui-privacy">Sharing WhatsApp also exposes its registered phone number.</p><InfoHelp label="WhatsApp number">Optional. Choose this only if your WhatsApp uses this mobile number. You can enter a different number instead.</InfoHelp></>}
+        {field === 'phone' || field === 'whatsapp' ? <PhoneInput label={fieldLabels[field]} draft={field === 'whatsapp' && details.whatsappUsesMobile ? phones.phone : phones[field]} disabled={field === 'whatsapp' && details.whatsappUsesMobile === true} inputClass={inputClass} onChange={draft => setPhones(previous => ({ ...previous, [field]: draft }))} /> : <label className="block">{fieldLabels[field]}<input className={inputClass} type={field === 'contactEmail' ? 'email' : 'text'} autoComplete={field === 'contactEmail' ? 'email' : 'off'} inputMode={field === 'contactEmail' ? 'email' : 'text'} value={details.contacts[field] || ''} maxLength={500} onChange={event => setDetails(previous => ({ ...previous, contacts: { ...previous.contacts, [field]: event.target.value } }))} /></label>}
+        {field === 'phone' && <InfoHelp label="Mobile number">Optional. Choose a country code and enter your national number, or paste a full +international number. No country is selected by default. Clear the number to remove it. Shared calling codes reload without a country choice. Choose a country before editing their national number, or paste a full +international number.</InfoHelp>}
+        {field === 'telegram' && <><InfoHelp label="Telegram username or link">Type or paste your @username or https://t.me/username. This does not verify ownership. Clear an old value to remove it.</InfoHelp><TelegramPreview value={details.contacts.telegram || ''} /></>}
         <label><input type="checkbox" checked={details.connectionFields.includes(field)} onChange={event => setDetails(previous => ({ ...previous, connectionFields: event.target.checked ? [...previous.connectionFields, field] : previous.connectionFields.filter(value => value !== field) }))} /> Share {fieldLabels[field]} with all approved connections</label></div>)}
     </fieldset>
     {error && <p role="alert">{error}</p>}
-    <button disabled={busy} className="p-3 bg-emerald-700 rounded-lg disabled:opacity-50">Save profile</button>
+    <Button type="submit" disabled={busy}>Save profile</Button>
   </form>
   <button type="button" className="underline" onClick={() => setPreview(value => !value)}>Preview community view</button>
   {preview && <section aria-label="Community preview" className="border border-zinc-600 rounded-lg p-4 space-y-3"><ProfileHeader preview name={name} photoUrl={!photoFile && !removePhoto && details.communityFields.includes('avatarUrl') ? details.professional.avatarUrl : undefined} photoPreview={details.communityFields.includes('avatarUrl') ? photoPreview : undefined} /><p>Preview of your current edits. Save to apply them.</p><ProfessionalView showPhoto={false} values={communityProjection({ ...details, professional: { ...details.professional, ...((photoFile || removePhoto) ? { avatarUrl: undefined } : {}) } })} /><p>Contacts are hidden.</p></section>}</>;

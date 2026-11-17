@@ -13,3 +13,45 @@
     border-radius: 20px;
   }
 }
+
+/* Semantic defaults retain the existing zinc / emerald identity. */
+:root, .ui-dark {
+  --ui-canvas: #09090b; --ui-surface: #18181b; --ui-control: #18181b;
+  --ui-text: #fafafa; --ui-muted: #a1a1aa; --ui-border: #52525b;
+  --ui-accent: #047857; --ui-accent-text: #ffffff; --ui-focus: #34d399;
+  --ui-danger: #fca5a5; --ui-radius: .75rem;
+  --ui-space-1: .25rem; --ui-space-2: .5rem; --ui-space-3: .75rem;
+  --ui-space-4: 1rem; --ui-space-6: 1.5rem; --ui-space-8: 2rem;
+  --ui-body: 1rem; --ui-caption: .875rem; --ui-title: 1.5rem;
+}
+.ui-light {
+  --ui-canvas: #fff; --ui-surface: #fff; --ui-control: #fafafa;
+  --ui-text: #18181b; --ui-muted: #52525b; --ui-border: #a1a1aa;
+  --ui-accent: #047857; --ui-accent-text: #fff; --ui-focus: #047857;
+}
+@layer base {
+  body { background: var(--ui-canvas); font-size: var(--ui-body); line-height: 1.5; }
+  :where(button, a, input, select, textarea, summary):focus-visible { outline: 2px solid var(--ui-focus); outline-offset: 3px; }
+  :where(input, select, textarea) { min-width: 0; max-width: 100%; }
+  :where(input[type=checkbox], input[type=radio]) { accent-color: var(--ui-accent); }
+  :where(button, summary) { cursor: pointer; }
+  button:disabled { cursor: not-allowed; }
+}
+.ui-heading-row { display: flex; align-items: center; gap: var(--ui-space-2); flex-wrap: wrap; }
+.ui-heading-row > :first-child { min-width: 0; }
+.ui-info { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; min-width: 44px; flex-shrink: 0; border: 1px solid transparent; border-radius: 50%; color: var(--ui-muted); background: transparent; vertical-align: middle; }
+.ui-info:hover, .ui-info[data-state=open] { color: var(--ui-text); border-color: var(--ui-border); background: var(--ui-control); }
+.ui-help { z-index: 1000; width: min(22rem, calc(100vw - 24px)); max-width: var(--radix-popover-content-available-width); max-height: var(--radix-popover-content-available-height); overflow-y: auto; overscroll-behavior: contain; padding: var(--ui-space-4); background: var(--ui-surface); color: var(--ui-text); border: 1px solid var(--ui-border); border-radius: var(--ui-radius); box-shadow: 0 12px 40px #0005; overflow-wrap: anywhere; font-size: var(--ui-caption); line-height: 1.6; }
+.ui-help-heading { display: flex; align-items: center; justify-content: space-between; gap: var(--ui-space-2); font-weight: 600; }
+.ui-help-body { display: grid; gap: var(--ui-space-3); }
+.ui-help-arrow { fill: var(--ui-border); }
+.ui-section { display: grid; gap: var(--ui-space-4); padding: var(--ui-space-6); border: 1px solid var(--ui-border); border-radius: var(--ui-radius); }
+.ui-section h2 { font-size: var(--ui-title); font-weight: 600; }
+.ui-field { display: grid; gap: var(--ui-space-2); min-width: 0; }
+.ui-control { display: block; width: 100%; min-height: 44px; padding: var(--ui-space-3); border: 1px solid var(--ui-border); border-radius: var(--ui-radius); background: var(--ui-control); color: var(--ui-text); }
+.ui-button { min-height: 44px; padding: var(--ui-space-3) var(--ui-space-4); border-radius: var(--ui-radius); font-weight: 600; }
+.ui-button-primary { background: var(--ui-accent); color: var(--ui-accent-text); }
+.ui-button-secondary { border: 1px solid var(--ui-border); }
+.ui-button-danger { color: var(--ui-danger); border: 1px solid var(--ui-danger); }
+.ui-button:disabled { opacity: .5; }
+.ui-privacy { font-size: var(--ui-caption); color: var(--ui-muted); }

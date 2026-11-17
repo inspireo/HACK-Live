@@ -1,3 +1,4 @@
+import { InfoHelp } from '../../components/ui/InfoHelp';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { collection, getDocs, query, where } from 'firebase/firestore';
@@ -55,7 +56,7 @@ export default function AwardsTab({ sessionId, historicalOnly = false }: { sessi
           <label>Award recipient <select className={control} required value={recipient} onChange={event => setRecipient(event.target.value)}><option value="">Choose recipient</option>{selected?.kind === 'individual' ? participants.map(member => <option key={member.id} value={member.id}>{member.name} · {member.id}</option>) : selected?.kind === 'team' ? teams.map(team => <option key={`${team.collectionName}~${team.id}`} value={`${team.collectionName}~${team.id}`}>{team.name || 'Unnamed team'} ({team.collectionName})</option>) : null}</select></label>
           <button className={control} disabled={busy || !recipient || !selected}>Save draft award</button>
         </form>
-        <p>Multiple winners: add another draft in the same category. Drafts are visible only to event staff.</p>
+        <InfoHelp label="Draft awards and multiple winners">Multiple winners: add another draft in the same category. Drafts are visible only to event staff.</InfoHelp>
       </>}
       <label className="block">Private audit reason <input className={control} value={reason} onChange={event => setReason(event.target.value)} maxLength={100} /></label>
       <label className="block">Correction category <select className={control} value={correctionCategory} onChange={event => setCorrectionCategory(event.target.value)}><option value="">Choose corrected category</option>{data.categories.map(category => <option key={category.id} value={category.id}>{category.name} ({category.kind})</option>)}</select></label>
@@ -69,7 +70,7 @@ export default function AwardsTab({ sessionId, historicalOnly = false }: { sessi
         {result.status === 'published' && <><button className={control} disabled={busy || !reason.trim() || !data.categories.some(category => category.id === correctionCategory && category.kind === result.kind)} onClick={() => mutate('correct', { resultId: result.id, categoryId: correctionCategory, reason })}>Correct category</button> <button className={control} disabled={busy || !reason.trim()} onClick={() => mutate('revoke', { resultId: result.id, reason })}>Revoke award</button></>}
       </article>)}</div>
       {!historicalOnly && <button className={control} disabled={busy || (data.state.finalized && !reason.trim())} onClick={() => mutate(data.state.finalized ? 'reopen' : 'finalize', data.state.finalized ? { reason } : {})}>{data.state.finalized ? 'Reopen results' : 'Finalize results'}</button>}
-      <p>Finalization explicitly closes award entry. It makes no claim about who competed or lost. Corrections and revocations remain audited.</p>
+      <InfoHelp label="Result finalization">Finalization explicitly closes award entry. It makes no claim about who competed or lost. Corrections and revocations remain audited.</InfoHelp>
       <details><summary>Staff audit trail</summary>{[...data.audits].sort((left, right) => right.revision - left.revision).map(audit => <p key={audit.id}>Revision {audit.revision} · {audit.action} · {audit.at} · {audit.actorUid || 'Deleted actor'}{audit.reason && ` · ${audit.reason}`}</p>)}</details>
     </>}
   </section>;

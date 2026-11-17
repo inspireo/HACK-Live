@@ -1,7 +1,7 @@
 import React from "react";
 import { editPhone, neutralCallingCodes, phoneCountries, type PhoneDraft } from "../shared/phone-draft";
 
-export function PhoneInput({ label, draft, onChange, disabled, inputClass, helpId }: { label: string; draft: PhoneDraft; onChange: (draft: PhoneDraft) => void; disabled?: boolean; inputClass: string; helpId: string }) {
+export function PhoneInput({ label, draft, onChange, disabled, inputClass, helpId }: { label: string; draft: PhoneDraft; onChange: (draft: PhoneDraft) => void; disabled?: boolean; inputClass: string; helpId?: string }) {
   const fallback = neutralCallingCodes.find(({ code }) => draft.country === `+${code}`);
   return <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 min-w-0">
     <label className="block min-w-0">{label === "Mobile number" ? "Mobile country code" : "WhatsApp country code"}

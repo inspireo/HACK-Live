@@ -1,3 +1,4 @@
+import { InfoHelp } from '../../components/ui/InfoHelp';
 import MemberHistory from '../../components/MemberHistory';
 import TeamRoleEditor from '../../components/TeamRoleEditor';
 import { allocationEligible, solutionTeamId } from '../../../shared/participation';
@@ -1145,7 +1146,7 @@ export default function ParticipantDashboard() {
 
           <form onSubmit={handleJoin} className="space-y-4 bg-zinc-900 p-6 rounded-2xl border border-zinc-800">
             <p>Register as <strong>{profile.name}</strong>. <a href="/account" className="underline">Edit your profile</a></p>
-            <p className="text-sm text-zinc-400">Returning from the old sign-in? Ask your organizer to link your previous registration before continuing. Phone passcodes cannot recover it.</p>
+            <InfoHelp label="Previous event registration">Returning from the old sign-in? Ask your organizer to link your previous registration before continuing. Phone passcodes cannot recover it.</InfoHelp>
               <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
                 <div className="bg-zinc-800/50 p-4 rounded-xl">
                   <p className="text-zinc-300 text-sm">Tell us a little about yourself so we can form great teams.</p>
@@ -1298,9 +1299,7 @@ export default function ParticipantDashboard() {
                     <span className="text-lg">{sec.emoji}</span>
                     <h2 className="text-base font-bold text-zinc-100">{sec.title}</h2>
                   </div>
-                  <p className="text-xs text-zinc-500 leading-relaxed max-w-sm">
-                    {sec.helperText}
-                  </p>
+                  <InfoHelp label={`${sec.title} guidance`}>{sec.helperText}</InfoHelp>
                 </div>
 
                 <div className="space-y-4">
