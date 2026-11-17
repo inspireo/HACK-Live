@@ -143,3 +143,22 @@ test("explicit country choice cannot silently rewrite IDD destinations or ignore
   assert.equal(phoneDraftValue(editPhone({ ...legacy, country: "SG" }, "81234567")), "+6581234567");
   assert.equal(phoneDraftValue(editPhone({ ...legacy, country: "SG" }, "+49 30 123456")), "+4930123456");
 });
+
+
+test("editing a reloaded shared calling code requires country choice instead of silently prefixing", async () => {
+  const { hydratePhone, editPhone, phoneDraftValue } = await import("../shared/phone-draft");
+  for (const [canonical, national, country] of [
+    ["+447700900123", "07700 900123", "GB"],
+    ["+12025550199", "1 202 555 0199", "US"],
+    ["+390236618300", "02 36618 300", "IT"],
+  ]) {
+    const loaded = hydratePhone(canonical);
+    assert.equal(phoneDraftValue(loaded), canonical);
+    const edited = editPhone(loaded, national);
+    assert.throws(() => phoneDraftValue(edited), /Choose a country before editing/);
+    assert.equal(phoneDraftValue({ ...edited, country }), canonical);
+  }
+  assert.throws(() => phoneDraftValue(editPhone(hydratePhone("+447700900123"), "0049 30 123456")), /Choose a country before editing/);
+  assert.throws(() => phoneDraftValue(editPhone(hydratePhone("+80012345678"), "12345679")), /full \+international/);
+  assert.equal(phoneDraftValue(editPhone(hydratePhone("+80012345678"), "+80012345679")), "+80012345679");
+});
