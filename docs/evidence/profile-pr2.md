@@ -1,34 +1,44 @@
-# PR2 profile and contact evidence
+# PR2 country selector evidence
 
-The owner/other-member recordings are actual Playwright Chromium interactions with synthetic Firebase Auth/Firestore emulators (`demo-hack-live`). They use real generated PNG file bytes, the trusted server decoder/storage/read path and actual sharing rules. No Firebase/Auth substitute, fabricated UI or production data is involved. `PROFILE_DEMO=true` adds four-second reading holds at key screens.
+Current recordings are actual Playwright Chromium interactions with synthetic Firebase Auth/Firestore emulators (`demo-hack-live`). File selection uses real generated PNG bytes, native FileReader, the trusted image decoder and authenticated API/rules. No fabricated UI, production data or live messaging is involved. `PROFILE_DEMO=true` adds four-second reading holds.
 
-The recordings use validated source `84f31d6feeb9c60366672f985b5e0570a2ad599f`; the publication followup changes documentation only. The passing paced cumulative run passed **39 tests**: 7 pure validation/image tests, 24 API/rules tests (19 identity and 5 photo) and 8 Chromium journeys. Node 24 typecheck and production build passed; the existing large-bundle advisory remains. All local services were shut down and ports 3000/8080/9099/9150 verified free. No production data or deployment was used.
+Validated product/test source: `fd214e4dcba79fef3422c570622709a2e8a71012`. The final paced cumulative run passed **47 tests**: 10 pure/image/parser tests, 24 API/rules tests (19 identity and 5 photo), and 13 Chromium journeys. Node **24.22.2** typecheck and production build passed with Java 21.0.1; the existing large-bundle advisory remains. A later evidence commit changes documentation/screenshots only.
 
-Both native video attachments were uploaded using the official GitHub CLI attachment command with task-local CLI and scoped credentials. Their published native players were checked and downloaded bytes matched the frozen local SHA-256 values below. No Chrome access, real messaging targets, login-provider infrastructure or device permissions were involved. Local WebMs remain ignored and uncommitted.
+The three current WebMs are local, ignored and uncommitted. They have **not** been uploaded or inserted into a PR body in this checkpoint; publication remains with the coordinating root after acceptance. Earlier native attachments show a previous contact editor and are not current country-selector evidence.
 
-## Owner: photo, searchable skills and private contact choices
+## Owner: current profile editor
 
-https://github.com/user-attachments/assets/bf959c7c-743c-4151-a830-618814050fbb
+Local file: `docs/evidence/pr2-profile-owner.webm`. Duration **00:01:09.84**, **5,252,684 bytes**. SHA-256 `5382d5a32c8c023b594b70fcd23dab38779b0db732b9a5b725ef3d9507b0a5cc`.
 
-Uploaded as `profile-contact-options.webm`, from `docs/evidence/pr2-profile-owner.webm`: **64.48 seconds, 5,008,271 bytes**; SHA-256 `a21465c7928d65a44408870cd3e627497a60e4be9cc3c5d22a52965abb363244`.
+Shows real photo selection, searchable/custom skills, private contacts and independent consent, community preview, save/reload, photo replacement/revocation/removal, mobile viewport and deletion. The country selector visibly changes from United Kingdom (+44) to Singapore (+65) while national digits stay unchanged (readable holds around 14 and 24 seconds). WhatsApp linking is explicit; Telegram preview remains owner-only.
 
-Shows searchable predefined/custom skills, keyboard selection, removable chips and persistence; invalid-file feedback, real PNG preview, private save/reload and selected community preview; Telegram link entry with safe owner preview; explicit same-mobile WhatsApp choice, independent sharing selections and registered-number exposure hint; photo sharing/replacement/revocation/removal, mobile viewport and deletion. No Signal field is displayed. The contact area is readable around 12 seconds and again at the narrow viewport hold around 54 seconds. Neither Telegram nor WhatsApp targets are opened or messaged.
+## Other member: selected projection and revocation
 
-## Other member: selected professional details and live photo revocation
+Local file: `docs/evidence/pr2-profile-other-member.webm`. Duration **00:00:38.44**, **832,338 bytes**. SHA-256 `c5879377a31d4a5d5ef4f50df3864c7bee2deb64ebc1602ced14576f7e4d4ae9`.
 
-https://github.com/user-attachments/assets/aaefd12f-9653-4593-93c7-ff80cb9e0edf
+An independent real signed-in member sees selected professional fields and an uploaded photo only after consent; replacement/revocation and deletion update the view. Private contacts and WhatsApp mode stay absent. Decoded frames around 8 and 15 seconds show the selected photo present and later revoked.
 
-Uploaded as `profile-contact-privacy.webm`, from `docs/evidence/pr2-profile-other-member.webm`: **38.64 seconds, 811,435 bytes**; SHA-256 `2b9663bf2b15aae0169a9eb1b9fc6a28bb3ec9fb8c6cf6be1897560460d8b6df`.
+## Owner: focused country selector journey
 
-An independent signed-in member initially sees selected title, skills and GitHub, while private photo/bio/company/contacts remain absent. Explicit photo consent makes the uploaded image visible; replacement updates it. Revocation removes it, including when a real authenticated image response is delayed. Title revocation and profile deletion update the view live. Contacts and WhatsApp mode remain owner-private throughout.
+Local file: `docs/evidence/pr2-profile-country-selectors.webm`. Duration **00:00:27.00**, **3,942,378 bytes**. SHA-256 `9ecf138d33b94b049687bb73e09bafcf11850ca6ae8d99e6e81b45ea7ed69ee3`.
+
+Focused changed UI: Singapore national input, linked disabled Mobile/WhatsApp controls, +1 paste, explicit US/Canada choice preserving digits, independent UK WhatsApp with national trunk zero, save/reload, Italy significant zero, optional clear and a narrow keyboard-driven selector. Holds around 4, 9 and 15 seconds show linked Singapore, linked Canada and separate UK WhatsApp. The 390×844 resized desktop viewport is letterboxed inside the fixed recording canvas; it is not real-device evidence.
+
+## Regression proof and limits
+
+Pure and real-browser regressions cover no default country, complete maintained country options, national input, code changes preserving digits, paste without double prefix, shared calling codes, GB trunk-zero removal, Italian significant-zero retention, legacy invalid/unknown values, optional clear/country-only drafts and linked/separate WhatsApp persistence. Rejected IDD/foreign-prefix, explicit-country/unknown-prefix and reloaded shared-code edits leave stored source unchanged; selecting the country or pasting a full international number corrects them. New dropdowns contain country choices only; only the current loaded/pasted shared fallback appears, remains enabled and disappears when a specific country is chosen.
+
+A deterministic real-auth test delayed delivery of actual FileReader bytes across A→B sign-out/sign-in; another deleted and recreated A with the same UID before releasing the old reader. Both failed on the prior source by replacing the current target name with A’s pending name. The final owner/lifetime fence tests pass with zero save requests and unchanged target name/private details/photo. Creation/recreation also reach the private editor with no permission alert or reload after the committed-profile gate backport. No server, rules, schema or migration changes were needed for these fixes.
+
+Decoded recording frames and screenshots were visually inspected: country changes, disabled linked controls, independent UK WhatsApp, selected member photo and revocation are visible. Browser assertions verify the narrow layout has no horizontal overflow. Full-page screenshot capture can briefly rescale a frame in the continuous owner recording; the focused selector clip supplies readable contact holds. These are synthetic desktop Chromium recordings, not live OAuth, production or real-device evidence.
 
 ## Screenshots
 
-[Owner form](pr2-profile-owner-form.png), [community preview](pr2-profile-community-preview.png), [other-member view](pr2-profile-other-member.png), [mobile viewport preview](pr2-profile-mobile-preview.png) are captured from the passing revised journey. The 390×844 case is resized desktop Chromium, not a real phone.
+[Owner form](pr2-profile-owner-form.png), [community preview](pr2-profile-community-preview.png), [other-member view](pr2-profile-other-member.png), [mobile preview](pr2-profile-mobile-preview.png), [country controls](pr2-profile-country-selectors.png), [mobile country controls](pr2-profile-country-selectors-mobile.png).
 
-## Reproduce and limits
+## Reproduce
 
-Use Node 24, Java 21 and exclusive local ports 3000/8080/9099/9150:
+Activate Node 24 and Java 21, reserve ports 3000/8080/9099/9150, then run:
 
 ```sh
 rtk npm ci
@@ -39,12 +49,4 @@ rtk proxy env PROFILE_DEMO=true npm run test:emulators
 rtk proxy node scripts/collect-profile-demo.mjs
 ```
 
-The paced cumulative run passed all 39 tests: 7 pure/image, 24 API/rules and 8 Chromium journeys. Contact regressions cover private drafts/save/reload, retired Signal removal, invalid legacy Telegram correction/removal, normalized username/profile links including short collectible names, linked mobile edits, separate WhatsApp numbers and independent sharing consent. Typecheck and production build also passed (existing bundle-size advisory). Screenshots and decoded video frames were visually inspected; photo preview and selected member image are visible, and the narrow layout wraps without horizontal overflow. Test fixtures run serially. A strengthened stale-photo precondition required the older API reset fixture to send the current photo reference and explicit removal; the product correctly returned 409 for the obsolete implicit-clear request. The updated fixture and full rerun validate the deliberate new contract. Independent review additionally found missing active-caller authorization and legacy-skill removal validation that blocked correction; both are fixed with API/browser regressions in the final cumulative run.
-
-No live Google consent, production deployment or real-device testing is represented here. Architecture, schema, exact teaming integration evidence and rollback/storage configuration: [profile-pr2.md](../profile-pr2.md). Parent PR1 browser regressions remain included.
-
-## Recording policy
-
-The two videos above replace earlier recordings, including the retired Signal UI. They demonstrate the current contact editor together with actual photo upload and searchable skills. Earlier assets are not presented as current evidence.
-
-Recording collectors write local videos to `docs/evidence/`; `docs/evidence/*.webm` is ignored. Upload recordings directly into the PR description under separate contextual headings. Do not commit or force-add videos. CI also retains complete successful browser artifacts for 14 days.
+The collector requires a passing browser run and stages three recordings plus six screenshots. `docs/evidence/*.webm` stays ignored; do not force-add videos. All granted services were shut down and ports 3000/8080/9099/9150 verified free after the final run. No merge, deployment, migration, production operation or reviewer message occurred. Architecture/backward compatibility and the unchanged data contract are documented in [profile-pr2.md](../profile-pr2.md).
