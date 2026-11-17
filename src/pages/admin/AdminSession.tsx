@@ -560,7 +560,7 @@ export default function AdminSession() {
             </div>
           </div>
 
-          {activeTab === 'invitation' && <EventPublicationPanel sessionId={sessionId!} />}
+          {activeTab === 'invitation' && <EventPublicationPanel key={sessionId} sessionId={sessionId!} />}
           {activeTab === 'admins' && (
             <div className="space-y-6">
               <div className="flex flex-col gap-1">

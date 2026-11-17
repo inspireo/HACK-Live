@@ -10,17 +10,21 @@ export default function ShareEventButton({ sessionId }: { sessionId: string }) {
   const [pending, setPending] = useState(false);
   const [manualCopy, setManualCopy] = useState(false);
   const inFlight = useRef(false);
+  const preparedKey = useRef('');
+  preparedKey.current = `${sessionId}:${prepared?.sessionId === sessionId ? prepared.invitation.url : ''}`;
   const feedbackId = useId(), invitationId = useId();
   useEffect(() => {
     let active = true;
+    let latestRequest = 0;
     setPrepared(null); setManualCopy(false); setLoading(true); setFeedback('');
     const load = async () => {
+      const requestNumber = ++latestRequest;
       try {
         const result = await invitationApi(`events/${encodeURIComponent(sessionId)}/invitation`);
         const invitation = buildEventInvitation(result.token, result.event, window.location.origin);
-        if (active) { setPrepared(invitation ? { sessionId, invitation, expiresAt: result.event.expiresAt } : null); setFeedback(''); setManualCopy(false); }
-      } catch (issue) { if (active) { setPrepared(null); setManualCopy(false); setFeedback((issue as Error).message); } }
-      finally { if (active) setLoading(false); }
+        if (active && requestNumber === latestRequest) { setPrepared(invitation ? { sessionId, invitation, expiresAt: result.event.expiresAt } : null); setFeedback(''); setManualCopy(false); }
+      } catch (issue) { if (active && requestNumber === latestRequest) { setPrepared(null); setManualCopy(false); setFeedback((issue as Error).message); } }
+      finally { if (active && requestNumber === latestRequest) setLoading(false); }
     };
     void load();
     const refresh = () => { setPrepared(null); setLoading(true); void load(); };
@@ -37,13 +41,17 @@ export default function ShareEventButton({ sessionId }: { sessionId: string }) {
     if (inFlight.current || !current) return;
     if (Date.now() >= current.expiresAt) { setPrepared(null); setFeedback('Invitation expired. Ask the organizer to renew it.'); return; }
     inFlight.current = true; setPending(true); setFeedback(''); setManualCopy(false);
+    const sharingKey = preparedKey.current;
     // Read-only preparation is complete. Native share executes in this click stack.
     const result = await shareEventInvitation(current.invitation, {
       share: navigator.share ? payload => navigator.share(payload) : undefined,
       copy: navigator.clipboard?.writeText ? invitationText => navigator.clipboard.writeText(invitationText) : undefined,
     });
-    setFeedback(result === 'shared' ? 'Event invitation shared.' : result === 'copied' ? 'Event invitation copied. Paste it to invite friends.' : result === 'manual' ? 'Select and copy the invitation below to invite friends.' : '');
-    setManualCopy(result === 'manual'); inFlight.current = false; setPending(false);
+    if (sharingKey === preparedKey.current) {
+      setFeedback(result === 'shared' ? 'Event invitation shared.' : result === 'copied' ? 'Event invitation copied. Paste it to invite friends.' : result === 'manual' ? 'Select and copy the invitation below to invite friends.' : '');
+      setManualCopy(result === 'manual');
+    }
+    inFlight.current = false; setPending(false);
   };
   return <div className="space-y-2">
     <button type="button" onClick={handleShare} disabled={pending || !current} aria-describedby={feedbackId}

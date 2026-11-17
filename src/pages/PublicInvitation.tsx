@@ -7,6 +7,7 @@ import { invitationApi } from '../utils/invitationApi';
 export default function PublicInvitation() {
   const { token } = useParams();
   const [event, setEvent] = useState<PublicEvent | null>(null), [error, setError] = useState('');
+  const [loadedToken, setLoadedToken] = useState('');
   useEffect(() => {
     let active = true;
     const controller = new AbortController();
@@ -14,7 +15,7 @@ export default function PublicInvitation() {
     fetch(`/api/invitations/${encodeURIComponent(token || '')}`, { signal: controller.signal, cache: 'no-store', referrerPolicy: 'no-referrer' }).then(async response => {
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Invitation unavailable.');
-      if (active) setEvent(result);
+      if (active) { setEvent(result); setLoadedToken(token || ''); }
     }).catch(issue => { if (active && issue.name !== 'AbortError') setError(issue.message); });
     return () => { active = false; controller.abort(); };
   }, [token]);
@@ -26,7 +27,7 @@ export default function PublicInvitation() {
   return <main className="min-h-screen bg-zinc-950 px-5 py-12 text-zinc-100"><article className="mx-auto max-w-2xl overflow-hidden rounded-3xl border border-zinc-800 bg-zinc-900 shadow-xl">
     <div className="h-2 bg-emerald-400" /><div className="space-y-7 p-7 sm:p-10">
       <p className="text-sm font-semibold tracking-widest text-emerald-300">#HACK LIVE · YOU’RE INVITED</p>
-      {error ? <><h1 className="text-3xl font-bold">Invitation unavailable</h1><p role="alert" className="text-zinc-300">{error}</p></> : !event ? <p role="status">Loading invitation…</p> : <>
+      {error ? <><h1 className="text-3xl font-bold">Invitation unavailable</h1><p role="alert" className="text-zinc-300">{error}</p></> : !event || loadedToken !== token ? <p role="status">Loading invitation…</p> : <>
         <h1 className="text-3xl font-bold leading-tight sm:text-4xl">{event.title}</h1>
         {event.description && <p className="whitespace-pre-wrap leading-relaxed text-zinc-300">{event.description}</p>}
         <dl className="space-y-5 border-y border-zinc-800 py-6">

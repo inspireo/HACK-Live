@@ -25,9 +25,9 @@ Server-only Firestore collections (all SDK reads/writes denied, including admins
 
 - `eventPublications/{sessionId}`: validated public fields, local start/end, UTC
   instants and IANA zone, registrationRequired/calendarEnabled, published,
-  revision, currentToken, updatedAt, opaque stable calendarUid.
+  revision, currentToken, updatedAt, opaque stable calendarUid, sessionCreatedAt.
 - `eventInvitations/{32-byte base64url token}`: sessionId, server createdAt,
-  immutable expiresAt exactly 604800000 ms later, revoked.
+  immutable expiresAt exactly 604800000 ms later, revoked, sessionCreatedAt.
 
 Existing ownerId, users.role admin, platform-owner verified email and
 sessionAccess.adminEmails authority are checked in the same transaction as each
@@ -56,6 +56,11 @@ Verified-account endpoints beneath `/api/identity`:
 
 Every public preview/calendar/authenticated handoff checks session existence,
 publication, exact current token, revoked and fixed server expiry. Reads never mint
+or extend links. The sessionCreatedAt binding comes from the authoritative Firestore
+document createTime (seconds/nanoseconds), never a client field. Deleting and
+recreating the same event ID cannot revive old invitations; the replacement starts
+unpublished with a fresh UID and token when explicitly published. The UID stays
+stable across renew/unpublish/republish only within the same event incarnation. Reads never mint
 or extend links. Responses and invite HTML are no-store and no-referrer. Unavailable
 links fail closed with generic errors. No migration, backfill or production write
 is needed: legacy events remain unpublished and their registration flow is intact.
