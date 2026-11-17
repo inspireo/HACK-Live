@@ -115,10 +115,10 @@ test("country/national drafts normalize trunk prefixes without changing canonica
   assert.equal(phoneDraftValue({ country: "IT", national: "02 36618 300" }), "+390236618300");
   assert.equal(phoneDraftValue({ country: "CA", national: "2025550199" }), "+12025550199");
   assert.equal(phoneDraftValue({ country: "US", national: "+65 8123 4567" }), "+6581234567");
-  assert.deepEqual(editPhone({ country: "IT", national: "123" }, "+65 8123 4567"), { country: "SG", national: "81234567" });
-  assert.deepEqual(hydratePhone("+18005550199"), { country: "+1", national: "8005550199" });
+  assert.deepEqual(editPhone({ country: "IT", national: "123" }, "+65 8123 4567"), { country: "SG", national: "81234567", international: true });
+  assert.deepEqual(hydratePhone("+18005550199"), { country: "+1", national: "8005550199", international: true });
   assert.equal(phoneDraftValue({ ...hydratePhone("+6581234567"), country: "GB" }), "+4481234567");
-  for (const phone of ["+6581234567", "+12025550199", "+447700900123", "+390236618300", "+80012345678", "+9991234567"]) assert.equal(phoneDraftValue(hydratePhone(phone)), phone);
+  for (const phone of ["+6581234567", "+12025550199", "+447700900123", "+390236618300", "+80012345678", "+9991234567", "+330123456789", "+49030123456"]) assert.equal(phoneDraftValue(hydratePhone(phone)), phone);
   const invalid = hydratePhone("old invalid value");
   assert.equal(invalid.national, "old invalid value");
   assert.throws(() => phoneDraftValue(invalid));
@@ -130,4 +130,16 @@ test("country/national drafts normalize trunk prefixes without changing canonica
   const result = validateProfileEdit({ name: "Member", ...emptyDetails(), contacts: { phone: canonical }, whatsappUsesMobile: true, connectionFields: ["whatsapp"] });
   assert.equal(result.details.contacts.whatsapp, canonical);
   assert.deepEqual(result.details.connectionFields, ["whatsapp"]);
+});
+
+
+test("explicit country choice cannot silently rewrite IDD destinations or ignore unknown legacy prefixes", async () => {
+  const { hydratePhone, editPhone, phoneDraftValue } = await import("../shared/phone-draft");
+  assert.throws(() => phoneDraftValue({ country: "GB", national: "0049 30 123456" }), /different international calling code/);
+  assert.equal(phoneDraftValue(editPhone({ country: "GB", national: "" }, "+49 30 123456")), "+4930123456");
+  const legacy = hydratePhone("+9991234567");
+  assert.equal(phoneDraftValue(legacy), "+9991234567");
+  assert.throws(() => phoneDraftValue({ ...legacy, country: "SG" }), /unrecognized international number/);
+  assert.equal(phoneDraftValue(editPhone({ ...legacy, country: "SG" }, "81234567")), "+6581234567");
+  assert.equal(phoneDraftValue(editPhone({ ...legacy, country: "SG" }, "+49 30 123456")), "+4930123456");
 });
