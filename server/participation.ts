@@ -2,6 +2,7 @@ import { isEventDeleted } from '../shared/eventLifecycle';
 import type { Router } from 'express';
 import type { Auth } from 'firebase-admin/auth';
 import type { Firestore, Transaction } from 'firebase-admin/firestore';
+import { eventSnapshot } from '../shared/attendance';
 import { EVENT_ROLES, TEAM_LABELS, allocationEligible, officialRoles, teamMembership } from '../shared/participation';
 
 const fail = (status: number, message: string) => Object.assign(new Error(message), { status });
@@ -52,12 +53,13 @@ export function installParticipationRoutes(router: Router, database: Firestore, 
           const challenge = await transaction.get(database.doc(`challenges/${challengeId}`));
           if (challenge.data()?.sessionId !== sessionId) throw fail(409, 'Challenge must belong to this event.');
         }
+        const event = await transaction.get(database.doc(`sessions/${sessionId}`));
         const changes = { officialRoles: roles, roleChallengeId: challengeId, participationState };
         if (participant.exists && !allocationEligible(changes)) await assertNoTeam(database, transaction, { ...participant.data(), id: participant.id });
         if (participant.exists) transaction.update(participantRef, changes);
         else {
           transaction.create(participantRef, { sessionId, uid: memberUid, memberId: memberUid, name: profile.data()!.name, adjective: '', teamId: null, solutioning_team_id: null, isAssigned: false, ...changes });
-          transaction.create(pointerRef, { sessionId, uid: memberUid, participantId: participantRef.id });
+          transaction.create(pointerRef, { sessionId, uid: memberUid, participantId: participantRef.id, event: eventSnapshot(event.data()!) });
         }
         return participantRef.id;
       });

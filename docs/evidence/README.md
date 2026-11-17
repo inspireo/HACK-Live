@@ -10,4 +10,8 @@ All recording links above open the verified GitHub video attachments published i
 
 Reproduce: `npm ci`, `npx playwright install chromium`, `npm run typecheck`, `npm run build`, `npm run test:emulators`, then `node scripts/collect-demo.mjs`. The collection script refuses a failed browser run, locates Playwright's bundled ffmpeg (or FFMPEG_PATH), and stream-copies the original recordings with 4x timestamps without starting app/emulators. Local result: **15 emulator authorization/integrity tests and four Chromium browser journeys passed**. Test source and fixture details: [identity-pr1.md](../identity-pr1.md).
 
+## Verified attendance and history (PR6)
+
+[Actual paced staff → member → viewer video](https://github.com/user-attachments/assets/9382d954-4290-4840-861e-efd2a76a3a75) · [full recordings, screenshots and provenance](attendance-pr6.md). The real synthetic Firebase journey covers staff verification, owner history, Show on profile selection, protected community summaries, correction/private audit and revocation. The capture run passed21 pure/48 real API-rules/12 Chromium journeys; a later backend-only audit follow-up adds six shared-content races for54 real API/rules tests. UI/video capture bytes and provenance remain unchanged. Event rosters/results may independently show participation; this control selects the new profile history only.
+
 Recording collectors continue to write local videos to `docs/evidence/`; `docs/evidence/*.webm` is ignored. Upload those files directly into the PR description, verify the resulting GitHub attachments, and update these links. Do not commit or force-add videos. Screenshots and capture contracts remain tracked; original recording revisions, filenames and timings are historical capture provenance.

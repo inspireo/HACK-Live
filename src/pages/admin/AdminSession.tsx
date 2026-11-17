@@ -1,3 +1,4 @@
+import AttendanceEditor from '../../components/AttendanceEditor';
 import { invitationApi } from '../../utils/invitationApi';
 import { isEventDeleted } from '../../../shared/eventLifecycle';
 import { useState, useEffect } from 'react';
@@ -301,9 +302,10 @@ export default function AdminSession() {
     return <div className="min-h-screen bg-zinc-950 text-zinc-100 flex items-center justify-center">Loading Session Details...</div>;
   }
 
-  if (isEventDeleted(session)) return <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col items-center justify-center gap-4">
+  if (isEventDeleted(session)) return <div className="min-h-screen bg-zinc-950 text-zinc-100 p-6 space-y-5">
     <h1 className="text-2xl font-bold">Event deleted</h1><p>Participation is closed. Event records and history are retained.</p>
     <button onClick={() => navigate('/admin')}>Back to Sessions List</button>
+    <AttendanceEditor key={`${sessionId}:history`} sessionId={sessionId!} participants={participants} historicalOnly />
   </div>;
 
   const sessionSteps = getStepsForSession(session?.enableChallengeDiscovery || false);

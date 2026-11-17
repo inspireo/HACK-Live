@@ -1,4 +1,5 @@
 import { allocationEligible, solutionTeamId } from '../../../shared/participation';
+import AttendanceEditor from '../../components/AttendanceEditor';
 import EventRolesEditor from '../../components/EventRolesEditor';
 import { useState, useEffect } from 'react';
 import { updateDoc, doc, deleteDoc, collection, query, where, onSnapshot } from 'firebase/firestore';
@@ -289,6 +290,7 @@ export default function ParticipantsTab({
 
   return (
     <div className="space-y-6">
+      {sessionId && <AttendanceEditor sessionId={sessionId} participants={participants} />}
       {sessionId && <EventRolesEditor sessionId={sessionId} participants={participants} challenges={challenges} />}
       <details className="p-4 border border-zinc-700 rounded-xl">
         <summary>Link a legacy registration</summary>

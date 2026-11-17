@@ -89,6 +89,10 @@ service cloud.firestore {
       allow list: if isAuthenticated() && resource.data.uid == request.auth.uid;
       allow write: if false;
     }
+    // Private server records. Community history is an explicit API projection.
+    match /attendance/{recordId} { allow read, write: if false; }
+    match /attendanceAudit/{recordId} { allow read, write: if false; }
+    match /historyVisibility/{recordId} { allow read, write: if false; }
     match /legacyParticipantSecrets/{participantId} { allow read, write: if false; }
     // Public invitations are projected by the server, never by client Firestore reads.
     match /eventPublications/{sessionId} { allow read, write: if false; }

@@ -1,3 +1,4 @@
+import MemberHistory from '../../components/MemberHistory';
 import TeamRoleEditor from '../../components/TeamRoleEditor';
 import { allocationEligible, solutionTeamId } from '../../../shared/participation';
 import { isEventDeleted } from '../../../shared/eventLifecycle';
@@ -1806,7 +1807,7 @@ export default function ParticipantDashboard() {
     {participant.participationState === 'inactive' ? <p>Your event participation is inactive. Contact an organizer to restore access to your badge.</p> : <>
       <p>Your official roles do not include discovery or solution team allocation. You can use the event resources and share an invitation. Contact an organizer to change your official roles.</p>
       <a className="inline-block underline" href={`/badge?event=${sessionId}`}>My badge</a>
-      <ShareEventButton sessionId={sessionId!} />
+      <MemberHistory sessionId={sessionId} /><ShareEventButton sessionId={sessionId!} />
       {resourcesContent}
     </>}
   </main>{resourceModal}</div>;
@@ -1825,7 +1826,7 @@ export default function ParticipantDashboard() {
       </header>
 
       <main className="p-4 space-y-6 max-w-md mx-auto">
-        <ShareEventButton sessionId={sessionId!} />
+        <MemberHistory sessionId={sessionId} /><ShareEventButton sessionId={sessionId!} />
         {team && <TeamRoleEditor collectionName="teams" teamId={team.id} members={teammates} />}
         {discTeam && <TeamRoleEditor collectionName="discoveryTeams" teamId={discTeam.id} members={discTeammates} />}
         {formingTeam && <TeamRoleEditor collectionName="formingTeams" teamId={formingTeam.id} members={formingMembers} />}

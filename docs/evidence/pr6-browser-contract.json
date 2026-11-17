@@ -1,0 +1,82 @@
+{
+  "sourceRevision": "a15d38a9d37cd3cc94a63caedc3713c29b7a62fc",
+  "mode": "paced-real-emulator-browser",
+  "authMocks": false,
+  "securityMocks": false,
+  "syntheticData": true,
+  "nodeVersion": "v24.22.2",
+  "browserVersion": "158.0.8127.18",
+  "videos": {
+    "staff": "pr6-staff-full.webm",
+    "member": "pr6-member-full.webm",
+    "viewer": "pr6-viewer-full.webm"
+  },
+  "clips": [
+    {
+      "role": "staff",
+      "stage": "registered-not-attended",
+      "start": 2.453,
+      "end": 5.994
+    },
+    {
+      "role": "staff",
+      "stage": "staff-verified",
+      "start": 6.185,
+      "end": 9.709
+    },
+    {
+      "role": "member",
+      "stage": "current-event-status",
+      "start": 1.212,
+      "end": 4.743
+    },
+    {
+      "role": "member",
+      "stage": "private-owner-history",
+      "start": 5.19,
+      "end": 8.725
+    },
+    {
+      "role": "viewer",
+      "stage": "unselected-hidden",
+      "start": 1.008,
+      "end": 4.525
+    },
+    {
+      "role": "member",
+      "stage": "show-on-profile-selected",
+      "start": 13.465,
+      "end": 16.991
+    },
+    {
+      "role": "viewer",
+      "stage": "selected-safe-summary",
+      "start": 8.405,
+      "end": 11.923
+    },
+    {
+      "role": "staff",
+      "stage": "staff-correction",
+      "start": 31.416,
+      "end": 34.94
+    },
+    {
+      "role": "member",
+      "stage": "owner-private-correction-audit",
+      "start": 25.707,
+      "end": 29.243
+    },
+    {
+      "role": "viewer",
+      "stage": "corrected-safe-summary",
+      "start": 20.65,
+      "end": 24.17
+    },
+    {
+      "role": "viewer",
+      "stage": "visibility-revoked",
+      "start": 24.512,
+      "end": 28.028
+    }
+  ]
+}
