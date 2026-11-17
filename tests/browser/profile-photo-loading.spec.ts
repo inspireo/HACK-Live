@@ -50,6 +50,7 @@ test('shared header reserves photo beside name through protected fetch and real 
     const decode = HTMLImageElement.prototype.decode;
     HTMLImageElement.prototype.decode = function() {
       const pending = decode.call(this);
+      (window as any).photoDecodeCount = ((window as any).photoDecodeCount || 0) + 1;
       return new Promise<void>((resolve, reject) => { (window as any).releasePhotoDecode = () => pending.then(resolve, reject); });
     };
   });
@@ -87,6 +88,7 @@ test('shared header reserves photo beside name through protected fetch and real 
   const preview = page.getByRole('region', { name: 'Community preview' });
   await preview.scrollIntoViewIfNeeded();
   await expect(preview.getByRole('status', { name: 'Loading profile photo' })).toBeVisible();
+  await expect.poll(() => page.evaluate(() => (window as any).photoDecodeCount)).toBe(2);
   const ownerBefore = await geometry(page);
   await page.screenshot({ path: 'test-results/photo-loading-owner.png' });
   if (process.env.PROFILE_DEMO === 'true') await page.waitForTimeout(2500);
