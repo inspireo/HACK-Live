@@ -32,7 +32,7 @@ test('private contact drafts, linked and separate WhatsApp, normalized Telegram 
   await save.click(); await expect(page.getByRole('alert')).toContainText('clear the field');
   await telegram.fill(''); await mobileCountry.selectOption('SG'); await mobile.fill('8123 4567'); await linked.check();
   await expect(whatsapp).toBeDisabled(); await expect(whatsapp).toHaveValue('8123 4567'); await expect(whatsappCountry).toHaveValue('SG'); await expect(whatsappCountry).toBeDisabled();
-  await mobileCountry.scrollIntoViewIfNeeded(); await hold();
+  await mobileCountry.evaluate(element => element.scrollIntoView({ block: 'start' })); await hold();
   await page.screenshot({ path: 'test-results/profile-country-selectors.png' });
   expect((await fixtureDb.doc('profileDetails/contacts-browser').get()).data()!.contacts.signal).toEqual({ malformed: true });
   await save.click(); await expect(page.getByRole('status')).toHaveText('Profile saved.');
@@ -46,13 +46,13 @@ test('private contact drafts, linked and separate WhatsApp, normalized Telegram 
   await expect(mobileCountry.locator('option[value="+1"]')).toHaveCount(0);
   await mobileCountry.selectOption('CA'); await expect(mobile).toHaveValue('2025550199');
   await expect(whatsappCountry).toHaveValue('CA');
-  await hold();
+  await mobileCountry.evaluate(element => element.scrollIntoView({ block: 'start' })); await hold();
   await telegram.fill('t.me/abcd'); await expect(page.getByRole('link', { name: '@abcd', exact: true })).toHaveAttribute('href', 'https://t.me/abcd');
   await page.getByLabel('Share WhatsApp number with all future accepted connections', { exact: true }).check();
   await save.click(); await expect(page.getByRole('status')).toHaveText('Profile saved.'); await page.reload();
   await expect(whatsapp).toHaveValue('2025550199'); await expect(telegram).toHaveValue('@abcd');
   await expect(page.getByLabel('Share Mobile number with all future accepted connections', { exact: true })).not.toBeChecked();
-  await linked.uncheck(); await whatsappCountry.selectOption('GB'); await whatsapp.fill('07700 900123'); await whatsappCountry.scrollIntoViewIfNeeded(); await hold(); await save.click(); await expect(page.getByRole('status')).toHaveText('Profile saved.');
+  await linked.uncheck(); await whatsappCountry.selectOption('GB'); await whatsapp.fill('07700 900123'); await whatsappCountry.evaluate(element => element.scrollIntoView({ block: 'start' })); await hold(); await save.click(); await expect(page.getByRole('status')).toHaveText('Profile saved.');
   await page.reload(); await expect(linked).not.toBeChecked(); await expect(whatsapp).toHaveValue('7700900123');
   await mobile.fill('+65 8765 4321'); await expect(whatsapp).toHaveValue('7700900123');
   await save.click(); await expect(page.getByRole('status')).toHaveText('Profile saved.'); await page.reload();
@@ -70,7 +70,7 @@ test('private contact drafts, linked and separate WhatsApp, normalized Telegram 
   await page.setViewportSize({ width: 390, height: 844 });
   await mobileCountry.selectOption('GB'); await mobileCountry.focus(); await mobileCountry.press('ArrowDown');
   await expect(mobileCountry).toBeFocused();
-  await mobileCountry.scrollIntoViewIfNeeded(); await hold();
+  await mobileCountry.evaluate(element => element.scrollIntoView({ block: 'start' })); await hold();
   await page.screenshot({ path: 'test-results/profile-country-selectors-mobile.png', fullPage: true });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   source = (await fixtureDb.doc('profileDetails/contacts-browser').get()).data()!;
