@@ -53,7 +53,7 @@ test('private contact drafts, linked and separate WhatsApp, normalized Telegram 
   await expect(whatsappCountry).toHaveValue('+44');
   await mobileCountry.selectOption('IT'); await expect(mobile).toHaveValue('87654321');
   await mobile.fill('02 36618 300'); await save.click(); await expect(page.getByRole('status')).toHaveText('Profile saved.');
-  await page.reload(); await expect(mobile).toHaveValue('0236618300'); await expect(mobileCountry).toHaveValue('IT');
+  await page.reload(); await expect(mobile).toHaveValue('0236618300'); await expect(mobileCountry).toHaveValue('+39');
   expect((await fixtureDb.doc('profileDetails/contacts-browser').get()).data()!.contacts.phone).toBe('+390236618300');
   await mobile.fill(''); await mobileCountry.selectOption('SG'); await save.click(); await expect(page.getByRole('status')).toHaveText('Profile saved.');
   expect((await fixtureDb.doc('profileDetails/contacts-browser').get()).data()!.contacts.phone).toBeUndefined();
