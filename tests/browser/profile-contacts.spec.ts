@@ -25,6 +25,8 @@ test('private contact drafts, linked and separate WhatsApp, normalized Telegram 
   const whatsappCountry = page.getByRole('combobox', { name: 'WhatsApp country code', exact: true });
   await expect(mobileCountry).toHaveValue('');
   await expect(whatsappCountry).toHaveValue('');
+  await expect(mobileCountry.locator('option[value="+1"]')).toHaveCount(0);
+  await expect(whatsappCountry.locator('option[value="+1"]')).toHaveCount(0);
   await expect(page.getByLabel('Contact email', { exact: true })).toHaveAttribute('autocomplete', 'email');
   await page.getByLabel('Bio', { exact: true }).fill('Unrelated retained edit');
   await save.click(); await expect(page.getByRole('alert')).toContainText('clear the field');
@@ -39,6 +41,11 @@ test('private contact drafts, linked and separate WhatsApp, normalized Telegram 
   expect(source.contacts.signal).toBeUndefined(); expect(source.connectionFields).toEqual([]);
   expect(source.professional.bio).toBe('Unrelated retained edit');
   await mobile.fill('+1 202 555 0199'); await expect(whatsapp).toHaveValue('2025550199'); await expect(mobileCountry).toHaveValue('+1'); await expect(whatsappCountry).toHaveValue('+1');
+  await expect(mobileCountry.locator('option[value="+1"]')).toHaveCount(1);
+  await mobileCountry.selectOption('US'); await expect(mobile).toHaveValue('2025550199');
+  await expect(mobileCountry.locator('option[value="+1"]')).toHaveCount(0);
+  await mobileCountry.selectOption('CA'); await expect(mobile).toHaveValue('2025550199');
+  await expect(whatsappCountry).toHaveValue('CA');
   await hold();
   await telegram.fill('t.me/abcd'); await expect(page.getByRole('link', { name: '@abcd', exact: true })).toHaveAttribute('href', 'https://t.me/abcd');
   await page.getByLabel('Share WhatsApp number with all future accepted connections', { exact: true }).check();
