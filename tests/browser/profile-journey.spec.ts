@@ -74,12 +74,12 @@ test('real Firebase profile edits, community preview, other-member privacy, revo
   await expect(page.getByLabel('Use my mobile number for WhatsApp', { exact: true })).not.toBeChecked();
   await page.getByLabel('Use my mobile number for WhatsApp', { exact: true }).check();
   await expect(page.getByLabel('WhatsApp number', { exact: true })).toHaveValue('1234 5678');
-  await page.getByRole('group', { name: 'Private contact details' }).scrollIntoViewIfNeeded();
+  await page.getByRole('group', { name: 'Contact details and sharing' }).scrollIntoViewIfNeeded();
   await reviewerHold(page);
   await page.getByLabel('Show Professional title or role to members', { exact: true }).check();
   await page.getByLabel('Show Skills to members', { exact: true }).check();
   await page.getByLabel('Show GitHub to members', { exact: true }).check();
-  await page.getByLabel('Share Contact email with all future accepted connections', { exact: true }).check();
+  await page.getByLabel('Share Contact email with all approved connections', { exact: true }).check();
   await page.screenshot({ path: 'test-results/profile-owner-form.png', fullPage: true });
   await reviewerHold(page);
   await page.getByRole('button', { name: 'Preview community view' }).click();
@@ -98,7 +98,7 @@ test('real Firebase profile edits, community preview, other-member privacy, revo
   await expect(page.getByRole('status').filter({ hasText: /^Profile saved\.$/ })).toHaveText('Profile saved.');
   await page.reload();
   await expect(page.getByLabel('Bio', { exact: true })).toHaveValue('Private synthetic biography');
-  await expect(page.getByLabel('Share Contact email with all future accepted connections', { exact: true })).toBeChecked();
+  await expect(page.getByLabel('Share Contact email with all approved connections', { exact: true })).toBeChecked();
   await expect(page.getByRole('img', { name: 'Member avatar' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Remove skill TypeScript', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Remove skill Community mentoring', exact: true })).toBeVisible();
@@ -106,7 +106,7 @@ test('real Firebase profile edits, community preview, other-member privacy, revo
   await expect(page.getByRole('button', { name: 'Remove skill Facilitation', exact: true })).toBeVisible();
   await reviewerHold(page);
   expect((await fixtureDb.doc('registrationDefaults/profile-browser-owner').get()).data()).toEqual({ adjective: 'Curious', designThinkingProficiency: 'Trained' });
-  expect((await fixtureDb.doc('connectionContacts/profile-browser-owner').get()).exists).toBe(false);
+  expect((await fixtureDb.doc('connectionContacts/profile-browser-owner').get()).data()).toEqual({ contactEmail: 'private-contact@example.test' });
   await page.getByLabel('Portfolio', { exact: true }).fill('javascript:alert(1)');
   await page.getByRole('button', { name: 'Save profile', exact: true }).click();
   await expect(page.getByRole('alert')).toBeVisible();
@@ -159,8 +159,8 @@ test('real Firebase profile edits, community preview, other-member privacy, revo
     await reviewerHold(otherPage);
 
     await page.getByLabel('Show Professional title or role to members', { exact: true }).uncheck();
-    await page.getByLabel('Share Contact email with all future accepted connections', { exact: true }).uncheck();
-    await page.getByLabel('Share Mobile number with all future accepted connections', { exact: true }).check();
+    await page.getByLabel('Share Contact email with all approved connections', { exact: true }).uncheck();
+    await page.getByLabel('Share Mobile number with all approved connections', { exact: true }).check();
     await page.getByRole('button', { name: 'Remove photo', exact: true }).click();
     expect((await fixtureDb.doc('profilePhotos/profile-browser-owner').get()).exists).toBe(true);
     await expect(page.getByText('Photo will be removed when you save.')).toBeVisible();
@@ -190,6 +190,6 @@ test('real Firebase profile edits, community preview, other-member privacy, revo
     await expect(page.getByRole('heading', { name: 'Create your profile' })).toBeVisible();
     await expect(otherPage.getByText('Member unavailable.', { exact: true })).toBeVisible();
     await reviewerHold(page);
-    for (const collectionName of ['profileDetails', 'memberDetails', 'profilePhotos']) expect((await fixtureDb.doc(`${collectionName}/profile-browser-owner`).get()).exists).toBe(false);
+    for (const collectionName of ['profileDetails', 'memberDetails', 'profilePhotos', 'connectionContacts']) expect((await fixtureDb.doc(`${collectionName}/profile-browser-owner`).get()).exists).toBe(false);
   } finally { await otherContext.close(); }
 });

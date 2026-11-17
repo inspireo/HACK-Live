@@ -1,0 +1,54 @@
+{
+  "source_head": "ea1f80648d3b4aa18e19133f5c33d165d072d1c8",
+  "capture_scope": "Current sender captured at full cumulative country-selector tip; original recipient recording retained because accepted-contact display and behavior are unchanged.",
+  "mode": "paced-real-emulator-browser",
+  "projectId": "demo-hack-live",
+  "securityMocks": false,
+  "physicalDevice": false,
+  "externalNavigationOrMessages": false,
+  "nativeUploadStatus": "published via official task-local GitHub CLI; private rendered sender bytes and both native players verified",
+  "pureTests": 34,
+  "apiRulesTests": 78,
+  "browserTests": 25,
+  "totalTests": 137,
+  "protectedCrossAccountTestsUnchanged": true,
+  "fullDecodePassed": true,
+  "visuallyInspected": [
+    "sender10s accepted canonical telephone action",
+    "sender17s/19s readable Mobile Singapore +65 and separate WhatsApp United Kingdom +44 selectors",
+    "sender13s country change preserves national digits",
+    "sender23s/31s revocation and request-state journey",
+    "current real global-selection editor screenshot",
+    "retained recipient12s all four approved safe contact actions (prior verified capture)"
+  ],
+  "videos": [
+    {
+      "party": "sender",
+      "bytes": 3530857,
+      "sha256": "567135924231ca5e20bb5a85f78145355b0114db404e3f19208d6843c9128d6f",
+      "duration": "00:00:40.68",
+      "dimensions": [
+        1100,
+        760
+      ],
+      "decoded_frames": 1017,
+      "source_head": "ea1f80648d3b4aa18e19133f5c33d165d072d1c8",
+      "unedited_original": true,
+      "attachmentUrl": "https://github.com/user-attachments/assets/c042e2b8-6087-4c1a-8913-0e71883fa95b"
+    },
+    {
+      "party": "recipient",
+      "bytes": 1655287,
+      "sha256": "fd83a3ef88f9a29b4a0a8fe879a3fc9583110f7b9751863ca0f67c5060fb3e38",
+      "duration": "00:00:35.88",
+      "dimensions": [
+        1100,
+        760
+      ],
+      "decoded_frames": 897,
+      "source_head": "dc907e980b37731725252a94be5829b14c2ce1ce",
+      "unedited_original": true,
+      "attachmentUrl": "https://github.com/user-attachments/assets/3999d25f-5953-4e40-9f2e-19f1106294bd"
+    }
+  ]
+}

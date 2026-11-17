@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { ConnectionsPage } from './connections';
 import Home from './pages/Home';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminSession from './pages/admin/AdminSession';
@@ -13,6 +14,7 @@ export default function App() {
     <Route path="*" element={<MemberGate><Routes>
     <Route path="/invite/:token/register" element={<InvitationRegistration />} />
     <Route path="/" element={<Home />} />
+    <Route path="/connections" element={<ConnectionsPage />} />
     <Route path="/account" element={<Account />} />
     <Route path="/members" element={<Members />} />
     <Route path="/members/:memberId" element={<MemberProfile />} />

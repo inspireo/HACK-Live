@@ -3,6 +3,8 @@ import { applicationDefault, getApps, initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 import { Router } from 'express';
+import { connectionsRouter, queueConnectionCleanup } from './connections';
+import { contactProjection } from '../shared/connections';
 import { randomUUID } from 'node:crypto';
 import { normalizePhotoUpload } from './profile-photo';
 import { identityDatabaseTarget } from './database-config';
@@ -35,6 +37,8 @@ router.use(async (req, res, next) => {
     next();
   } catch (error) { res.status((error as any).status || 401).json({ error: (error as Error).message }); }
 });
+
+router.use(connectionsRouter(identityDb));
 
 router.post('/register', async (req, res) => {
   try {
@@ -215,6 +219,7 @@ router.post('/save-profile', async (req, res) => {
       transaction.set(profileRef, { name: edit.name, state: 'active' });
       transaction.set(identityDb.doc(`profileDetails/${uid}`), details);
       transaction.set(identityDb.doc(`memberDetails/${uid}`), communityProjection(details));
+      transaction.set(identityDb.doc(`connectionContacts/${uid}`), contactProjection(details));
       return details;
     });
     res.json({ saved: true, details: savedDetails });
@@ -235,6 +240,7 @@ router.post('/delete-profile', async (_req, res) => {
     // Bounded, attempt-fenced transactions permit repeatable cleanup beyond a single write batch.
     const writer = createProfileCleanup(identityDb, uid, attemptId);
     cleanup = writer;
+    await queueConnectionCleanup(identityDb, uid, writer);
     for (const participant of ownedParticipants) {
       if (participant.exists) writer.update(participant.ref, { uid: null, memberId: null, identityState: 'deleted', name: 'Deleted member', adjective: '', designThinkingProficiency: FieldValue.delete(), phone: FieldValue.delete(), phoneNumber: FieldValue.delete(), email: FieldValue.delete(), emailAddress: FieldValue.delete(), phoneLast4: FieldValue.delete(), passcode: FieldValue.delete(), persistedAnswers: FieldValue.delete(), archetypeScores: FieldValue.delete(), primaryArchetype: FieldValue.delete(), secondaryArchetype: FieldValue.delete(), teamId: null, isAssigned: false, discoveryTeamId: null, discovery_team_id: null, solutioning_team_id: null });
       writer.delete(identityDb.doc(`legacyParticipantSecrets/${participant.id}`));
