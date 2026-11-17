@@ -114,11 +114,11 @@ test('anonymous recipient calendar preview then real auth profile and explicit r
   await expect(page.getByText('Design a welcoming community', { exact: true }).first()).toBeVisible();
   await hold(page); await page.reload();
   await expect(page.getByText('Design a welcoming community', { exact: true }).first()).toBeVisible();
-  expect((await fixtureDb.collection('registrations').where('sessionId', '==', 'event-one').where('memberId', '==', 'invitation-recipient').get()).size).toBe(1);
+  expect((await fixtureDb.collection('registrations').where('sessionId', '==', 'event-one').where('uid', '==', 'invitation-recipient').get()).size).toBe(1);
   await page.screenshot({ path: 'test-results/invitation-recipient-return.png' }); await hold(page);
 });
 
-test('all CTA modes and post-auth expiry fail closed without accidental registration', async ({ page }) => {
+test('all CTA modes and post-auth revocation fail closed without accidental registration', async ({ page }) => {
   const owner = await signInFixture('organizer');
   const registerOnly = await publishFixture('event-one', { title: 'Register-only workshop', registrationRequired: true });
   await page.goto(`/invite/${registerOnly.token}`);
@@ -137,6 +137,30 @@ test('all CTA modes and post-auth expiry fail closed without accidental registra
   await expect(page.getByRole('alert')).toContainText('Invitation unavailable');
   expect((await fixtureDb.collection('registrations').get()).size).toBe(0);
   await page.goto(`/invite/${required.token}`); await expect(page.getByRole('heading', { name: 'Invitation unavailable', exact: true })).toBeVisible();
+});
+
+test('expired invitations fail before and after auth without replacing registrations', async ({ page }) => {
+  const publication = await publishFixture();
+  await page.goto(`/invite/${publication.token}`);
+  await page.getByRole('link', { name: 'Register', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Sign in to #HACK Live' })).toBeVisible();
+  const expiresAt = Date.now() - 1000;
+  await fixtureDb.doc(`eventInvitations/${publication.token}`).update({ createdAt: expiresAt - 604800000, expiresAt });
+  await signIn(page, 'invitation-recipient');
+  await expect(page.getByRole('alert')).toContainText('Invitation unavailable');
+  expect((await fixtureDb.collection('registrations').get()).size).toBe(0);
+  await page.goto(`/invite/${publication.token}`);
+  await expect(page.getByRole('heading', { name: 'Invitation unavailable', exact: true })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Register', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'Add to calendar', exact: true })).toHaveCount(0);
+  await page.goto('/session/event-one');
+  await expect(page.getByRole('button', { name: 'Share event', exact: true })).toBeDisabled();
+  await page.getByPlaceholder('e.g. Curious, Builder, Explorer').fill('Builder');
+  await page.getByRole('button', { name: 'Continue', exact: true }).click();
+  await expect(page.getByText('Design a welcoming community', { exact: true }).first()).toBeVisible();
+  await page.reload();
+  await expect(page.getByText('Design a welcoming community', { exact: true }).first()).toBeVisible();
+  expect((await fixtureDb.collection('registrations').get()).size).toBe(1);
 });
 
 test('organizer renewal revocation unpublish controls and legacy unpublished registration', async ({ page }) => {
