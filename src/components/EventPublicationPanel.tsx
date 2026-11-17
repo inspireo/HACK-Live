@@ -27,7 +27,7 @@ export default function EventPublicationPanel({ sessionId }: { sessionId: string
     {error && <p role="alert" className="rounded-xl bg-red-950 p-3 text-red-200">{error}</p>}
     {!publication ? <p>Loading publication…</p> : <>
       <form onSubmit={event => { event.preventDefault(); void save('publish'); }} className="space-y-5">
-        <div className="grid gap-5 md:grid-cols-2">
+        <div className="grid items-end gap-5 md:grid-cols-2">
           {([
             ['title', 'Public event title', 'text'], ['description', 'Public description', 'textarea'],
             ['venue', 'Public venue', 'text'], ['viewingUrl', 'Public viewing URL', 'url'],
