@@ -1,3 +1,4 @@
+import { isEventDeleted } from '../../../shared/eventLifecycle';
 import { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { doc, onSnapshot, collection, query, where } from 'firebase/firestore';
@@ -110,6 +111,8 @@ export default function DisplayMode() {
       unsubProposedVotes();
     };
   }, [sessionId, auth.currentUser]);
+
+  if (isEventDeleted(session)) return <div className="min-h-screen bg-black text-white flex items-center justify-center text-4xl">Event unavailable</div>;
 
   if (loading || !session) return <div className="min-h-screen bg-black text-white flex items-center justify-center text-4xl">Loading...</div>;
 
