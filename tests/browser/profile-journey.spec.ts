@@ -92,8 +92,10 @@ test('real Firebase profile edits, community preview, other-member privacy, revo
   await preview.scrollIntoViewIfNeeded();
   await page.screenshot({ path: 'test-results/profile-community-preview.png' });
   await reviewerHold(page);
+  const initialSave = page.waitForResponse(response => response.url().endsWith('/api/identity/save-profile') && response.request().method() === 'POST');
   await page.getByRole('button', { name: 'Save profile', exact: true }).click();
-  await expect(page.getByRole('status')).toHaveText('Profile saved.');
+  expect((await initialSave).status()).toBe(200);
+  await expect(page.getByRole('status').filter({ hasText: /^Profile saved\.$/ })).toHaveText('Profile saved.');
   await page.reload();
   await expect(page.getByLabel('Bio', { exact: true })).toHaveValue('Private synthetic biography');
   await expect(page.getByLabel('Share Contact email with all approved connections', { exact: true })).toBeChecked();
@@ -162,8 +164,10 @@ test('real Firebase profile edits, community preview, other-member privacy, revo
     await page.getByRole('button', { name: 'Remove photo', exact: true }).click();
     expect((await fixtureDb.doc('profilePhotos/profile-browser-owner').get()).exists).toBe(true);
     await expect(page.getByText('Photo will be removed when you save.')).toBeVisible();
+    const removedSave = page.waitForResponse(response => response.url().endsWith('/api/identity/save-profile') && response.request().method() === 'POST');
     await page.getByRole('button', { name: 'Save profile', exact: true }).click();
-    await expect(page.getByRole('status')).toHaveText('Profile saved.');
+    expect((await removedSave).status()).toBe(200);
+    await expect(page.getByRole('status').filter({ hasText: /^Profile saved\.$/ })).toHaveText('Profile saved.');
     await expect.poll(async () => (await fixtureDb.doc('profileDetails/profile-browser-owner').get()).data()!.connectionFields).toEqual(['phone']);
     await expect(otherPage.getByText('Community Engineer', { exact: false })).toHaveCount(0);
     await reviewerHold(otherPage);
