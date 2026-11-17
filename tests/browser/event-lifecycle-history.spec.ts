@@ -24,10 +24,10 @@ test('deleted admin route retains real historical attendance and award correctio
     await expect(page.getByRole('button', { name, exact: true })).toHaveCount(0);
   }
   await page.getByText('Correct historical attendance', { exact: true }).click();
-  await page.getByLabel('Attendance member', { exact: true }).selectOption('member');
-  await expect(page.getByLabel('Attendance action', { exact: true })).toHaveValue('correct');
-  await expect(page.getByLabel('Attendance action', { exact: true }).getByRole('option', { name: 'Check in', exact: true })).toHaveCount(0);
-  await page.getByLabel('Corrected attendance', { exact: true }).selectOption('removed');
+  await page.getByRole('combobox', { name: 'Attendance member', exact: true }).selectOption('member');
+  await expect(page.getByRole('combobox', { name: 'Attendance action', exact: true })).toHaveValue('correct');
+  await expect(page.getByRole('combobox', { name: 'Attendance action', exact: true }).getByRole('option', { name: 'Check in', exact: true })).toHaveCount(0);
+  await page.getByRole('combobox', { name: 'Corrected attendance', exact: true }).selectOption('removed');
   await page.getByLabel('Correction reason', { exact: true }).fill('Historical UI correction');
   await page.getByLabel('Actual attendance date and time (your local timezone)', { exact: true }).fill('2026-01-01T10:00');
   await page.getByLabel('Attendance evidence', { exact: true }).fill('Retained signed attendance register');
@@ -35,7 +35,7 @@ test('deleted admin route retains real historical attendance and award correctio
   await expect(page.getByText('Attendance corrected.', { exact: true })).toBeVisible();
   await expect.poll(async () => (await fixtureDb.doc('attendance/event-one~member').get()).data()!.revision).toBe(2);
   await page.getByLabel('Private audit reason', { exact: true }).fill('Historical category correction');
-  await page.getByLabel('Correction category', { exact: true }).selectOption(awards.correctedCategoryId);
+  await page.getByRole('combobox', { name: 'Correction category', exact: true }).selectOption(awards.correctedCategoryId);
   const result = page.getByTestId(`award-${awards.resultId}`);
   await result.getByRole('button', { name: 'Correct category', exact: true }).click();
   await expect(result.getByRole('heading', { name: 'Corrected historical achievement · published', exact: true })).toBeVisible();
