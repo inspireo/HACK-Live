@@ -82,7 +82,9 @@ test('shared header reserves photo beside name through protected fetch and real 
   if (process.env.PROFILE_DEMO === 'true') await page.waitForTimeout(2500);
   await page.goto('/account');
 
-  await page.getByRole('button', { name: 'Sign out', exact: true }).click(); await login(page, owner);
+  await page.getByRole('button', { name: 'Sign out', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Sign in to #HACK Live', exact: true })).toBeVisible();
+  await login(page, owner);
   await expect.poll(() => page.evaluate(() => typeof (window as any).releasePhotoDecode)).toBe('function');
   await page.evaluate(() => (window as any).releasePhotoDecode());
   await page.getByRole('button', { name: 'Preview community view' }).click();
