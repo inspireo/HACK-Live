@@ -62,6 +62,9 @@ service cloud.firestore {
       allow write: if false;
     }
     match /legacyParticipantSecrets/{participantId} { allow read, write: if false; }
+    // Public invitations are projected by the server, never by client Firestore reads.
+    match /eventPublications/{sessionId} { allow read, write: if false; }
+    match /eventInvitations/{token} { allow read, write: if false; }
     match /profileDeletionJobs/{memberId} { allow read, write: if false; }
 
     match /users/{userId} {

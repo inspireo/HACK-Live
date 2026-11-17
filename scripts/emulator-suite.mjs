@@ -17,8 +17,10 @@ try {
   if (!healthy) throw new Error('App did not start');
   await run('node', ['--import', 'tsx', '--test', 'tests/profile-pure.test.ts']);
   await run('node', ['--import', 'tsx', '--test', 'tests/eventInvitation.test.ts']);
+  await run('node', ['--import', 'tsx', '--test', 'tests/public-invitation-pure.test.ts']);
   await run('node', ['--import', 'tsx', '--test', 'tests/identity.test.ts']);
   await run('node', ['--import', 'tsx', '--test', 'tests/profile-api.test.ts']);
+  await run('node', ['--import', 'tsx', '--test', 'tests/invitation-api.test.ts']);
   await run('npx', ['playwright', 'test']);
 } catch (issue) { console.error(issue); process.exitCode = 1; }
 finally { server.kill('SIGTERM'); }
