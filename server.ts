@@ -2,7 +2,8 @@ import express from "express";
 import { createServer as createViteServer } from "vite";
 import path from "path";
 import OpenAI from "openai";
-import identityRoutes from './server/identity';
+import identityRoutes, { identityDb } from './server/identity';
+import { createInvitationRouters } from './server/invitation-routes';
 
 let openaiClient: OpenAI | null = null;
 
@@ -21,8 +22,15 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
+  app.use('/invite', (_req, res, next) => {
+    res.set({ 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer' }); next();
+  });
+
   app.use('/api/identity/save-profile', express.json({ limit: '3mb' }));
   app.use(express.json());
+  const invitations = createInvitationRouters(identityDb);
+  identityRoutes.use(invitations.memberRouter);
+  app.use('/api/invitations', invitations.publicRouter);
   app.use('/api/identity', identityRoutes);
   app.use((error: any, _req: express.Request, res: express.Response, next: express.NextFunction) => {
     if (error.type === 'entity.too.large') { res.status(413).json({ error: 'Photo upload is too large. Choose a photo up to 2 MB.' }); return; }

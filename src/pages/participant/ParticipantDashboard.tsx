@@ -1119,7 +1119,7 @@ export default function ParticipantDashboard() {
         <div className="w-full max-w-md space-y-8">
           <div className="text-center space-y-2">
             <h1 className="text-3xl font-bold">{session.title}</h1>
-            <ShareEventButton sessionId={sessionId!} publicTitle={session.title} stage={session.status} />
+            <ShareEventButton sessionId={sessionId!} />
             <div className="text-zinc-400">
               <p className="font-medium text-emerald-400">#HACK Live</p>
               <p>Join the session and get ready to collaborate.</p>
@@ -1231,7 +1231,7 @@ export default function ParticipantDashboard() {
     return (
       <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col items-center justify-start p-6 overflow-y-auto w-full">
         <div className="w-full max-w-xl space-y-8 py-8">
-          <ShareEventButton sessionId={sessionId!} publicTitle={session.title} stage={session.status} />
+          <ShareEventButton sessionId={sessionId!} />
           <div className="text-center space-y-4">
             <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">
               Participant Onboarding
@@ -1702,7 +1702,7 @@ export default function ParticipantDashboard() {
       </header>
 
       <main className="p-4 space-y-6 max-w-md mx-auto">
-        <ShareEventButton sessionId={sessionId!} publicTitle={session.title} stage={session.status} />
+        <ShareEventButton sessionId={sessionId!} />
         {/* Resources Section (First if ResourcesOnly) */}
         {session.status === 'ResourcesOnly' && resourcesContent}
 
