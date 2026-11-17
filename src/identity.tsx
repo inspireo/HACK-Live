@@ -35,7 +35,10 @@ export function MemberGate({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setProfile(undefined); setError('');
     if (!isRegisteredMember(user)) return;
-    return onSnapshot(doc(db, 'profiles', user!.uid), snapshot => setProfile(snapshot.exists() ? snapshot.data() as Profile : null), issue => setError(issue.message));
+    return onSnapshot(doc(db, 'profiles', user!.uid), { includeMetadataChanges: true }, snapshot => {
+      // A local profile creation is not yet authorized for private detail reads.
+      if (!snapshot.metadata.hasPendingWrites) setProfile(snapshot.exists() ? snapshot.data() as Profile : null);
+    }, issue => setError(issue.message));
   }, [user?.uid, user?.emailVerified, authRevision]);
   // The destination path and query remain in the address bar throughout auth,
   // including on refresh. No untrusted redirect parameter is accepted.

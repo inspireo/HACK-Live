@@ -55,6 +55,8 @@ for (const transition of ["different account", "same account recreated"] as cons
       await page.getByRole("button", { name: "Save profile", exact: true }).click();
       await expect(page.getByRole("heading", { name: "Your profile", exact: true })).toBeVisible();
       await expect.poll(async () => (await fixtureDb.doc("profiles/pending-owner-a").get()).data()?.name).toBe("Fresh recreated profile");
+      await expect(page.getByLabel("Bio", { exact: true })).toHaveValue("");
+      await expect(page.getByRole("alert")).toHaveCount(0);
       targetUid = "pending-owner-a";
     }
     const beforeName = (await fixtureDb.doc(`profiles/${targetUid}`).get()).data();
@@ -74,3 +76,20 @@ for (const transition of ["different account", "same account recreated"] as cons
     await expect(page.getByRole("status")).not.toHaveText("Profile saved.");
   });
 }
+
+
+test("first profile creation opens the private editor after committed activation without reload", async ({ page }) => {
+  await clearFixtures(); await createFixtureUser("first-profile-owner");
+  await fixtureDb.doc("profiles/first-profile-owner").delete();
+  await page.goto("/account");
+  await page.getByLabel("Email", { exact: true }).fill("first-profile-owner@example.test");
+  await page.getByLabel("Password", { exact: true }).fill(password);
+  await page.getByRole("button", { name: "Sign in with email", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Create your profile", exact: true })).toBeVisible();
+  await page.getByLabel("Name", { exact: true }).fill("First fresh profile");
+  await page.getByRole("button", { name: "Save profile", exact: true }).click();
+  await expect(page.getByLabel("Bio", { exact: true })).toHaveValue("");
+  await expect(page.getByRole("combobox", { name: "Mobile country code", exact: true })).toHaveValue("");
+  await expect(page.getByRole("alert")).toHaveCount(0);
+  expect((await fixtureDb.doc("profiles/first-profile-owner").get()).data()).toEqual({ name: "First fresh profile", state: "active" });
+});
