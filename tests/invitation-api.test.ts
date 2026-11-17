@@ -139,7 +139,8 @@ test('same-ID session replacement cannot inherit public links, publication or ca
   assert.equal(oldPublication.sessionCreatedAt, `${oldSession.createTime!.seconds}:${oldSession.createTime!.nanoseconds}`);
   const sdkOwner = environment.authenticatedContext('organizer', { email: 'organizer@example.test', email_verified: true, firebase: { sign_in_provider: 'password' } }).firestore();
   const sdkReplacement = environment.authenticatedContext('member', { email: 'member@example.test', email_verified: true, firebase: { sign_in_provider: 'password' } }).firestore();
-  await deleteDoc(doc(sdkOwner, 'sessions/event-two'));
+  await assertFails(deleteDoc(doc(sdkOwner, 'sessions/event-two')));
+  await fixtureDb.doc('sessions/event-two').delete(); // Out-of-band physical deletion; never authorized to clients.
   assert.equal((await invitationRequest(`/api/invitations/${published.token}`)).status, 404);
   await setDoc(doc(sdkReplacement, 'sessions/event-two'), { title: 'Replacement event', ownerId: 'member', status: 'Draft', createdAt: oldSession.createTime!.toMillis() });
   for (const suffix of ['', '/calendar.ics']) assert.equal((await invitationRequest(`/api/invitations/${published.token}${suffix}`)).status, 404);

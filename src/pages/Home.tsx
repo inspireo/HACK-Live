@@ -1,3 +1,4 @@
+import { isEventDeleted } from '../../shared/eventLifecycle';
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { collection, query, where, getDocs } from 'firebase/firestore';
@@ -23,8 +24,9 @@ export default function Home() {
         try {
           const q = query(collection(db, 'sessions'), where('code', '==', codeFromUrl.toUpperCase()));
           const snapshot = await getDocs(q);
-          if (!snapshot.empty) {
-            const sessionId = snapshot.docs[0].id;
+          const activeSession = snapshot.docs.find(record => !isEventDeleted(record.data()));
+          if (activeSession) {
+            const sessionId = activeSession.id;
             navigate(`/session/${sessionId}`);
           } else {
             setError('Session not found. Please check the code.');
@@ -50,10 +52,11 @@ export default function Home() {
       const q = query(collection(db, 'sessions'), where('code', '==', sessionCode.trim().toUpperCase()));
       const snapshot = await getDocs(q);
       
-      if (snapshot.empty) {
+      const activeSession = snapshot.docs.find(record => !isEventDeleted(record.data()));
+      if (!activeSession) {
         setError('Session not found. Please check the code.');
       } else {
-        const sessionId = snapshot.docs[0].id;
+        const sessionId = activeSession.id;
         navigate(`/session/${sessionId}`);
       }
     } catch (err) {

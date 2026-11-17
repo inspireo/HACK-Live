@@ -1,5 +1,7 @@
 import { Router } from 'express';
 import type { Firestore, Transaction } from 'firebase-admin/firestore';
+import { FieldValue } from 'firebase-admin/firestore';
+import { isEventDeleted } from '../shared/eventLifecycle';
 import { randomBytes, randomUUID } from 'node:crypto';
 import { buildCalendar, INVITATION_TTL_MS, isCurrentInvitation, publicProjection, validatePublication } from './event-invitations';
 
@@ -21,7 +23,7 @@ export function createInvitationRouters(database: Firestore) {
       transaction.get(database.doc(`eventPublications/${invitation.sessionId}`)), transaction.get(database.doc(`sessions/${invitation.sessionId}`)),
     ]);
     const sessionCreatedAt = incarnation(session);
-    if (!session.exists || invitation.sessionCreatedAt !== sessionCreatedAt || publication.data()?.sessionCreatedAt !== sessionCreatedAt || !isCurrentInvitation(token, invitation, publication.data(), Date.now())) throw unavailable();
+    if (!session.exists || isEventDeleted(session.data()) || invitation.sessionCreatedAt !== sessionCreatedAt || publication.data()?.sessionCreatedAt !== sessionCreatedAt || !isCurrentInvitation(token, invitation, publication.data(), Date.now())) throw unavailable();
     return { invitation, publication: publication.data()! };
   }
   publicRouter.get('/:token', async (req, res) => {
@@ -54,14 +56,27 @@ export function createInvitationRouters(database: Firestore) {
       res.json({ sessionId });
     } catch (issue) { res.status((issue as any).status || 503).json({ error: (issue as any).status ? (issue as Error).message : 'Invitation unavailable.' }); }
   });
-  async function authorize(transaction: Transaction, sessionId: string, uid: string, email: string) {
+  async function authorize(transaction: Transaction, sessionId: string, uid: string, email: string, allowDeleted = false) {
     if (!validSession(sessionId)) throw fail(400, 'Invalid event.');
     const [session, access, role] = await Promise.all([
       transaction.get(database.doc(`sessions/${sessionId}`)), transaction.get(database.doc(`sessionAccess/${sessionId}`)), transaction.get(database.doc(`users/${uid}`)),
     ]);
     if (!session.exists || !(session.data()!.ownerId === uid || role.data()?.role === 'admin' || email === 'xaeltan@gmail.com' || (Array.isArray(access.data()?.adminEmails) && access.data()!.adminEmails.includes(email)))) throw fail(403, 'Only an event organizer may manage invitations.');
-    return incarnation(session);
+    if (!allowDeleted && isEventDeleted(session.data())) throw unavailable();
+    return session;
   }
+  // Authenticated by the existing verified-account middleware. Authority and lifecycle
+  // share the session read with invitation writes, so concurrent publication retries closed.
+  memberRouter.post('/events/:sessionId/soft-delete', async (req, res) => {
+    try {
+      if (!req.body || Object.keys(req.body).length !== 0) throw fail(400, 'Invalid event deletion request.');
+      await database.runTransaction(async transaction => {
+        const session = await authorize(transaction, req.params.sessionId, res.locals.uid, res.locals.claims.email, true);
+        if (!isEventDeleted(session.data())) transaction.update(session.ref, { deletedAt: FieldValue.serverTimestamp(), deletedBy: res.locals.uid });
+      });
+      res.json({ deleted: true });
+    } catch (issue) { res.status((issue as any).status || 503).json({ error: (issue as any).status ? (issue as Error).message : 'Could not delete event. Please try again.' }); }
+  });
   memberRouter.get('/events/:sessionId/invitation', async (req, res) => {
     try {
       if (!validSession(req.params.sessionId)) throw unavailable();
@@ -77,7 +92,7 @@ export function createInvitationRouters(database: Firestore) {
   memberRouter.get('/events/:sessionId/publication', async (req, res) => {
     try {
       const result = await database.runTransaction(async transaction => {
-        const sessionCreatedAt = await authorize(transaction, req.params.sessionId, res.locals.uid, res.locals.claims.email);
+        const sessionCreatedAt = incarnation(await authorize(transaction, req.params.sessionId, res.locals.uid, res.locals.claims.email));
         const stored = (await transaction.get(database.doc(`eventPublications/${req.params.sessionId}`))).data();
         const publication = stored?.sessionCreatedAt === sessionCreatedAt ? stored : undefined;
         const invitation = publication?.currentToken ? (await transaction.get(database.doc(`eventInvitations/${publication.currentToken}`))).data() : null;
@@ -95,7 +110,7 @@ export function createInvitationRouters(database: Firestore) {
       let fields: ReturnType<typeof validatePublication> | undefined;
       if (action === 'publish') { try { fields = validatePublication(req.body.fields); } catch (issue) { throw fail(400, (issue as Error).message); } }
       await database.runTransaction(async transaction => {
-        const sessionCreatedAt = await authorize(transaction, sessionId, res.locals.uid, res.locals.claims.email);
+        const sessionCreatedAt = incarnation(await authorize(transaction, sessionId, res.locals.uid, res.locals.claims.email));
         const publicationRef = database.doc(`eventPublications/${sessionId}`);
         const stored = (await transaction.get(publicationRef)).data();
         const before = stored?.sessionCreatedAt === sessionCreatedAt ? stored : undefined;

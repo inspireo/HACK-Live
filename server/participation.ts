@@ -1,3 +1,4 @@
+import { isEventDeleted } from '../shared/eventLifecycle';
 import type { Router } from 'express';
 import type { Auth } from 'firebase-admin/auth';
 import type { Firestore, Transaction } from 'firebase-admin/firestore';
@@ -8,7 +9,7 @@ const fail = (status: number, message: string) => Object.assign(new Error(messag
 const validId = (value: unknown): value is string => typeof value === 'string' && /^[\w-]{1,128}$/.test(value);
 async function staff(database: Firestore, transaction: Transaction, sessionId: string, actor: string, email: string) {
   const [session, access, platform] = await Promise.all(['sessions/' + sessionId, 'sessionAccess/' + sessionId, 'users/' + actor].map(path => transaction.get(database.doc(path))));
-  if (!session.exists) throw fail(404, 'Event unavailable.');
+  if (!session.exists || isEventDeleted(session.data())) throw fail(404, 'Event unavailable.');
   return session.data()?.ownerId === actor || access.data()?.adminEmails?.includes(email) || platform.data()?.role === 'admin' || email === 'xaeltan@gmail.com';
 }
 async function assertNoTeam(database: Firestore, transaction: Transaction, member: any) {
@@ -106,7 +107,7 @@ export function installParticipationRoutes(router: Router, database: Firestore, 
         const { sessionId, participantId } = pointer.data();
         const [participant, event] = await Promise.all([database.doc(`participants/${participantId}`).get(), database.doc(`sessions/${sessionId}`).get()]);
         const member = participant.data();
-        if (!event.exists || !member || member.uid !== uid || member.memberId !== uid || member.sessionId !== sessionId || member.identityState === 'deleted' || member.participationState === 'inactive' || event.data()?.state === 'inactive' || event.data()?.state === 'deleted') continue;
+        if (!event.exists || isEventDeleted(event.data()) || !member || member.uid !== uid || member.memberId !== uid || member.sessionId !== sessionId || member.identityState === 'deleted' || member.participationState === 'inactive' || event.data()?.state === 'inactive' || event.data()?.state === 'deleted') continue;
         const teams = [];
         for (const [collectionName, teamId] of [['teams', member.teamId || member.solutioning_team_id], ['discoveryTeams', member.discoveryTeamId || member.discovery_team_id]]) {
           if (!teamId) continue;
