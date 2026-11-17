@@ -15,9 +15,10 @@ try {
     await new Promise(resolve => setTimeout(resolve, 200));
   }
   if (!healthy) throw new Error('App did not start');
-  // Evidence-only reruns keep the exact real app/emulator/fixture lifecycle.
-  // Default CI/normal execution below always retains the full serial suite.
-  if (process.env.AWARDS_DEMO === 'true' && process.env.AWARDS_RECORD_ONLY === 'true') {
+  // Evidence-only modes retain the same real app/emulator lifecycle.
+  if (process.env.INVITATION_DEMO === 'true' && process.env.INVITATION_RECORD_ONLY === 'true') {
+    await run('npx', ['playwright', 'test', 'tests/browser/event-invitation.spec.ts', '--grep', 'organizer publication|anonymous recipient']);
+  } else if (process.env.AWARDS_DEMO === 'true' && process.env.AWARDS_RECORD_ONLY === 'true') {
     await run('npx', ['playwright', 'test', 'tests/browser/awards-journey.spec.ts']);
   } else {
   await run('node', ['--import', 'tsx', '--test', 'tests/profile-pure.test.ts']);
