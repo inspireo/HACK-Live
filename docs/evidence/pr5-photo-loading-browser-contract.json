@@ -1,0 +1,48 @@
+{
+  "capturedAt": "2026-11-17T04:45:46.887905+00:00",
+  "source": "d05e4fdb6a8bfb048d48f9558ef1a4fc760a2474",
+  "path": "docs/evidence/pr5-badge-photo-loading.webm",
+  "bytes": 703066,
+  "sha256": "831ff5d13b040b7b7fdf9bb040abe3c948e96e69426df9fa69c7ab797f2e9ced",
+  "durationSeconds": 23.4,
+  "viewport": {
+    "width": 320,
+    "height": 740
+  },
+  "fullFrameDecodeExitCode": 0,
+  "decodedFrames": 585,
+  "focusedTestsPassed": 1,
+  "fullTip": {
+    "pure": 34,
+    "apiRules": 78,
+    "browser": 29,
+    "total": 141
+  },
+  "portsFreeAndReleasedAt": "2026-11-17T04:45:46.889258+00:00",
+  "publication": "official CLI; four native players; private rendered bytes/hash verified by upload worker27",
+  "visualQa": "Inspected actual decoded frames at3/7/11/15/19s: startup, neutral56px slot, accessible spinner beside name, loaded synthetic raster, neutral revocation; stable name/role/QR layout and readable320px UI.",
+  "visualQaAt": "2026-11-17T04:46:16.284384+00:00",
+  "attachment": "https://github.com/user-attachments/assets/066c76d8-1f5a-4e30-a675-1314523549b7",
+  "screenshots": [
+    {
+      "path": "docs/evidence/pr5-badge-photo-loading-320.png",
+      "bytes": 37021,
+      "sha256": "4c5c53db454b06dd7f54181c24884146f3720a447e3f24c54d28c24ef134a30a"
+    },
+    {
+      "path": "docs/evidence/pr5-badge-photo-loaded-320.png",
+      "bytes": 36353,
+      "sha256": "410a7c212c88163b0ae9abe1c19ea9f6cf37fb2588f10f2b01201a172f0e9bf4"
+    },
+    {
+      "path": "docs/evidence/pr5-badge-photo-revoked-320.png",
+      "bytes": 36301,
+      "sha256": "ef2bb8ef4cb192b8385af39abba489bb5da8f21923d6287000063f13acbfd55c"
+    }
+  ],
+  "syntheticFirebase": true,
+  "physicalDevice": false,
+  "securityMocks": false,
+  "responseDeliveryHeld": true,
+  "scope": "focused badge selected projection/load/decode/late revocation; preserves all unrelated feature evidence"
+}
