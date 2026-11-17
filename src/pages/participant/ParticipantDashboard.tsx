@@ -1131,7 +1131,7 @@ export default function ParticipantDashboard() {
         <div className="w-full max-w-md space-y-8">
           <div className="text-center space-y-2">
             <h1 className="text-3xl font-bold">{session.title}</h1>
-            <ShareEventButton sessionId={sessionId!} publicTitle={session.title} stage={session.status} />
+            <ShareEventButton sessionId={sessionId!} />
             <div className="text-zinc-400">
               <p className="font-medium text-emerald-400">#HACK Live</p>
               <p>Join the session and get ready to collaborate.</p>
@@ -1243,7 +1243,7 @@ export default function ParticipantDashboard() {
     return (
       <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col items-center justify-start p-6 overflow-y-auto w-full">
         <div className="w-full max-w-xl space-y-8 py-8">
-          <ShareEventButton sessionId={sessionId!} publicTitle={session.title} stage={session.status} />
+          <ShareEventButton sessionId={sessionId!} />
           <div className="text-center space-y-4">
             <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">
               Participant Onboarding
@@ -1802,7 +1802,7 @@ export default function ParticipantDashboard() {
     {participant.participationState === 'inactive' ? <p>Your event participation is inactive. Contact an organizer to restore access to your badge.</p> : <>
       <p>Your official roles do not include discovery or solution team allocation. You can use the event resources and share an invitation. Contact an organizer to change your official roles.</p>
       <a className="inline-block underline" href={`/badge?event=${sessionId}`}>My badge</a>
-      <MemberHistory sessionId={sessionId} /><ShareEventButton sessionId={sessionId!} publicTitle={session.title} stage={session.status} />
+      <MemberHistory sessionId={sessionId} /><ShareEventButton sessionId={sessionId!} />
       {resourcesContent}
     </>}
   </main>{resourceModal}</div>;
@@ -1821,7 +1821,7 @@ export default function ParticipantDashboard() {
       </header>
 
       <main className="p-4 space-y-6 max-w-md mx-auto">
-        <MemberHistory sessionId={sessionId} /><ShareEventButton sessionId={sessionId!} publicTitle={session.title} stage={session.status} />
+        <MemberHistory sessionId={sessionId} /><ShareEventButton sessionId={sessionId!} />
         {team && <TeamRoleEditor collectionName="teams" teamId={team.id} members={teammates} />}
         {discTeam && <TeamRoleEditor collectionName="discoveryTeams" teamId={discTeam.id} members={discTeammates} />}
         {formingTeam && <TeamRoleEditor collectionName="formingTeams" teamId={formingTeam.id} members={formingMembers} />}

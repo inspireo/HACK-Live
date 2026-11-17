@@ -1,14 +1,3 @@
-// These are active participant stages, not a publication flag. Draft is also the
-// initial setup state, so do not promote it (or unknown/closed states) via shares.
-const INVITABLE_STAGES = new Set([
-  'Opening', 'ResourcesOnly', 'Focus Areas', 'Discovery Team Formation',
-  'Challenge Drafting', 'Challenge Discovery', 'Challenge Proposing',
-  'Challenge Voting', 'Voting Review', 'Published Challenges',
-  'Challenge Selection Open', 'Selection Locked', 'Team Formation',
-  'Team Assignment In Progress', 'Team Naming Open', 'Team Naming Locked',
-  'Live', 'Presentations',
-]);
-
 export interface EventInvitation {
   title: string;
   text: string;
@@ -16,27 +5,31 @@ export interface EventInvitation {
   fullText: string;
 }
 
-// Only the title already displayed on the participant join screen is accepted.
-// Never serialize the session: it also contains owner/admin emails and join codes.
-// No published date/venue fields exist in the current model; createdAt is not an event date.
-export function buildEventInvitation(
-  sessionId: string,
-  publicTitle: unknown,
-  stage: unknown,
-  origin: string,
-): EventInvitation | null {
-  if (typeof stage !== 'string' || !INVITABLE_STAGES.has(stage) || !sessionId) return null;
+export interface PublicEvent {
+  title: string; description?: string; venue?: string; viewingUrl?: string;
+  startsAt?: string; endsAt?: string; timeZone?: string;
+  registrationRequired: boolean; calendarEnabled: boolean; expiresAt: number;
+}
+export function publishedDate(event: Pick<PublicEvent, 'startsAt' | 'endsAt' | 'timeZone'>) {
+  if (!event.startsAt || !event.timeZone) return '';
+  try { return new Intl.DateTimeFormat('en-GB', { dateStyle: 'medium', timeStyle: 'short', timeZone: event.timeZone }).format(new Date(event.startsAt)) + ` (${event.timeZone})`; }
+  catch { return ''; }
+}
+// Accept only the server's whitelisted publication and capability, never a session.
+export function buildEventInvitation(token: string, event: PublicEvent, origin: string): EventInvitation | null {
+  if (!/^[A-Za-z0-9_-]{43}$/.test(token)) return null;
   const site = new URL(origin);
   if (!['https:', 'http:'].includes(site.protocol)) return null;
-  const title = typeof publicTitle === 'string'
-    ? publicTitle.replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim()
+  const title = typeof event.title === 'string'
+    ? event.title.replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim()
     : '';
   // Avoid carrying links, markup or contact details embedded in a title into the message.
   const hasEmailAddress = /[^\s@]+@[^\s@]+\.[^\s@]+/.test(title);
   const safeTitle = title && title.length <= 160 && !/[<>]|https?:|www\./i.test(title) && !hasEmailAddress
     ? title : '#HACK Live workshop';
-  const url = new URL(`/session/${encodeURIComponent(sessionId)}`, site.origin).href;
-  const text = `Join me at ${safeTitle}! Come collaborate with us on #HACK Live.`;
+  const url = new URL(`/invite/${token}`, site.origin).href;
+  const date = publishedDate(event);
+  const text = `Join me at ${safeTitle}!${date ? ` ${date}.` : ''} Come collaborate with us on #HACK Live.`;
   return { title: safeTitle, text, url, fullText: `${text}\n${url}` };
 }
 
