@@ -55,8 +55,7 @@ Verified-account endpoints beneath `/api/identity`:
   check, returns sessionId; no registration or profile writes.
 
 Every public preview/calendar/authenticated handoff checks session existence,
-publication, exact current token, revoked and fixed server expiry. Reads never mint
-or extend links. The sessionCreatedAt binding comes from the authoritative Firestore
+publication, exact current token, revoked and fixed server expiry. The sessionCreatedAt binding comes from the authoritative Firestore
 document createTime (seconds/nanoseconds), never a client field. Deleting and
 recreating the same event ID cannot revive old invitations; the replacement starts
 unpublished with a fresh UID and token when explicitly published. The UID stays
