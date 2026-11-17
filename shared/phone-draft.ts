@@ -7,7 +7,7 @@ export type PhoneDraft = { country: string; national: string; international?: tr
 const regionNames = new Intl.DisplayNames(["en"], { type: "region" });
 export const phoneCountries = getCountries().map(country => ({ country, code: getCountryCallingCode(country), name: regionNames.of(country) || country })).sort((left, right) => left.name.localeCompare(right.name));
 const callingRegions = metadata.country_calling_codes as Record<string, string[]>;
-export const neutralCallingCodes = Object.entries(callingRegions).filter(([, regions]) => regions.length !== 1 || regions[0] === "001").map(([code]) => code);
+export const neutralCallingCodes = Object.entries(callingRegions).filter(([, regions]) => regions.length !== 1 || regions[0] === "001").map(([code, regions]) => ({ code, label: regions[0] === "001" ? "non-geographic calling code" : "shared calling code" }));
 
 export function hydratePhone(value = ""): PhoneDraft {
   const compact = value.trim().replace(/[ ()-]/g, "");
@@ -35,7 +35,10 @@ export function phoneDraftValue(draft: PhoneDraft): string {
   }
   if (!draft.country) throw new Error("Choose a country code or paste a full +international number, or clear the field.");
   if (!/^[\d ()-]+$/.test(rawNumber)) throw new Error("Correct this phone number or clear the field.");
-  if (draft.country.startsWith("+")) return normalizeContactPhone(`${draft.country}${rawNumber}`);
+  if (draft.country.startsWith("+")) {
+    if (!draft.international) throw new Error("Choose a country before editing a shared calling code, or paste a full +international number (also for non-geographic numbers).");
+    return normalizeContactPhone(`${draft.country}${rawNumber}`);
+  }
   // Preserve loaded/pasted E.164 digits exactly until the owner edits them.
   if (draft.international) return normalizeContactPhone(`+${getCountryCallingCode(draft.country as CountryCode)}${rawNumber}`);
   const parsed = parsePhoneNumberFromString(rawNumber, { defaultCountry: draft.country as CountryCode, extract: false });
