@@ -294,7 +294,7 @@ test('badge reserves compact photo geometry through authenticated loading and la
     const initialSave = editor.waitForResponse(response => response.url().endsWith('/api/identity/save-profile') && response.request().method() === 'POST');
     await editor.getByRole('button', { name: 'Save profile', exact: true }).click();
     expect((await initialSave).status()).toBe(200);
-    await expect(editor.getByRole('status')).toHaveText('Profile saved.');
+    await expect(editor.getByRole('status').filter({ hasText: /^Profile saved\.$/ })).toHaveText('Profile saved.');
     await initialPhoto.requested;
     await expect(loading).toBeVisible();
     await expect(header.locator(':scope > span')).toHaveAttribute('aria-busy', 'true');
@@ -328,7 +328,7 @@ test('badge reserves compact photo geometry through authenticated loading and la
     const revokedSave = editor.waitForResponse(response => response.url().endsWith('/api/identity/save-profile') && response.request().method() === 'POST');
     await editor.getByRole('button', { name: 'Save profile', exact: true }).click();
     expect((await revokedSave).status()).toBe(200);
-    await expect(editor.getByRole('status')).toHaveText('Profile saved.');
+    await expect(editor.getByRole('status').filter({ hasText: /^Profile saved\.$/ })).toHaveText('Profile saved.');
     await expect(loading).toHaveCount(0);
     replacementPhoto.release();
     await replacementPhoto.delivered;
