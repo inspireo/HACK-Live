@@ -42,12 +42,13 @@ function PeerName({ uid }: { uid: string }) {
 export function ConnectionsPage() {
   const { connections, error, ownUid } = useConnections();
   if (!ownUid) return null;
+  const hasConnections = connections.some(entry => entry.state === 'pending' || entry.state === 'accepted');
   return <main className="min-h-screen bg-zinc-950 text-white p-6 space-y-6"><h1 className="text-3xl">Connections</h1>
     <div className="ui-heading-row"><p className="ui-privacy">Only approved connections see your selected contacts · One selection for all current and future connections.</p><InfoHelp label="Connections and contact sharing">Only accepted connections can view your globally selected contact fields. Sharing a team or attending an event does not connect you. Choose your global selection in your profile.</InfoHelp></div>
-    {(['Incoming requests', 'Outgoing requests', 'Accepted connections'] as const).map((heading, group) => {
+    {!hasConnections ? <section aria-label="No connections yet" className="rounded-xl border border-zinc-700 bg-zinc-900 p-5 space-y-3"><h2 className="text-xl">No connections yet</h2><p className="ui-privacy">Find members to request a connection.</p><Link className="ui-button ui-button-primary inline-flex items-center" to="/members">Browse members</Link></section> : (['Incoming requests', 'Outgoing requests', 'Accepted connections'] as const).map((heading, group) => {
       const rows = connections.filter(entry => group === 2 ? entry.state === 'accepted' : entry.state === 'pending' && (group === 0 ? entry.requester !== ownUid : entry.requester === ownUid));
-      return <section key={heading} className="space-y-3"><h2 className="text-xl">{heading}</h2>{!rows.length && <p>None yet.</p>}{rows.map(entry => <div className="border border-zinc-700 rounded p-4" key={entry.peerUid}><PeerName uid={entry.peerUid} /><ConnectionPanel peerUid={entry.peerUid} /></div>)}</section>;
-    })}<p role="alert">{error}</p><Link to="/members">Community members</Link></main>;
+      return !rows.length ? null : <section key={heading} aria-label={heading} className="space-y-3"><h2 className="text-xl">{heading}</h2>{rows.map(entry => <div className="border border-zinc-700 rounded p-4" key={entry.peerUid}><PeerName uid={entry.peerUid} /><ConnectionPanel peerUid={entry.peerUid} /></div>)}</section>;
+    })}<p role="alert">{error}</p>{hasConnections && <Link to="/members">Community members</Link>}</main>;
 }
 
 // Integration seam: append to PR2's member presentation; never owns its editor.

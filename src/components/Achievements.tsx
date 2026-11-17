@@ -25,7 +25,7 @@ export function Achievements({ memberId }: { memberId?: string }) {
     {data?.own && <div className="ui-heading-row"><p className="ui-privacy">Awards hidden on profile until selected · Official event results remain visible.</p><InfoHelp label="Achievement visibility">Published, verified awards are hidden on your profile until you select them. Official event results remain visible to verified signed-in members.</InfoHelp></div>}
     <button className="underline" disabled={busy} onClick={refresh}>Refresh achievements</button>
     {!data && !message && <p>Loading achievements…</p>}
-    {data?.awards.length === 0 && <p>{data.own ? 'No published verified awards recorded.' : 'No achievements selected for this profile.'} An absent award does not indicate participation or a loss.</p>}
+    {data?.awards.length === 0 && <div className="ui-heading-row"><p>{data.own ? 'No published awards yet' : 'No achievements selected for this profile.'}</p><InfoHelp label="Award availability">No published verified award is recorded or selected here. An absent award does not indicate participation or a loss.</InfoHelp></div>}
     {data?.awards.map(award => <div key={award.id}><AwardCard award={award} />{data.own && <label className="flex gap-2 py-2"><input type="checkbox" disabled={busy} checked={award.visibleOnProfile} onChange={async event => {
       setBusy(true); setMessage('');
       try { await identityRequest('awards/visibility', { resultId: award.id, visibleOnProfile: event.target.checked }); await refresh(); } catch (issue: any) { setMessage(issue.message); } finally { setBusy(false); }
