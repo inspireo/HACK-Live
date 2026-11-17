@@ -6,7 +6,8 @@ import { emptyDetails } from '../../shared/profile';
 const owner = 'photo-loading-owner';
 async function savePhoto(color = '#337766') {
   const photo = await photoFixture(color);
-  const result = await callIdentity(await signInFixture(owner), 'save-profile', { name: 'Synthetic Photo Member', ...emptyDetails(), communityFields: ['avatarUrl'], photoUpload: { contentType: photo.mimeType, base64: photo.buffer.toString('base64') } });
+  const details = (await fixtureDb.doc(`profileDetails/${owner}`).get()).data() || emptyDetails();
+  const result = await callIdentity(await signInFixture(owner), 'save-profile', { name: 'Synthetic Photo Member', ...details, communityFields: ['avatarUrl'], photoUpload: { contentType: photo.mimeType, base64: photo.buffer.toString('base64') } });
   expect(result.status).toBe(200);
   return result.data.details.professional.avatarUrl as string;
 }
