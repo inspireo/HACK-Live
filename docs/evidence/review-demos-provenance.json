@@ -1,0 +1,1435 @@
+{
+  "version": 2,
+  "frozenAt": "2026-11-17T13:24:23.150862+00:00",
+  "productSource": "10083d20578e3e23c96941830ce44c64e6935f41",
+  "privateFrozenManifestSHA256": "5d307e4fda8ded9f6030654af8f4c789f1a46f380ee47d7bc89260561bc751a9",
+  "assetCount": 24,
+  "totalBytes": 37691056,
+  "totalDecodedFrames": 22223,
+  "acceptance": "Normal business validation plus individually PASSED complete captures. A partial run is never represented as globally passed.",
+  "normalValidation": {
+    "status": "passed",
+    "businessChecks": 173,
+    "pureApiRules": 130,
+    "browserBusiness": 43,
+    "captureOnlySkippedNormally": 3,
+    "source": "5018c87d11b0ec66a7f447c75d4403e95c63360b",
+    "ciURL": "https://github.com/inspireo/HACK-Live/actions/runs/44087020753"
+  },
+  "batches": [
+    {
+      "name": "primary paced",
+      "source": "5018c87d11b0ec66a7f447c75d4403e95c63360b",
+      "overallStatus": "failed",
+      "pureApiRulesPassed": 130,
+      "browserPassed": 44,
+      "captureHelperFailures": 2,
+      "failedFootageUsed": false
+    },
+    {
+      "name": "focused actual-copy recapture",
+      "source": "3734832df9ab3a324e434aea64b2d8e336cc1a22",
+      "overallStatus": "passed",
+      "captureJourneysPassed": 2
+    }
+  ],
+  "toolVersions": {
+    "node": "v24.22.2",
+    "chromium": "158.0.8127.18",
+    "ffmpeg": "7.1 (full imageio-ffmpeg build)"
+  },
+  "syntheticData": true,
+  "actualAppRoutes": true,
+  "clipboardContentsRead": false,
+  "physicalDevice": false,
+  "screenshots": [
+    {
+      "path": "docs/evidence/review-photo-loading.png",
+      "sha256": "10e14aa5c2ab56c0930b732f263b58b3ba0ce3f0598fd9f466d876ccd6003b18",
+      "actualNativeVideoSHA256": "d246a372f22d32e462411fcffe85e2a9a57461b2827e91962e8e3c2a0eadb2ae",
+      "seconds": 3.5,
+      "crop": "none",
+      "generatedUI": false
+    },
+    {
+      "path": "docs/evidence/review-photo-decoded-preview.png",
+      "sha256": "1c63fe3524a11ed48bb37653fa66f1af3651f78c1539ee2c8abc9a267b9ec38c",
+      "actualNativeVideoSHA256": "d246a372f22d32e462411fcffe85e2a9a57461b2827e91962e8e3c2a0eadb2ae",
+      "seconds": 12.5,
+      "crop": "none",
+      "generatedUI": false
+    },
+    {
+      "path": "docs/evidence/review-badge-photo-loaded.png",
+      "sha256": "c8dd484293e8227f752969cd3fb422b8c5370657107852accb4c3af4fa499a93",
+      "actualNativeVideoSHA256": "4f7d511a807cf73b155cfefa3cf1c5941002dec57cb91c04aa59424a9af96cd8",
+      "seconds": 42,
+      "crop": "none",
+      "generatedUI": false
+    },
+    {
+      "path": "docs/evidence/review-real-copy-feedback.png",
+      "sha256": "0128a5cb5c689e7df8f45a20017e1123d6962633bf4ceb333a430cd8c44002f6",
+      "actualNativeVideoSHA256": "57a5959fa167c546068b9897d6058aef6a71af9b4e606670eca8989b72b81998",
+      "seconds": 14,
+      "crop": "none",
+      "generatedUI": false
+    }
+  ],
+  "assets": [
+    {
+      "title": "Sign in and reuse registration",
+      "workflowDescriptionURL": "https://github.com/inspireo/HACK-Live/pull/1",
+      "filename": "pr1-sign-in-reuse.webm",
+      "sha256": "1e91118ebb3408b776d090014bf4241e4795c58b40ea2b9df09bc5211832e17c",
+      "bytes": 1436830,
+      "durationSeconds": 19,
+      "width": 1100,
+      "height": 760,
+      "decodedFrames": 475,
+      "fullFrameDecodeExitCode": 0,
+      "playbackRate": 1,
+      "captureSources": [
+        {
+          "role": "pr1-sign-in-reuse",
+          "stage": "signup/verify/profile/register/reload/second-event/member/edit/delete",
+          "startSeconds": 0,
+          "endSeconds": 19,
+          "rawSHA256": "1e91118ebb3408b776d090014bf4241e4795c58b40ea2b9df09bc5211832e17c",
+          "rawBytes": 1436830,
+          "rawDurationSeconds": 19,
+          "captureSource": "5018c87d11b0ec66a7f447c75d4403e95c63360b",
+          "captureTree": "4d1fc33ce2361644cfdac74b7dc0d8db0b38a67e",
+          "runStartedAt": "2026-11-17T12:58:42.387Z",
+          "overallRunStatus": "failed",
+          "individualTestStatus": "passed",
+          "testFile": "tests/browser/member-journey.spec.ts",
+          "testTitle": "demo: signup verify return register reuse across events and devices view member delete profile"
+        }
+      ],
+      "osSeams": [],
+      "visualQA": {
+        "status": "passed",
+        "notes": "Verified-email hold, second event registration reuse, edit and deleted-profile endpoint visible; emulator verification operation disclosed."
+      },
+      "startupTrim": null
+    },
+    {
+      "title": "Resume from a fresh browser",
+      "workflowDescriptionURL": "https://github.com/inspireo/HACK-Live/pull/1",
+      "filename": "pr1-fresh-device.webm",
+      "sha256": "e23755890b1546aace9fdb43a9c3e35ec18260272e78f362d9211a28956fad53",
+      "bytes": 309124,
+      "durationSeconds": 4.6,
+      "width": 1100,
+      "height": 760,
+      "decodedFrames": 115,
+      "fullFrameDecodeExitCode": 0,
+      "playbackRate": 1,
+      "captureSources": [
+        {
+          "role": "pr1-fresh-device",
+          "stage": "fresh empty-storage browser sign-in resumes registration",
+          "startSeconds": 0,
+          "endSeconds": 4.6,
+          "rawSHA256": "e23755890b1546aace9fdb43a9c3e35ec18260272e78f362d9211a28956fad53",
+          "rawBytes": 309124,
+          "rawDurationSeconds": 4.6,
+          "captureSource": "5018c87d11b0ec66a7f447c75d4403e95c63360b",
+          "captureTree": "4d1fc33ce2361644cfdac74b7dc0d8db0b38a67e",
+          "runStartedAt": "2026-11-17T12:58:42.387Z",
+          "overallRunStatus": "failed",
+          "individualTestStatus": "passed",
+          "testFile": "tests/browser/member-journey.spec.ts",
+          "testTitle": "demo: signup verify return register reuse across events and devices view member delete profile"
+        }
+      ],
+      "osSeams": [],
+      "visualQA": {
+        "status": "passed",
+        "notes": "Fresh browser resumes the existing registration; no repeated Continue action."
+      },
+      "startupTrim": null
+    },
+    {
+      "title": "Event code, team and projector",
+      "workflowDescriptionURL": "https://github.com/inspireo/HACK-Live/pull/1",
+      "filename": "pr1-workshop-team-display.webm",
+      "sha256": "6eeef3d30be2074d5cc58f2ca4a644d99c92a618b325d58d19bd960e99f97a6b",
+      "bytes": 1494139,
+      "durationSeconds": 11.08,
+      "width": 1100,
+      "height": 760,
+      "decodedFrames": 277,
+      "fullFrameDecodeExitCode": 0,
+      "playbackRate": 1,
+      "captureSources": [
+        {
+          "role": "pr1-workshop-team-display",
+          "stage": "code join/challenge/team/naming/projector/admin survives deletion",
+          "startSeconds": 0,
+          "endSeconds": 11.08,
+          "rawSHA256": "6eeef3d30be2074d5cc58f2ca4a644d99c92a618b325d58d19bd960e99f97a6b",
+          "rawBytes": 1494139,
+          "rawDurationSeconds": 11.08,
+          "captureSource": "5018c87d11b0ec66a7f447c75d4403e95c63360b",
+          "captureTree": "4d1fc33ce2361644cfdac74b7dc0d8db0b38a67e",
+          "runStartedAt": "2026-11-17T12:58:42.387Z",
+          "overallRunStatus": "failed",
+          "individualTestStatus": "passed",
+          "testFile": "tests/browser/member-journey.spec.ts",
+          "testTitle": "event code join, team and projector regression; deleted social profile retains admin"
+        }
+      ],
+      "osSeams": [],
+      "visualQA": {
+        "status": "passed",
+        "notes": "Event-code onboarding, solution team naming, actual projector and retained admin access."
+      },
+      "startupTrim": null
+    },
+    {
+      "title": "Profile photo loading and decode",
+      "workflowDescriptionURL": "https://github.com/inspireo/HACK-Live/pull/2",
+      "filename": "pr2-profile-photo-loading.webm",
+      "sha256": "d246a372f22d32e462411fcffe85e2a9a57461b2827e91962e8e3c2a0eadb2ae",
+      "bytes": 978883,
+      "durationSeconds": 15.24,
+      "width": 1100,
+      "height": 760,
+      "decodedFrames": 381,
+      "fullFrameDecodeExitCode": 0,
+      "playbackRate": 1,
+      "captureSources": [
+        {
+          "role": "pr2-profile-photo-loading",
+          "stage": "owner preview/shared profile/real protected response + actual decode/stable slot",
+          "startSeconds": 0,
+          "endSeconds": 15.24,
+          "rawSHA256": "d246a372f22d32e462411fcffe85e2a9a57461b2827e91962e8e3c2a0eadb2ae",
+          "rawBytes": 978883,
+          "rawDurationSeconds": 15.24,
+          "captureSource": "5018c87d11b0ec66a7f447c75d4403e95c63360b",
+          "captureTree": "4d1fc33ce2361644cfdac74b7dc0d8db0b38a67e",
+          "runStartedAt": "2026-11-17T12:58:42.387Z",
+          "overallRunStatus": "failed",
+          "individualTestStatus": "passed",
+          "testFile": "tests/browser/profile-photo-loading.spec.ts",
+          "testTitle": "shared header reserves photo beside name through protected fetch and real image decode; owner preview uses same slot"
+        }
+      ],
+      "osSeams": [
+        "Real protected response delivery and real image decode completion are held for visibility; image/API body unchanged."
+      ],
+      "visualQA": {
+        "status": "passed",
+        "notes": "Extra native frames at3.5/5.5/10.5/12.5s show shared spinner\u2192decoded raster and owner preview spinner\u2192decoded raster with stable header geometry."
+      },
+      "startupTrim": null
+    },
+    {
+      "title": "Edit professional profile and skills",
+      "workflowDescriptionURL": "https://github.com/inspireo/HACK-Live/pull/2",
+      "filename": "pr2-profile-owner.webm",
+      "sha256": "869baa77fa5f26585b5eae5ee3f2ee6bcb0fe51b6313e1710c6c88a0b2dfecb9",
+      "bytes": 3771360,
+      "durationSeconds": 69.12,
+      "width": 1100,
+      "height": 760,
+      "decodedFrames": 1728,
+      "fullFrameDecodeExitCode": 0,
+      "playbackRate": 1,
+      "captureSources": [
+        {
+          "role": "pr2-profile-owner",
+          "stage": "upload/skills/custom skills/private contacts/preview/save/reload/narrow layout",
+          "startSeconds": 0,
+          "endSeconds": 69.12,
+          "rawSHA256": "869baa77fa5f26585b5eae5ee3f2ee6bcb0fe51b6313e1710c6c88a0b2dfecb9",
+          "rawBytes": 3771360,
+          "rawDurationSeconds": 69.12,
+          "captureSource": "5018c87d11b0ec66a7f447c75d4403e95c63360b",
+          "captureTree": "4d1fc33ce2361644cfdac74b7dc0d8db0b38a67e",
+          "runStartedAt": "2026-11-17T12:58:42.387Z",
+          "overallRunStatus": "failed",
+          "individualTestStatus": "passed",
+          "testFile": "tests/browser/profile-journey.spec.ts",
+          "testTitle": "real Firebase profile edits, community preview, other-member privacy, revocation and deletion"
+        }
+      ],
+      "osSeams": [],
+      "visualQA": {
+        "status": "passed",
+        "notes": "Actual photo upload, professional fields/skills/contact selection, save/reload and narrow layout; final profile deletion is intentional."
+      },
+      "startupTrim": null
+    },
+    {
+      "title": "Another member\u2019s privacy view",
+      "workflowDescriptionURL": "https://github.com/inspireo/HACK-Live/pull/2",
+      "filename": "pr2-profile-other-member.webm",
+      "sha256": "32c937f7ed8b74b563d24afed4de41fb1425b457a89dc64cb1c911c314d35c43",
+      "bytes": 1146503,
+      "durationSeconds": 37.56,
+      "width": 1100,
+      "height": 760,
+      "decodedFrames": 939,
+      "fullFrameDecodeExitCode": 0,
+      "playbackRate": 1,
+      "captureSources": [
+        {
+          "role": "pr2-profile-other-member",
+          "stage": "independent member selected fields/photo/replacement/revoke/delete",
+          "startSeconds": 0,
+          "endSeconds": 37.56,
+          "rawSHA256": "32c937f7ed8b74b563d24afed4de41fb1425b457a89dc64cb1c911c314d35c43",
+          "rawBytes": 1146503,
+          "rawDurationSeconds": 37.56,
+          "captureSource": "5018c87d11b0ec66a7f447c75d4403e95c63360b",
+          "captureTree": "4d1fc33ce2361644cfdac74b7dc0d8db0b38a67e",
+          "runStartedAt": "2026-11-17T12:58:42.387Z",
+          "overallRunStatus": "failed",
+          "individualTestStatus": "passed",
+          "testFile": "tests/browser/profile-journey.spec.ts",
+          "testTitle": "real Firebase profile edits, community preview, other-member privacy, revocation and deletion"
+        }
+      ],
+      "osSeams": [],
+      "visualQA": {
+        "status": "passed",
+        "notes": "Only selected professional details/photo appear; revocation and later deleted-member unavailability are intentional."
+      },
+      "startupTrim": null
+    },
+    {
+      "title": "Country codes and WhatsApp",
+      "workflowDescriptionURL": "https://github.com/inspireo/HACK-Live/pull/2",
+      "filename": "pr2-profile-country-selectors.webm",
+      "sha256": "a4810ed3b06330827355fad8a3cd7da19c75df2c0ea849e56ef09ee737cfe1e6",
+      "bytes": 2654890,
+      "durationSeconds": 26.84,
+      "width": 1100,
+      "height": 760,
+      "decodedFrames": 671,
+      "fullFrameDecodeExitCode": 0,
+      "playbackRate": 1,
+      "captureSources": [
+        {
+          "role": "pr2-profile-country-selectors",
+          "stage": "SG/+1/US/Canada/UK/Italy/link/separate/Telegram/clear/save/reload/mobile",
+          "startSeconds": 0,
+          "endSeconds": 26.84,
+          "rawSHA256": "a4810ed3b06330827355fad8a3cd7da19c75df2c0ea849e56ef09ee737cfe1e6",
+          "rawBytes": 2654890,
+          "rawDurationSeconds": 26.84,
+          "captureSource": "5018c87d11b0ec66a7f447c75d4403e95c63360b",
+          "captureTree": "4d1fc33ce2361644cfdac74b7dc0d8db0b38a67e",
+          "runStartedAt": "2026-11-17T12:58:42.387Z",
+          "overallRunStatus": "failed",
+          "individualTestStatus": "passed",
+          "testFile": "tests/browser/profile-contacts.spec.ts",
+          "testTitle": "private contact drafts, linked and separate WhatsApp, normalized Telegram and legacy correction"
+        }
+      ],
+      "osSeams": [],
+      "visualQA": {
+        "status": "passed",
+        "notes": "Explicit country selectors, linked/separate WhatsApp, Telegram correction, persisted values and narrow layout are readable."
+      },
+      "startupTrim": null
+    },
+    {
+      "title": "Publish, copy and close an invitation",
+      "workflowDescriptionURL": "https://github.com/inspireo/HACK-Live/pull/3",
+      "filename": "pr3-invitation-mobile.webm",
+      "sha256": "57a5959fa167c546068b9897d6058aef6a71af9b4e606670eca8989b72b81998",
+      "bytes": 1851300,
+      "durationSeconds": 21.36,
+      "width": 1100,
+      "height": 900,
+      "decodedFrames": 534,
+      "fullFrameDecodeExitCode": 0,
+      "playbackRate": 1,
+      "captureSources": [
+        {
+          "role": "pr3-invitation-mobile",
+          "stage": "organizer publish/reload/actual browser copy/soft-delete; manual/cancellation behavior verified separately in unchanged OS contract regression",
+          "startSeconds": 0,
+          "endSeconds": 21.36,
+          "rawSHA256": "57a5959fa167c546068b9897d6058aef6a71af9b4e606670eca8989b72b81998",
+          "rawBytes": 1851300,
+          "rawDurationSeconds": 21.36,
+          "captureSource": "3734832df9ab3a324e434aea64b2d8e336cc1a22",
+          "captureTree": "b761bc08540f8dad374586ffd1478a2d7d24eda1",
+          "runStartedAt": "2026-11-17T13:12:40.235Z",
+          "overallRunStatus": "passed",
+          "individualTestStatus": "passed",
+          "testFile": "tests/browser/event-invitation.spec.ts",
+          "testTitle": "recording: organizer publishes and uses actual browser clipboard then soft deletion"
+        }
+      ],
+      "osSeams": [
+        "Desktop Chromium with WebShare feature disabled; no native phone share sheet shown.",
+        "Actual browser clipboard-write permission and app success feedback. Clipboard content is never read. Denied/manual/native OS edges remain in the separate original contract regressions and are not shown here."
+      ],
+      "visualQA": {
+        "status": "passed",
+        "notes": "Real publication/reload and actual browser-copy success feedback at14s; retained-history deletion shown. OS-denial/manual/cancel remain separately tested."
+      },
+      "startupTrim": null
+    },
+    {
+      "title": "Public preview, calendar and registration",
+      "workflowDescriptionURL": "https://github.com/inspireo/HACK-Live/pull/3",
+      "filename": "pr3-invitation-recipient.webm",
+      "sha256": "8dad525c5a2bac56ca6a606120c37bf27411d195edee1215efb813dcec12cdce",
+      "bytes": 909894,
+      "durationSeconds": 23.16,
+      "width": 390,
+      "height": 844,
+      "decodedFrames": 579,
+      "fullFrameDecodeExitCode": 0,
+      "playbackRate": 1,
+      "captureSources": [
+        {
+          "role": "pr3-invitation-recipient",
+          "stage": "public anonymous preview/real ICS download/auth/profile/explicit registration/reload",
+          "startSeconds": 0,
+          "endSeconds": 23.16,
+          "rawSHA256": "8dad525c5a2bac56ca6a606120c37bf27411d195edee1215efb813dcec12cdce",
+          "rawBytes": 909894,
+          "rawDurationSeconds": 23.16,
+          "captureSource": "5018c87d11b0ec66a7f447c75d4403e95c63360b",
+          "captureTree": "4d1fc33ce2361644cfdac74b7dc0d8db0b38a67e",
+          "runStartedAt": "2026-11-17T12:58:42.387Z",
+          "overallRunStatus": "failed",
+          "individualTestStatus": "passed",
+          "testFile": "tests/browser/event-invitation.spec.ts",
+          "testTitle": "anonymous recipient calendar preview then real auth profile and explicit registration"
+        }
+      ],
+      "osSeams": [
+        "Desktop Chromium with WebShare feature disabled; no native phone share sheet shown."
+      ],
+      "visualQA": {
+        "status": "passed",
+        "notes": "Actual anonymous invitation, calendar-download action, profile creation and explicit registration return; portrait Chromium, no phone claim."
+      },
+      "startupTrim": null
+    },
+    {
+      "title": "Request connections and update sharing",
+      "workflowDescriptionURL": "https://github.com/inspireo/HACK-Live/pull/4",
+      "filename": "pr4-connections-sender.webm",
+      "sha256": "1b687deba1005232ffe279ffbab9a8c5da2de51e6282dfca6d697066167e6318",
+      "bytes": 2680345,
+      "durationSeconds": 45.88,
+      "width": 1100,
+      "height": 760,
+      "decodedFrames": 1147,
+      "fullFrameDecodeExitCode": 0,
+      "playbackRate": 1,
+      "captureSources": [
+        {
+          "role": "pr4-connections-sender",
+          "stage": "request/global field selection/contact updates/unfriend/decline/cancel/block",
+          "startSeconds": 0,
+          "endSeconds": 45.88,
+          "rawSHA256": "1b687deba1005232ffe279ffbab9a8c5da2de51e6282dfca6d697066167e6318",
+          "rawBytes": 2680345,
+          "rawDurationSeconds": 45.88,
+          "captureSource": "5018c87d11b0ec66a7f447c75d4403e95c63360b",
+          "captureTree": "4d1fc33ce2361644cfdac74b7dc0d8db0b38a67e",
+          "runStartedAt": "2026-11-17T12:58:42.387Z",
+          "overallRunStatus": "failed",
+          "individualTestStatus": "passed",
+          "testFile": "tests/browser/connections.spec.ts",
+          "testTitle": "two members request accept see global contact changes unfriend decline cancel and block"
+        }
+      ],
+      "osSeams": [],
+      "visualQA": {
+        "status": "passed",
+        "notes": "Real request, global sharing edits, live updates and block endpoint visible."
+      },
+      "startupTrim": null
+    },
+    {
+      "title": "Accept connections and revoke contact access",
+      "workflowDescriptionURL": "https://github.com/inspireo/HACK-Live/pull/4",
+      "filename": "pr4-connections-recipient.webm",
+      "sha256": "43fde93132eff28b1a39dfa3ad692ae199cd5ade0f88953481efb516340fd326",
+      "bytes": 498424,
+      "durationSeconds": 42.4,
+      "width": 1100,
+      "height": 760,
+      "decodedFrames": 1060,
+      "fullFrameDecodeExitCode": 0,
+      "playbackRate": 1,
+      "captureSources": [
+        {
+          "role": "pr4-connections-recipient",
+          "stage": "Real recipient login, acceptance and contact privacy; leading blank browser startup removed",
+          "startSeconds": 1.44,
+          "endSeconds": 43.84,
+          "rawSHA256": "e65878747dfb3b371636ceb45431ab81155da30a79ef1af365bd934005335140",
+          "rawBytes": 1563762,
+          "rawDurationSeconds": 43.84,
+          "captureSource": "5018c87d11b0ec66a7f447c75d4403e95c63360b",
+          "captureTree": "4d1fc33ce2361644cfdac74b7dc0d8db0b38a67e",
+          "runStartedAt": "2026-11-17T12:58:42.387Z",
+          "overallRunStatus": "failed",
+          "individualTestStatus": "passed",
+          "testFile": "tests/browser/connections.spec.ts",
+          "testTitle": "two members request accept see global contact changes unfriend decline cancel and block"
+        }
+      ],
+      "osSeams": [],
+      "visualQA": {
+        "status": "passed",
+        "notes": "Accepted contact values/actions and revoked access visible; leading1.44s blank startup removed at native speed."
+      },
+      "startupTrim": "Remove1.44s blank browser startup before actual app sign-in; retain actual login/workflow at native speed"
+    },
+    {
+      "title": "Role badge, QR and photo privacy",
+      "workflowDescriptionURL": "https://github.com/inspireo/HACK-Live/pull/5",
+      "filename": "pr5-mobile-badge-integrated.webm",
+      "sha256": "4f7d511a807cf73b155cfefa3cf1c5941002dec57cb91c04aa59424a9af96cd8",
+      "bytes": 561671,
+      "durationSeconds": 50.4,
+      "width": 390,
+      "height": 844,
+      "decodedFrames": 1260,
+      "fullFrameDecodeExitCode": 0,
+      "playbackRate": 1,
+      "captureSources": [
+        {
+          "role": "pr5-mobile-badge-integrated",
+          "stage": "roles/resources/event selector/320px badge/QR decode/profile sign-in/selection/loading/revocation/delete",
+          "startSeconds": 0,
+          "endSeconds": 33.96,
+          "rawSHA256": "21062a11aaae1e2d0ec75d104d4f78b0a28c59b14353b0a810680b9bbcb2f010",
+          "rawBytes": 1254049,
+          "rawDurationSeconds": 33.96,
+          "captureSource": "3734832df9ab3a324e434aea64b2d8e336cc1a22",
+          "captureTree": "b761bc08540f8dad374586ffd1478a2d7d24eda1",
+          "runStartedAt": "2026-11-17T13:12:40.235Z",
+          "overallRunStatus": "passed",
+          "individualTestStatus": "passed",
+          "testFile": "tests/browser/participation-journey.spec.ts",
+          "testTitle": "recording: real browser copy role badge QR workflow"
+        },
+        {
+          "role": "compact-badge-photo",
+          "stage": "selected photo loading, decoded image, privacy revocation",
+          "startSeconds": 0,
+          "endSeconds": 16.44,
+          "rawSHA256": "65357074d93042a0fb36ef4fae9e4615e8d25614f9b8ed5dd12c835946b51621",
+          "rawBytes": 562058,
+          "rawDurationSeconds": 16.44,
+          "captureSource": "5018c87d11b0ec66a7f447c75d4403e95c63360b",
+          "captureTree": "4d1fc33ce2361644cfdac74b7dc0d8db0b38a67e",
+          "runStartedAt": "2026-11-17T12:58:42.387Z",
+          "overallRunStatus": "failed",
+          "individualTestStatus": "passed",
+          "testFile": "tests/browser/participation-journey.spec.ts",
+          "testTitle": "badge reserves compact photo geometry through authenticated loading and late sharing revocation"
+        }
+      ],
+      "osSeams": [
+        "Desktop Chromium with WebShare feature disabled; no native phone share sheet shown.",
+        "Actual browser clipboard-write permission and app success feedback. Clipboard content is never read. Denied/manual/native OS edges remain in the separate original contract regressions and are not shown here.",
+        "Honest cut from real role/QR actor footage to separately recorded real compact badge loading/revocation journey; native speed."
+      ],
+      "visualQA": {
+        "status": "passed",
+        "notes": "Honest cut joins two synthetic actors. Extra38/42/46s native frames show correct compact badge page: spinner\u2192actual decoded raster\u2192neutral revocation, with stable QR/role layout."
+      },
+      "startupTrim": null
+    },
+    {
+      "title": "Clear legacy team aliases",
+      "workflowDescriptionURL": "https://github.com/inspireo/HACK-Live/pull/5",
+      "filename": "pr5-legacy-alias-removal.webm",
+      "sha256": "142990415987ab47b8f13c914963882630d67b7871739aade0c0c245793ab4ee",
+      "bytes": 598987,
+      "durationSeconds": 6.64,
+      "width": 1100,
+      "height": 760,
+      "decodedFrames": 166,
+      "fullFrameDecodeExitCode": 0,
+      "playbackRate": 1,
+      "captureSources": [
+        {
+          "role": "pr5-legacy-alias-removal",
+          "stage": "member leave/admin removal clear aliases before staff-only roles",
+          "startSeconds": 0,
+          "endSeconds": 6.64,
+          "rawSHA256": "142990415987ab47b8f13c914963882630d67b7871739aade0c0c245793ab4ee",
+          "rawBytes": 598987,
+          "rawDurationSeconds": 6.64,
+          "captureSource": "5018c87d11b0ec66a7f447c75d4403e95c63360b",
+          "captureTree": "4d1fc33ce2361644cfdac74b7dc0d8db0b38a67e",
+          "runStartedAt": "2026-11-17T12:58:42.387Z",
+          "overallRunStatus": "failed",
+          "individualTestStatus": "passed",
+          "testFile": "tests/browser/participation-journey.spec.ts",
+          "testTitle": "legacy solution aliases clear through member leave and admin removal before staff-only role change"
+        }
+      ],
+      "osSeams": [
+        "Desktop Chromium with WebShare feature disabled; no native phone share sheet shown."
+      ],
+      "visualQA": {
+        "status": "passed",
+        "notes": "Actual leave confirmation and post-removal staff-only-role view; admin removal also asserted by the passed journey."
+      },
+      "startupTrim": null
+    },
+    {
+      "title": "Participant and mentor team label",
+      "workflowDescriptionURL": "https://github.com/inspireo/HACK-Live/pull/5",
+      "filename": "pr5-mixed-participant-team-label.webm",
+      "sha256": "fd893f9030e23d8ce8f6ca1b89a7401e5db17706762f33d95c722c270f6916e7",
+      "bytes": 801388,
+      "durationSeconds": 8.44,
+      "width": 1100,
+      "height": 760,
+      "decodedFrames": 211,
+      "fullFrameDecodeExitCode": 0,
+      "playbackRate": 1,
+      "captureSources": [
+        {
+          "role": "pr5-mixed-participant-team-label",
+          "stage": "mentor+participant forms/finalizes team/leader label",
+          "startSeconds": 0,
+          "endSeconds": 8.44,
+          "rawSHA256": "fd893f9030e23d8ce8f6ca1b89a7401e5db17706762f33d95c722c270f6916e7",
+          "rawBytes": 801388,
+          "rawDurationSeconds": 8.44,
+          "captureSource": "5018c87d11b0ec66a7f447c75d4403e95c63360b",
+          "captureTree": "4d1fc33ce2361644cfdac74b7dc0d8db0b38a67e",
+          "runStartedAt": "2026-11-17T12:58:42.387Z",
+          "overallRunStatus": "failed",
+          "individualTestStatus": "passed",
+          "testFile": "tests/browser/participation-journey.spec.ts",
+          "testTitle": "mixed participant mentor forms a real solution team and retains leadership and team label through finalization"
+        }
+      ],
+      "osSeams": [
+        "Desktop Chromium with WebShare feature disabled; no native phone share sheet shown."
+      ],
+      "visualQA": {
+        "status": "passed",
+        "notes": "Actual challenge confirmation, finalized team label and separate participant/mentor badge roles."
+      },
+      "startupTrim": null
+    },
+    {
+      "title": "Assign official event roles",
+      "workflowDescriptionURL": "https://github.com/inspireo/HACK-Live/pull/5",
+      "filename": "pr5-staff-role-assignment.webm",
+      "sha256": "a68bc6fbeef8eda2c85c767b7089d9fe4727931a3427644331a4ec7a5fcc753b",
+      "bytes": 2438501,
+      "durationSeconds": 39.48,
+      "width": 1100,
+      "height": 760,
+      "decodedFrames": 987,
+      "fullFrameDecodeExitCode": 0,
+      "playbackRate": 1,
+      "captureSources": [
+        {
+          "role": "pr5-staff-role-assignment",
+          "stage": "official role assignment/resources/revoke/delete; staff actor",
+          "startSeconds": 0,
+          "endSeconds": 39.48,
+          "rawSHA256": "a68bc6fbeef8eda2c85c767b7089d9fe4727931a3427644331a4ec7a5fcc753b",
+          "rawBytes": 2438501,
+          "rawDurationSeconds": 39.48,
+          "captureSource": "3734832df9ab3a324e434aea64b2d8e336cc1a22",
+          "captureTree": "b761bc08540f8dad374586ffd1478a2d7d24eda1",
+          "runStartedAt": "2026-11-17T13:12:40.235Z",
+          "overallRunStatus": "passed",
+          "individualTestStatus": "passed",
+          "testFile": "tests/browser/participation-journey.spec.ts",
+          "testTitle": "recording: real browser copy role badge QR workflow"
+        }
+      ],
+      "osSeams": [
+        "Desktop Chromium with WebShare feature disabled; no native phone share sheet shown.",
+        "Actual browser clipboard-write permission and app success feedback. Clipboard content is never read. Denied/manual/native OS edges remain in the separate original contract regressions and are not shown here."
+      ],
+      "visualQA": {
+        "status": "passed",
+        "notes": "Actual staff role assignment and second-event role change; member actor work occurs in its separate badge clip."
+      },
+      "startupTrim": null
+    },
+    {
+      "title": "Attendance and history overview",
+      "workflowDescriptionURL": "https://github.com/inspireo/HACK-Live/pull/6",
+      "filename": "pr6-attendance-history.webm",
+      "sha256": "8a3b3eb2fbe45ee75e8bcfc4dcac5b489b52c58be1334f4301959bbbd60a6ec2",
+      "bytes": 516957,
+      "durationSeconds": 39.04,
+      "width": 1100,
+      "height": 760,
+      "decodedFrames": 971,
+      "fullFrameDecodeExitCode": 0,
+      "playbackRate": 1,
+      "captureSources": [
+        {
+          "role": "staff",
+          "stage": "registered-not-attended",
+          "startSeconds": 3.158,
+          "endSeconds": 6.709,
+          "rawSHA256": "0be24960f9f3ef1672552cd15af7ab3b06e79083a02de2eb959343f71ad4a0e2",
+          "rawBytes": 2533871,
+          "rawDurationSeconds": 48.88,
+          "captureSource": "5018c87d11b0ec66a7f447c75d4403e95c63360b",
+          "captureTree": "4d1fc33ce2361644cfdac74b7dc0d8db0b38a67e",
+          "runStartedAt": "2026-11-17T12:58:42.387Z",
+          "overallRunStatus": "failed",
+          "individualTestStatus": "passed",
+          "testFile": "tests/browser/attendance-journey.spec.ts",
+          "testTitle": "real staff check-in, member history selection, community view and correction"
+        },
+        {
+          "role": "staff",
+          "stage": "staff-verified",
+          "startSeconds": 6.912,
+          "endSeconds": 10.455,
+          "rawSHA256": "0be24960f9f3ef1672552cd15af7ab3b06e79083a02de2eb959343f71ad4a0e2",
+          "rawBytes": 2533871,
+          "rawDurationSeconds": 48.88,
+          "captureSource": "5018c87d11b0ec66a7f447c75d4403e95c63360b",
+          "captureTree": "4d1fc33ce2361644cfdac74b7dc0d8db0b38a67e",
+          "runStartedAt": "2026-11-17T12:58:42.387Z",
+          "overallRunStatus": "failed",
+          "individualTestStatus": "passed",
+          "testFile": "tests/browser/attendance-journey.spec.ts",
+          "testTitle": "real staff check-in, member history selection, community view and correction"
+        },
+        {
+          "role": "member",
+          "stage": "current-event-status",
+          "startSeconds": 1.246,
+          "endSeconds": 4.778,
+          "rawSHA256": "eb2cbde8d29ac0e9a7fcebba62507931549aa5e46084285cff231606cef4606e",
+          "rawBytes": 1750252,
+          "rawDurationSeconds": 37.16,
+          "captureSource": "5018c87d11b0ec66a7f447c75d4403e95c63360b",
+          "captureTree": "4d1fc33ce2361644cfdac74b7dc0d8db0b38a67e",
+          "runStartedAt": "2026-11-17T12:58:42.387Z",
+          "overallRunStatus": "failed",
+          "individualTestStatus": "passed",
+          "testFile": "tests/browser/attendance-journey.spec.ts",
+          "testTitle": "real staff check-in, member history selection, community view and correction"
+        },
+        {
+          "role": "member",
+          "stage": "private-owner-history",
+          "startSeconds": 5.259,
+          "endSeconds": 8.794,
+          "rawSHA256": "eb2cbde8d29ac0e9a7fcebba62507931549aa5e46084285cff231606cef4606e",
+          "rawBytes": 1750252,
+          "rawDurationSeconds": 37.16,
+          "captureSource": "5018c87d11b0ec66a7f447c75d4403e95c63360b",
+          "captureTree": "4d1fc33ce2361644cfdac74b7dc0d8db0b38a67e",
+          "runStartedAt": "2026-11-17T12:58:42.387Z",
+          "overallRunStatus": "failed",
+          "individualTestStatus": "passed",
+          "testFile": "tests/browser/attendance-journey.spec.ts",
+          "testTitle": "real staff check-in, member history selection, community view and correction"
+        },
+        {
+          "role": "viewer",
+          "stage": "unselected-hidden",
+          "startSeconds": 1.042,
+          "endSeconds": 4.56,
+          "rawSHA256": "a6eec3fafe965d5ab1493b18b4b9c3f4a160ea5a5c112fea37adb3fb84eecfca",
+          "rawBytes": 1120931,
+          "rawDurationSeconds": 32.44,
+          "captureSource": "5018c87d11b0ec66a7f447c75d4403e95c63360b",
+          "captureTree": "4d1fc33ce2361644cfdac74b7dc0d8db0b38a67e",
+          "runStartedAt": "2026-11-17T12:58:42.387Z",
+          "overallRunStatus": "failed",
+          "individualTestStatus": "passed",
+          "testFile": "tests/browser/attendance-journey.spec.ts",
+          "testTitle": "real staff check-in, member history selection, community view and correction"
+        },
+        {
+          "role": "member",
+          "stage": "show-on-profile-selected",
+          "startSeconds": 13.569,
+          "endSeconds": 17.108,
+          "rawSHA256": "eb2cbde8d29ac0e9a7fcebba62507931549aa5e46084285cff231606cef4606e",
+          "rawBytes": 1750252,
+          "rawDurationSeconds": 37.16,
+          "captureSource": "5018c87d11b0ec66a7f447c75d4403e95c63360b",
+          "captureTree": "4d1fc33ce2361644cfdac74b7dc0d8db0b38a67e",
+          "runStartedAt": "2026-11-17T12:58:42.387Z",
+          "overallRunStatus": "failed",
+          "individualTestStatus": "passed",
+          "testFile": "tests/browser/attendance-journey.spec.ts",
+          "testTitle": "real staff check-in, member history selection, community view and correction"
+        },
+        {
+          "role": "viewer",
+          "stage": "selected-safe-summary",
+          "startSeconds": 8.458,
+          "endSeconds": 11.976,
+          "rawSHA256": "a6eec3fafe965d5ab1493b18b4b9c3f4a160ea5a5c112fea37adb3fb84eecfca",
+          "rawBytes": 1120931,
+          "rawDurationSeconds": 32.44,
+          "captureSource": "5018c87d11b0ec66a7f447c75d4403e95c63360b",
+          "captureTree": "4d1fc33ce2361644cfdac74b7dc0d8db0b38a67e",
+          "runStartedAt": "2026-11-17T12:58:42.387Z",
+          "overallRunStatus": "failed",
+          "individualTestStatus": "passed",
+          "testFile": "tests/browser/attendance-journey.spec.ts",
+          "testTitle": "real staff check-in, member history selection, community view and correction"
+        },
+        {
+          "role": "staff",
+          "stage": "staff-correction",
+          "startSeconds": 32.308,
+          "endSeconds": 35.848,
+          "rawSHA256": "0be24960f9f3ef1672552cd15af7ab3b06e79083a02de2eb959343f71ad4a0e2",
+          "rawBytes": 2533871,
+          "rawDurationSeconds": 48.88,
+          "captureSource": "5018c87d11b0ec66a7f447c75d4403e95c63360b",
+          "captureTree": "4d1fc33ce2361644cfdac74b7dc0d8db0b38a67e",
+          "runStartedAt": "2026-11-17T12:58:42.387Z",
+          "overallRunStatus": "failed",
+          "individualTestStatus": "passed",
+          "testFile": "tests/browser/attendance-journey.spec.ts",
+          "testTitle": "real staff check-in, member history selection, community view and correction"
+        },
+        {
+          "role": "member",
+          "stage": "owner-private-correction-audit",
+          "startSeconds": 25.876,
+          "endSeconds": 29.409,
+          "rawSHA256": "eb2cbde8d29ac0e9a7fcebba62507931549aa5e46084285cff231606cef4606e",
+          "rawBytes": 1750252,
+          "rawDurationSeconds": 37.16,
+          "captureSource": "5018c87d11b0ec66a7f447c75d4403e95c63360b",
+          "captureTree": "4d1fc33ce2361644cfdac74b7dc0d8db0b38a67e",
+          "runStartedAt": "2026-11-17T12:58:42.387Z",
+          "overallRunStatus": "failed",
+          "individualTestStatus": "passed",
+          "testFile": "tests/browser/attendance-journey.spec.ts",
+          "testTitle": "real staff check-in, member history selection, community view and correction"
+        },
+        {
+          "role": "viewer",
+          "stage": "corrected-safe-summary",
+          "startSeconds": 20.754,
+          "endSeconds": 24.273,
+          "rawSHA256": "a6eec3fafe965d5ab1493b18b4b9c3f4a160ea5a5c112fea37adb3fb84eecfca",
+          "rawBytes": 1120931,
+          "rawDurationSeconds": 32.44,
+          "captureSource": "5018c87d11b0ec66a7f447c75d4403e95c63360b",
+          "captureTree": "4d1fc33ce2361644cfdac74b7dc0d8db0b38a67e",
+          "runStartedAt": "2026-11-17T12:58:42.387Z",
+          "overallRunStatus": "failed",
+          "individualTestStatus": "passed",
+          "testFile": "tests/browser/attendance-journey.spec.ts",
+          "testTitle": "real staff check-in, member history selection, community view and correction"
+        },
+        {
+          "role": "viewer",
+          "stage": "visibility-revoked",
+          "startSeconds": 24.633,
+          "endSeconds": 28.154,
+          "rawSHA256": "a6eec3fafe965d5ab1493b18b4b9c3f4a160ea5a5c112fea37adb3fb84eecfca",
+          "rawBytes": 1120931,
+          "rawDurationSeconds": 32.44,
+          "captureSource": "5018c87d11b0ec66a7f447c75d4403e95c63360b",
+          "captureTree": "4d1fc33ce2361644cfdac74b7dc0d8db0b38a67e",
+          "runStartedAt": "2026-11-17T12:58:42.387Z",
+          "overallRunStatus": "failed",
+          "individualTestStatus": "passed",
+          "testFile": "tests/browser/attendance-journey.spec.ts",
+          "testTitle": "real staff check-in, member history selection, community view and correction"
+        }
+      ],
+      "osSeams": [],
+      "visualQA": {
+        "status": "passed",
+        "notes": "Stage cuts switch actual staff/member/viewer recordings; verify/selection/correction/revocation states readable."
+      },
+      "startupTrim": null
+    },
+    {
+      "title": "Member attendance history and selection",
+      "workflowDescriptionURL": "https://github.com/inspireo/HACK-Live/pull/6",
+      "filename": "pr6-member-full.webm",
+      "sha256": "eb2cbde8d29ac0e9a7fcebba62507931549aa5e46084285cff231606cef4606e",
+      "bytes": 1750252,
+      "durationSeconds": 37.16,
+      "width": 1100,
+      "height": 760,
+      "decodedFrames": 929,
+      "fullFrameDecodeExitCode": 0,
+      "playbackRate": 1,
+      "captureSources": [
+        {
+          "role": "pr6-member-full",
+          "stage": "private history/registered is not attended/opt in/out/correction",
+          "startSeconds": 0,
+          "endSeconds": 37.16,
+          "rawSHA256": "eb2cbde8d29ac0e9a7fcebba62507931549aa5e46084285cff231606cef4606e",
+          "rawBytes": 1750252,
+          "rawDurationSeconds": 37.16,
+          "captureSource": "5018c87d11b0ec66a7f447c75d4403e95c63360b",
+          "captureTree": "4d1fc33ce2361644cfdac74b7dc0d8db0b38a67e",
+          "runStartedAt": "2026-11-17T12:58:42.387Z",
+          "overallRunStatus": "failed",
+          "individualTestStatus": "passed",
+          "testFile": "tests/browser/attendance-journey.spec.ts",
+          "testTitle": "real staff check-in, member history selection, community view and correction"
+        }
+      ],
+      "osSeams": [],
+      "visualQA": {
+        "status": "passed",
+        "notes": "Private owner history and selected/corrected attendance states remain distinct from community summary."
+      },
+      "startupTrim": null
+    },
+    {
+      "title": "Staff attendance verification and correction",
+      "workflowDescriptionURL": "https://github.com/inspireo/HACK-Live/pull/6",
+      "filename": "pr6-staff-full.webm",
+      "sha256": "6f0164c12cd8c11c12a48c888e6df6bcf52d2de928a3adc5d44f904f14566363",
+      "bytes": 610059,
+      "durationSeconds": 45.72,
+      "width": 1100,
+      "height": 760,
+      "decodedFrames": 1143,
+      "fullFrameDecodeExitCode": 0,
+      "playbackRate": 1,
+      "captureSources": [
+        {
+          "role": "pr6-staff-full",
+          "stage": "verify attendance/correct private audit",
+          "startSeconds": 3.158,
+          "endSeconds": 48.88,
+          "rawSHA256": "0be24960f9f3ef1672552cd15af7ab3b06e79083a02de2eb959343f71ad4a0e2",
+          "rawBytes": 2533871,
+          "rawDurationSeconds": 48.88,
+          "captureSource": "5018c87d11b0ec66a7f447c75d4403e95c63360b",
+          "captureTree": "4d1fc33ce2361644cfdac74b7dc0d8db0b38a67e",
+          "runStartedAt": "2026-11-17T12:58:42.387Z",
+          "overallRunStatus": "failed",
+          "individualTestStatus": "passed",
+          "testFile": "tests/browser/attendance-journey.spec.ts",
+          "testTitle": "real staff check-in, member history selection, community view and correction"
+        }
+      ],
+      "osSeams": [],
+      "visualQA": {
+        "status": "passed",
+        "notes": "Starts at the first verified attendance stage after removing blank browser/sign-in setup; verification and correction remain visible."
+      },
+      "startupTrim": "Start at the first verified actual attendance stage; remove blank browser startup and sign-in setup. Raw full actor source retained."
+    },
+    {
+      "title": "Viewer attendance privacy",
+      "workflowDescriptionURL": "https://github.com/inspireo/HACK-Live/pull/6",
+      "filename": "pr6-viewer-full.webm",
+      "sha256": "a6eec3fafe965d5ab1493b18b4b9c3f4a160ea5a5c112fea37adb3fb84eecfca",
+      "bytes": 1120931,
+      "durationSeconds": 32.44,
+      "width": 1100,
+      "height": 760,
+      "decodedFrames": 811,
+      "fullFrameDecodeExitCode": 0,
+      "playbackRate": 1,
+      "captureSources": [
+        {
+          "role": "pr6-viewer-full",
+          "stage": "safe selected summaries/unselected hidden/revocation",
+          "startSeconds": 0,
+          "endSeconds": 32.44,
+          "rawSHA256": "a6eec3fafe965d5ab1493b18b4b9c3f4a160ea5a5c112fea37adb3fb84eecfca",
+          "rawBytes": 1120931,
+          "rawDurationSeconds": 32.44,
+          "captureSource": "5018c87d11b0ec66a7f447c75d4403e95c63360b",
+          "captureTree": "4d1fc33ce2361644cfdac74b7dc0d8db0b38a67e",
+          "runStartedAt": "2026-11-17T12:58:42.387Z",
+          "overallRunStatus": "failed",
+          "individualTestStatus": "passed",
+          "testFile": "tests/browser/attendance-journey.spec.ts",
+          "testTitle": "real staff check-in, member history selection, community view and correction"
+        }
+      ],
+      "osSeams": [],
+      "visualQA": {
+        "status": "passed",
+        "notes": "Unselected\u2192safe shared summary\u2192revoked history; no private audit reason exposed."
+      },
+      "startupTrim": null
+    },
+    {
+      "title": "Awards and historical credit overview",
+      "workflowDescriptionURL": "https://github.com/inspireo/HACK-Live/pull/7",
+      "filename": "pr7-official-awards.webm",
+      "sha256": "93318f60d74f06ae85304f79b4ac421b1e22ac6290167f626097d94df5a21659",
+      "bytes": 783630,
+      "durationSeconds": 64.04,
+      "width": 1100,
+      "height": 760,
+      "decodedFrames": 1592,
+      "fullFrameDecodeExitCode": 0,
+      "playbackRate": 1,
+      "captureSources": [
+        {
+          "role": "staff",
+          "stage": "individual-draft",
+          "startSeconds": 3.383,
+          "endSeconds": 6.922,
+          "rawSHA256": "5d3ccfa37fc9583f0d080a9e676d28113c00b25cf5fa86501f5ac5502f3ed561",
+          "rawBytes": 3947425,
+          "rawDurationSeconds": 80,
+          "captureSource": "5018c87d11b0ec66a7f447c75d4403e95c63360b",
+          "captureTree": "4d1fc33ce2361644cfdac74b7dc0d8db0b38a67e",
+          "runStartedAt": "2026-11-17T12:58:42.387Z",
+          "overallRunStatus": "failed",
+          "individualTestStatus": "passed",
+          "testFile": "tests/browser/awards-journey.spec.ts",
+          "testTitle": "staff publish individual and team awards; member selects profile credit; later team changes preserve history; staff correct and revoke"
+        },
+        {
+          "role": "staff",
+          "stage": "individual-published",
+          "startSeconds": 7.301,
+          "endSeconds": 10.837,
+          "rawSHA256": "5d3ccfa37fc9583f0d080a9e676d28113c00b25cf5fa86501f5ac5502f3ed561",
+          "rawBytes": 3947425,
+          "rawDurationSeconds": 80,
+          "captureSource": "5018c87d11b0ec66a7f447c75d4403e95c63360b",
+          "captureTree": "4d1fc33ce2361644cfdac74b7dc0d8db0b38a67e",
+          "runStartedAt": "2026-11-17T12:58:42.387Z",
+          "overallRunStatus": "failed",
+          "individualTestStatus": "passed",
+          "testFile": "tests/browser/awards-journey.spec.ts",
+          "testTitle": "staff publish individual and team awards; member selects profile credit; later team changes preserve history; staff correct and revoke"
+        },
+        {
+          "role": "staff",
+          "stage": "team-published",
+          "startSeconds": 11.7,
+          "endSeconds": 15.232,
+          "rawSHA256": "5d3ccfa37fc9583f0d080a9e676d28113c00b25cf5fa86501f5ac5502f3ed561",
+          "rawBytes": 3947425,
+          "rawDurationSeconds": 80,
+          "captureSource": "5018c87d11b0ec66a7f447c75d4403e95c63360b",
+          "captureTree": "4d1fc33ce2361644cfdac74b7dc0d8db0b38a67e",
+          "runStartedAt": "2026-11-17T12:58:42.387Z",
+          "overallRunStatus": "failed",
+          "individualTestStatus": "passed",
+          "testFile": "tests/browser/awards-journey.spec.ts",
+          "testTitle": "staff publish individual and team awards; member selects profile credit; later team changes preserve history; staff correct and revoke"
+        },
+        {
+          "role": "staff",
+          "stage": "results-finalized",
+          "startSeconds": 15.6,
+          "endSeconds": 19.13,
+          "rawSHA256": "5d3ccfa37fc9583f0d080a9e676d28113c00b25cf5fa86501f5ac5502f3ed561",
+          "rawBytes": 3947425,
+          "rawDurationSeconds": 80,
+          "captureSource": "5018c87d11b0ec66a7f447c75d4403e95c63360b",
+          "captureTree": "4d1fc33ce2361644cfdac74b7dc0d8db0b38a67e",
+          "runStartedAt": "2026-11-17T12:58:42.387Z",
+          "overallRunStatus": "failed",
+          "individualTestStatus": "passed",
+          "testFile": "tests/browser/awards-journey.spec.ts",
+          "testTitle": "staff publish individual and team awards; member selects profile credit; later team changes preserve history; staff correct and revoke"
+        },
+        {
+          "role": "member",
+          "stage": "private-owner-achievements",
+          "startSeconds": 1.099,
+          "endSeconds": 4.64,
+          "rawSHA256": "ad1cc713c16de0b9aaa06d97b39d98958d56bfda14f8e13b030046e3a42a7579",
+          "rawBytes": 1930392,
+          "rawDurationSeconds": 69,
+          "captureSource": "5018c87d11b0ec66a7f447c75d4403e95c63360b",
+          "captureTree": "4d1fc33ce2361644cfdac74b7dc0d8db0b38a67e",
+          "runStartedAt": "2026-11-17T12:58:42.387Z",
+          "overallRunStatus": "failed",
+          "individualTestStatus": "passed",
+          "testFile": "tests/browser/awards-journey.spec.ts",
+          "testTitle": "staff publish individual and team awards; member selects profile credit; later team changes preserve history; staff correct and revoke"
+        },
+        {
+          "role": "viewer",
+          "stage": "profile-unselected-hidden",
+          "startSeconds": 1.031,
+          "endSeconds": 4.548,
+          "rawSHA256": "b4165da3af7cb288584328270783dc763437cf4df9612cd6fad7ee2ac46353a9",
+          "rawBytes": 2199504,
+          "rawDurationSeconds": 55.12,
+          "captureSource": "5018c87d11b0ec66a7f447c75d4403e95c63360b",
+          "captureTree": "4d1fc33ce2361644cfdac74b7dc0d8db0b38a67e",
+          "runStartedAt": "2026-11-17T12:58:42.387Z",
+          "overallRunStatus": "failed",
+          "individualTestStatus": "passed",
+          "testFile": "tests/browser/awards-journey.spec.ts",
+          "testTitle": "staff publish individual and team awards; member selects profile credit; later team changes preserve history; staff correct and revoke"
+        },
+        {
+          "role": "member",
+          "stage": "profile-selection",
+          "startSeconds": 9.58,
+          "endSeconds": 13.114,
+          "rawSHA256": "ad1cc713c16de0b9aaa06d97b39d98958d56bfda14f8e13b030046e3a42a7579",
+          "rawBytes": 1930392,
+          "rawDurationSeconds": 69,
+          "captureSource": "5018c87d11b0ec66a7f447c75d4403e95c63360b",
+          "captureTree": "4d1fc33ce2361644cfdac74b7dc0d8db0b38a67e",
+          "runStartedAt": "2026-11-17T12:58:42.387Z",
+          "overallRunStatus": "failed",
+          "individualTestStatus": "passed",
+          "testFile": "tests/browser/awards-journey.spec.ts",
+          "testTitle": "staff publish individual and team awards; member selects profile credit; later team changes preserve history; staff correct and revoke"
+        },
+        {
+          "role": "viewer",
+          "stage": "selected-profile-summary",
+          "startSeconds": 8.896,
+          "endSeconds": 12.417,
+          "rawSHA256": "b4165da3af7cb288584328270783dc763437cf4df9612cd6fad7ee2ac46353a9",
+          "rawBytes": 2199504,
+          "rawDurationSeconds": 55.12,
+          "captureSource": "5018c87d11b0ec66a7f447c75d4403e95c63360b",
+          "captureTree": "4d1fc33ce2361644cfdac74b7dc0d8db0b38a67e",
+          "runStartedAt": "2026-11-17T12:58:42.387Z",
+          "overallRunStatus": "failed",
+          "individualTestStatus": "passed",
+          "testFile": "tests/browser/awards-journey.spec.ts",
+          "testTitle": "staff publish individual and team awards; member selects profile credit; later team changes preserve history; staff correct and revoke"
+        },
+        {
+          "role": "viewer",
+          "stage": "official-results-independent-audience",
+          "startSeconds": 12.685,
+          "endSeconds": 16.233,
+          "rawSHA256": "b4165da3af7cb288584328270783dc763437cf4df9612cd6fad7ee2ac46353a9",
+          "rawBytes": 2199504,
+          "rawDurationSeconds": 55.12,
+          "captureSource": "5018c87d11b0ec66a7f447c75d4403e95c63360b",
+          "captureTree": "4d1fc33ce2361644cfdac74b7dc0d8db0b38a67e",
+          "runStartedAt": "2026-11-17T12:58:42.387Z",
+          "overallRunStatus": "failed",
+          "individualTestStatus": "passed",
+          "testFile": "tests/browser/awards-journey.spec.ts",
+          "testTitle": "staff publish individual and team awards; member selects profile credit; later team changes preserve history; staff correct and revoke"
+        },
+        {
+          "role": "staff",
+          "stage": "later-team-removal",
+          "startSeconds": 40.933,
+          "endSeconds": 44.469,
+          "rawSHA256": "5d3ccfa37fc9583f0d080a9e676d28113c00b25cf5fa86501f5ac5502f3ed561",
+          "rawBytes": 3947425,
+          "rawDurationSeconds": 80,
+          "captureSource": "5018c87d11b0ec66a7f447c75d4403e95c63360b",
+          "captureTree": "4d1fc33ce2361644cfdac74b7dc0d8db0b38a67e",
+          "runStartedAt": "2026-11-17T12:58:42.387Z",
+          "overallRunStatus": "failed",
+          "individualTestStatus": "passed",
+          "testFile": "tests/browser/awards-journey.spec.ts",
+          "testTitle": "staff publish individual and team awards; member selects profile credit; later team changes preserve history; staff correct and revoke"
+        },
+        {
+          "role": "member",
+          "stage": "snapshot-credit-preserved",
+          "startSeconds": 25.596,
+          "endSeconds": 29.128,
+          "rawSHA256": "ad1cc713c16de0b9aaa06d97b39d98958d56bfda14f8e13b030046e3a42a7579",
+          "rawBytes": 1930392,
+          "rawDurationSeconds": 69,
+          "captureSource": "5018c87d11b0ec66a7f447c75d4403e95c63360b",
+          "captureTree": "4d1fc33ce2361644cfdac74b7dc0d8db0b38a67e",
+          "runStartedAt": "2026-11-17T12:58:42.387Z",
+          "overallRunStatus": "failed",
+          "individualTestStatus": "passed",
+          "testFile": "tests/browser/awards-journey.spec.ts",
+          "testTitle": "staff publish individual and team awards; member selects profile credit; later team changes preserve history; staff correct and revoke"
+        },
+        {
+          "role": "staff",
+          "stage": "category-corrected",
+          "startSeconds": 49.249,
+          "endSeconds": 52.78,
+          "rawSHA256": "5d3ccfa37fc9583f0d080a9e676d28113c00b25cf5fa86501f5ac5502f3ed561",
+          "rawBytes": 3947425,
+          "rawDurationSeconds": 80,
+          "captureSource": "5018c87d11b0ec66a7f447c75d4403e95c63360b",
+          "captureTree": "4d1fc33ce2361644cfdac74b7dc0d8db0b38a67e",
+          "runStartedAt": "2026-11-17T12:58:42.387Z",
+          "overallRunStatus": "failed",
+          "individualTestStatus": "passed",
+          "testFile": "tests/browser/awards-journey.spec.ts",
+          "testTitle": "staff publish individual and team awards; member selects profile credit; later team changes preserve history; staff correct and revoke"
+        },
+        {
+          "role": "member",
+          "stage": "correction-keeps-profile-choice",
+          "startSeconds": 33.899,
+          "endSeconds": 37.431,
+          "rawSHA256": "ad1cc713c16de0b9aaa06d97b39d98958d56bfda14f8e13b030046e3a42a7579",
+          "rawBytes": 1930392,
+          "rawDurationSeconds": 69,
+          "captureSource": "5018c87d11b0ec66a7f447c75d4403e95c63360b",
+          "captureTree": "4d1fc33ce2361644cfdac74b7dc0d8db0b38a67e",
+          "runStartedAt": "2026-11-17T12:58:42.387Z",
+          "overallRunStatus": "failed",
+          "individualTestStatus": "passed",
+          "testFile": "tests/browser/awards-journey.spec.ts",
+          "testTitle": "staff publish individual and team awards; member selects profile credit; later team changes preserve history; staff correct and revoke"
+        },
+        {
+          "role": "viewer",
+          "stage": "corrected-safe-profile",
+          "startSeconds": 33.232,
+          "endSeconds": 36.753,
+          "rawSHA256": "b4165da3af7cb288584328270783dc763437cf4df9612cd6fad7ee2ac46353a9",
+          "rawBytes": 2199504,
+          "rawDurationSeconds": 55.12,
+          "captureSource": "5018c87d11b0ec66a7f447c75d4403e95c63360b",
+          "captureTree": "4d1fc33ce2361644cfdac74b7dc0d8db0b38a67e",
+          "runStartedAt": "2026-11-17T12:58:42.387Z",
+          "overallRunStatus": "failed",
+          "individualTestStatus": "passed",
+          "testFile": "tests/browser/awards-journey.spec.ts",
+          "testTitle": "staff publish individual and team awards; member selects profile credit; later team changes preserve history; staff correct and revoke"
+        },
+        {
+          "role": "staff",
+          "stage": "team-award-revoked",
+          "startSeconds": 61.032,
+          "endSeconds": 64.566,
+          "rawSHA256": "5d3ccfa37fc9583f0d080a9e676d28113c00b25cf5fa86501f5ac5502f3ed561",
+          "rawBytes": 3947425,
+          "rawDurationSeconds": 80,
+          "captureSource": "5018c87d11b0ec66a7f447c75d4403e95c63360b",
+          "captureTree": "4d1fc33ce2361644cfdac74b7dc0d8db0b38a67e",
+          "runStartedAt": "2026-11-17T12:58:42.387Z",
+          "overallRunStatus": "failed",
+          "individualTestStatus": "passed",
+          "testFile": "tests/browser/awards-journey.spec.ts",
+          "testTitle": "staff publish individual and team awards; member selects profile credit; later team changes preserve history; staff correct and revoke"
+        },
+        {
+          "role": "member",
+          "stage": "revocation-removes-team-credit",
+          "startSeconds": 45.679,
+          "endSeconds": 49.22,
+          "rawSHA256": "ad1cc713c16de0b9aaa06d97b39d98958d56bfda14f8e13b030046e3a42a7579",
+          "rawBytes": 1930392,
+          "rawDurationSeconds": 69,
+          "captureSource": "5018c87d11b0ec66a7f447c75d4403e95c63360b",
+          "captureTree": "4d1fc33ce2361644cfdac74b7dc0d8db0b38a67e",
+          "runStartedAt": "2026-11-17T12:58:42.387Z",
+          "overallRunStatus": "failed",
+          "individualTestStatus": "passed",
+          "testFile": "tests/browser/awards-journey.spec.ts",
+          "testTitle": "staff publish individual and team awards; member selects profile credit; later team changes preserve history; staff correct and revoke"
+        },
+        {
+          "role": "viewer",
+          "stage": "revoked-result-removed",
+          "startSeconds": 45.287,
+          "endSeconds": 48.835,
+          "rawSHA256": "b4165da3af7cb288584328270783dc763437cf4df9612cd6fad7ee2ac46353a9",
+          "rawBytes": 2199504,
+          "rawDurationSeconds": 55.12,
+          "captureSource": "5018c87d11b0ec66a7f447c75d4403e95c63360b",
+          "captureTree": "4d1fc33ce2361644cfdac74b7dc0d8db0b38a67e",
+          "runStartedAt": "2026-11-17T12:58:42.387Z",
+          "overallRunStatus": "failed",
+          "individualTestStatus": "passed",
+          "testFile": "tests/browser/awards-journey.spec.ts",
+          "testTitle": "staff publish individual and team awards; member selects profile credit; later team changes preserve history; staff correct and revoke"
+        },
+        {
+          "role": "staff",
+          "stage": "authorized-private-audit",
+          "startSeconds": 73.115,
+          "endSeconds": 76.648,
+          "rawSHA256": "5d3ccfa37fc9583f0d080a9e676d28113c00b25cf5fa86501f5ac5502f3ed561",
+          "rawBytes": 3947425,
+          "rawDurationSeconds": 80,
+          "captureSource": "5018c87d11b0ec66a7f447c75d4403e95c63360b",
+          "captureTree": "4d1fc33ce2361644cfdac74b7dc0d8db0b38a67e",
+          "runStartedAt": "2026-11-17T12:58:42.387Z",
+          "overallRunStatus": "failed",
+          "individualTestStatus": "passed",
+          "testFile": "tests/browser/awards-journey.spec.ts",
+          "testTitle": "staff publish individual and team awards; member selects profile credit; later team changes preserve history; staff correct and revoke"
+        }
+      ],
+      "osSeams": [],
+      "visualQA": {
+        "status": "passed",
+        "notes": "Honest actual-actor cuts show individual/team publishing, historical team change, correction and revocation."
+      },
+      "startupTrim": null
+    },
+    {
+      "title": "Member achievement selection and history",
+      "workflowDescriptionURL": "https://github.com/inspireo/HACK-Live/pull/7",
+      "filename": "pr7-member-full.webm",
+      "sha256": "ad1cc713c16de0b9aaa06d97b39d98958d56bfda14f8e13b030046e3a42a7579",
+      "bytes": 1930392,
+      "durationSeconds": 69,
+      "width": 1100,
+      "height": 760,
+      "decodedFrames": 1725,
+      "fullFrameDecodeExitCode": 0,
+      "playbackRate": 1,
+      "captureSources": [
+        {
+          "role": "pr7-member-full",
+          "stage": "private achievements/selection/snapshot credit survives team changes/revoke",
+          "startSeconds": 0,
+          "endSeconds": 69,
+          "rawSHA256": "ad1cc713c16de0b9aaa06d97b39d98958d56bfda14f8e13b030046e3a42a7579",
+          "rawBytes": 1930392,
+          "rawDurationSeconds": 69,
+          "captureSource": "5018c87d11b0ec66a7f447c75d4403e95c63360b",
+          "captureTree": "4d1fc33ce2361644cfdac74b7dc0d8db0b38a67e",
+          "runStartedAt": "2026-11-17T12:58:42.387Z",
+          "overallRunStatus": "failed",
+          "individualTestStatus": "passed",
+          "testFile": "tests/browser/awards-journey.spec.ts",
+          "testTitle": "staff publish individual and team awards; member selects profile credit; later team changes preserve history; staff correct and revoke"
+        }
+      ],
+      "osSeams": [],
+      "visualQA": {
+        "status": "passed",
+        "notes": "Unselected/selected achievements, retained historical team credit, correction and revoked credit removal."
+      },
+      "startupTrim": null
+    },
+    {
+      "title": "Publish, correct and revoke awards",
+      "workflowDescriptionURL": "https://github.com/inspireo/HACK-Live/pull/7",
+      "filename": "pr7-staff-full.webm",
+      "sha256": "5d3ccfa37fc9583f0d080a9e676d28113c00b25cf5fa86501f5ac5502f3ed561",
+      "bytes": 3947425,
+      "durationSeconds": 80,
+      "width": 1100,
+      "height": 760,
+      "decodedFrames": 2000,
+      "fullFrameDecodeExitCode": 0,
+      "playbackRate": 1,
+      "captureSources": [
+        {
+          "role": "pr7-staff-full",
+          "stage": "draft/publish/team+individual/finalize/category correction/revocation",
+          "startSeconds": 0,
+          "endSeconds": 80,
+          "rawSHA256": "5d3ccfa37fc9583f0d080a9e676d28113c00b25cf5fa86501f5ac5502f3ed561",
+          "rawBytes": 3947425,
+          "rawDurationSeconds": 80,
+          "captureSource": "5018c87d11b0ec66a7f447c75d4403e95c63360b",
+          "captureTree": "4d1fc33ce2361644cfdac74b7dc0d8db0b38a67e",
+          "runStartedAt": "2026-11-17T12:58:42.387Z",
+          "overallRunStatus": "failed",
+          "individualTestStatus": "passed",
+          "testFile": "tests/browser/awards-journey.spec.ts",
+          "testTitle": "staff publish individual and team awards; member selects profile credit; later team changes preserve history; staff correct and revoke"
+        }
+      ],
+      "osSeams": [],
+      "visualQA": {
+        "status": "passed",
+        "notes": "Actual publish/finalize, team removal, category correction and private audit/revocation screens."
+      },
+      "startupTrim": null
+    },
+    {
+      "title": "Viewer achievements and official results",
+      "workflowDescriptionURL": "https://github.com/inspireo/HACK-Live/pull/7",
+      "filename": "pr7-viewer-full.webm",
+      "sha256": "b4165da3af7cb288584328270783dc763437cf4df9612cd6fad7ee2ac46353a9",
+      "bytes": 2199504,
+      "durationSeconds": 55.12,
+      "width": 1100,
+      "height": 760,
+      "decodedFrames": 1378,
+      "fullFrameDecodeExitCode": 0,
+      "playbackRate": 1,
+      "captureSources": [
+        {
+          "role": "pr7-viewer-full",
+          "stage": "selected profile/independent official results/correction/revocation",
+          "startSeconds": 0,
+          "endSeconds": 55.12,
+          "rawSHA256": "b4165da3af7cb288584328270783dc763437cf4df9612cd6fad7ee2ac46353a9",
+          "rawBytes": 2199504,
+          "rawDurationSeconds": 55.12,
+          "captureSource": "5018c87d11b0ec66a7f447c75d4403e95c63360b",
+          "captureTree": "4d1fc33ce2361644cfdac74b7dc0d8db0b38a67e",
+          "runStartedAt": "2026-11-17T12:58:42.387Z",
+          "overallRunStatus": "failed",
+          "individualTestStatus": "passed",
+          "testFile": "tests/browser/awards-journey.spec.ts",
+          "testTitle": "staff publish individual and team awards; member selects profile credit; later team changes preserve history; staff correct and revoke"
+        }
+      ],
+      "osSeams": [],
+      "visualQA": {
+        "status": "passed",
+        "notes": "Selected profile and independently published official results; revoked team result removed without private audit details."
+      },
+      "startupTrim": null
+    },
+    {
+      "title": "Shared design system and contextual help",
+      "workflowDescriptionURL": "https://github.com/inspireo/HACK-Live/pull/9",
+      "filename": "logical-pr8-design-system-help.webm",
+      "sha256": "61732e07b899cb7cc22cb614a76bfb48a06d6ca7f96e7b00718df8e973a68b76",
+      "bytes": 2699667,
+      "durationSeconds": 45.76,
+      "width": 1100,
+      "height": 760,
+      "decodedFrames": 1144,
+      "fullFrameDecodeExitCode": 0,
+      "playbackRate": 1,
+      "captureSources": [
+        {
+          "role": "logical-pr8-design-system-help",
+          "stage": "new shared UI: contextual help entry/read/close/keyboard focus/desktop+narrow layout; representative actual profile/event/admin/badge screens, exact surfaces to follow UI36 immutable pass",
+          "startSeconds": 0,
+          "endSeconds": 45.76,
+          "rawSHA256": "61732e07b899cb7cc22cb614a76bfb48a06d6ca7f96e7b00718df8e973a68b76",
+          "rawBytes": 2699667,
+          "rawDurationSeconds": 45.76,
+          "captureSource": "5018c87d11b0ec66a7f447c75d4403e95c63360b",
+          "captureTree": "4d1fc33ce2361644cfdac74b7dc0d8db0b38a67e",
+          "runStartedAt": "2026-11-17T12:58:42.387Z",
+          "overallRunStatus": "failed",
+          "individualTestStatus": "passed",
+          "testFile": "tests/browser/review-ui-walkthrough.spec.ts",
+          "testTitle": "recording: shared design system and contextual help walkthrough"
+        }
+      ],
+      "osSeams": [],
+      "visualQA": {
+        "status": "passed",
+        "notes": "Actual account/populated-connections/badge/admin routes. Extra15/29/34/39s frames verify narrow mobile/contact help, light-badge help and timezone help; keyboard focus returns and consent/value invariants asserted."
+      },
+      "startupTrim": null
+    }
+  ]
+}
