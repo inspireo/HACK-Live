@@ -1,57 +1,81 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { doc, getDoc, onSnapshot } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from './firebase';
 import { profileEditorDetails, normalizeTelegram, communityProjection, contactFields, emptyDetails, fieldLabels, professionalFields, isManagedPhotoUrl, maxPhotoUploadBytes, safeProfileUrl, validateProfileEdit, type ProfessionalValues, type ProfileDetails } from '../shared/profile';
 import { PhoneInput } from './phone-input';
 import { hydratePhone, phoneDraftValue, type PhoneDraft } from '../shared/phone-draft';
 import { SkillsCombobox } from './skills-combobox';
 
-export function ProfilePhoto({ url }: { url: string }) {
-  const [resolved, setResolved] = useState<{ url: string; blob: string } | null>(null);
+// Fixed slot also serves downstream compact badges without changing the default size.
+export function ProfilePhoto({ url, loading = false, size = 96 }: { url?: string; loading?: boolean; size?: number }) {
+  const [viewer, setViewer] = useState(auth.currentUser);
+  useEffect(() => onAuthStateChanged(auth, setViewer), []);
+  const [photo, setPhoto] = useState<{ url?: string; viewer: typeof viewer; source?: string; state: 'loading' | 'ready' | 'error' } | null>(null);
+  const generation = useRef(0);
   useEffect(() => {
-    if (!isManagedPhotoUrl(url)) return;
+    const requestGeneration = ++generation.current;
     const controller = new AbortController();
-    let current = true;
     let objectUrl: string | undefined;
-    setResolved(null);
+    const isCurrent = () => generation.current === requestGeneration && auth.currentUser === viewer;
+    setPhoto({ url, viewer, state: 'loading' });
     (async () => {
-      const token = await auth.currentUser?.getIdToken();
-      if (!token || !current) return;
-      const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` }, signal: controller.signal, cache: 'no-store' });
-      if (!response.ok) return;
-      const blob = await response.blob();
-      if (!current) return;
-      objectUrl = URL.createObjectURL(blob);
-      setResolved({ url, blob: objectUrl });
-    })().catch(() => {});
-    return () => { current = false; controller.abort(); if (objectUrl) URL.revokeObjectURL(objectUrl); };
-  }, [url]);
-  let source: string | undefined;
-  if (isManagedPhotoUrl(url)) source = resolved?.url === url ? resolved.blob : undefined;
-  else { try { source = safeProfileUrl(url, 'avatarUrl'); } catch {} }
-  return source ? <img src={source} alt="Member avatar" className="w-24 h-24 rounded-full object-cover" referrerPolicy="no-referrer" loading="lazy" /> : null;
+      if (!url) return;
+      let source: string;
+      if (isManagedPhotoUrl(url)) {
+        const token = await viewer?.getIdToken();
+        if (!isCurrent()) return;
+        if (!token) throw new Error('Photo unavailable');
+        const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` }, signal: controller.signal, cache: 'no-store' });
+        if (!response.ok) throw new Error('Photo unavailable');
+        const blob = await response.blob();
+        if (!isCurrent()) return;
+        objectUrl = URL.createObjectURL(blob);
+        source = objectUrl;
+      } else source = safeProfileUrl(url, 'avatarUrl');
+      if (isCurrent()) setPhoto({ url, viewer, source, state: 'loading' });
+    })().catch(() => { if (isCurrent()) setPhoto({ url, viewer, state: 'error' }); });
+    return () => { generation.current += 1; controller.abort(); if (objectUrl) URL.revokeObjectURL(objectUrl); };
+  }, [url, viewer]);
+  const currentPhoto = photo?.url === url && photo.viewer === viewer && viewer === auth.currentUser ? photo : null;
+  const pending = loading || (!!url && (!currentPhoto || currentPhoto.state === 'loading'));
+  const requestGeneration = generation.current;
+  return <span className="relative inline-flex shrink-0 items-center justify-center rounded-full bg-zinc-800 align-middle" style={{ width: size, height: size }} aria-busy={pending}>
+    {pending ? <span role="status" aria-label="Loading profile photo"><span className="block h-5 w-5 animate-spin rounded-full border-2 border-zinc-500 border-t-zinc-100 motion-reduce:animate-none" aria-hidden="true" /><span className="sr-only">Loading profile photo</span></span> : currentPhoto?.state !== 'ready' ? <span className="text-zinc-400 text-xs text-center" aria-label={url ? 'Photo unavailable' : 'No profile photo'} aria-hidden="true">—</span> : null}
+    {currentPhoto?.source && <img src={currentPhoto.source} alt="Member avatar" width={size} height={size} className="absolute inset-0 h-full w-full rounded-full object-cover" style={{ visibility: currentPhoto.state === 'ready' ? 'visible' : 'hidden' }} referrerPolicy="no-referrer" onLoad={async event => {
+      const imageElement = event.currentTarget;
+      try { await imageElement.decode(); } catch { if (generation.current === requestGeneration) setPhoto(previous => previous && { ...previous, source: undefined, state: 'error' }); return; }
+      if (generation.current === requestGeneration && auth.currentUser === viewer) setPhoto(previous => previous && { ...previous, state: 'ready' });
+    }} onError={() => { if (generation.current === requestGeneration) setPhoto(previous => previous && { ...previous, source: undefined, state: 'error' }); }} />}
+  </span>;
 }
 
-export function ProfessionalView({ values }: { values: ProfessionalValues }) {
+export function ProfileHeader({ name, photoUrl, loading = false, preview = false, photoPreview }: { name: string; photoUrl?: string; loading?: boolean; preview?: boolean; photoPreview?: string }) {
+  const Heading = preview ? 'h2' : 'h1';
+  return <div className="flex items-center gap-4" data-profile-header>
+    {photoPreview ? <img src={photoPreview} alt="New photo preview" width={96} height={96} className="w-24 h-24 shrink-0 rounded-full object-cover" /> : <ProfilePhoto url={photoUrl} loading={loading} />}
+    <Heading className="text-3xl min-w-0 break-words">{name}</Heading>
+  </div>;
+}
+
+export function ProfessionalView({ values, showPhoto = true }: { values: ProfessionalValues; showPhoto?: boolean }) {
   return <div className="space-y-3">{professionalFields.map(field => {
     const value = values[field];
     if (!value) return null;
     if (['avatarUrl', 'linkedin', 'github', 'portfolio'].includes(field)) {
       try { safeProfileUrl(value, field); } catch { return null; }
-      if (field === 'avatarUrl') return <ProfilePhoto key={field} url={value} />;
+      if (field === 'avatarUrl') return showPhoto ? <ProfilePhoto key={field} url={value} /> : null;
       return <p key={field}><a className="underline" href={value} target="_blank" rel="noopener noreferrer">{fieldLabels[field]}</a></p>;
     }
     return <p className="whitespace-pre-wrap break-words" key={field}><strong>{fieldLabels[field]}: </strong>{value}</p>;
   })}</div>;
 }
 
-export function MemberDetails({ memberId }: { memberId: string }) {
-  const [values, setValues] = useState<ProfessionalValues>({});
-  useEffect(() => {
-    setValues({});
-    return onSnapshot(doc(db, 'memberDetails', memberId), snapshot => setValues(snapshot.data() || {}), () => setValues({}));
-  }, [memberId]);
-  return <ProfessionalView values={values} />;
+export function MemberDetails({ memberId, name }: { memberId: string; name?: string }) {
+  const [details, setDetails] = useState<{ memberId: string; values: ProfessionalValues } | null>(null);
+  useEffect(() => onSnapshot(doc(db, 'memberDetails', memberId), snapshot => setDetails({ memberId, values: snapshot.data() || {} }), () => setDetails({ memberId, values: {} })), [memberId]);
+  const current = details?.memberId === memberId ? details : null;
+  return <>{name !== undefined && <><ProfileHeader name={name} photoUrl={current?.values.avatarUrl} loading={!current} /><p>Community member</p></>}<ProfessionalView values={current?.values || {}} showPhoto={name === undefined} /></>;
 }
 
 export function ProfileEditor({ uid, name, onNameChange, save, onSaved }: { uid: string; name: string; onNameChange: (name: string) => void; save: (payload: object) => Promise<unknown>; onSaved: (message: string) => void }) {
@@ -142,7 +166,7 @@ export function ProfileEditor({ uid, name, onNameChange, save, onSaved }: { uid:
     <button disabled={busy} className="p-3 bg-emerald-700 rounded-lg disabled:opacity-50">Save profile</button>
   </form>
   <button type="button" className="underline" onClick={() => setPreview(value => !value)}>Preview community view</button>
-  {preview && <section aria-label="Community preview" className="border border-zinc-600 rounded-lg p-4 space-y-3"><h2 className="text-xl">{name}</h2><p>Preview of your current edits. Save to apply them.</p><ProfessionalView values={communityProjection({ ...details, professional: { ...details.professional, ...((photoFile || removePhoto) ? { avatarUrl: undefined } : {}) } })} />{photoPreview && details.communityFields.includes('avatarUrl') && <img src={photoPreview} alt="New photo preview" className="w-24 h-24 rounded-full object-cover" />}<p>Contacts are hidden.</p></section>}</>;
+  {preview && <section aria-label="Community preview" className="border border-zinc-600 rounded-lg p-4 space-y-3"><ProfileHeader preview name={name} photoUrl={!photoFile && !removePhoto && details.communityFields.includes('avatarUrl') ? details.professional.avatarUrl : undefined} photoPreview={details.communityFields.includes('avatarUrl') ? photoPreview : undefined} /><p>Preview of your current edits. Save to apply them.</p><ProfessionalView showPhoto={false} values={communityProjection({ ...details, professional: { ...details.professional, ...((photoFile || removePhoto) ? { avatarUrl: undefined } : {}) } })} /><p>Contacts are hidden.</p></section>}</>;
 }
 
 function TelegramPreview({ value }: { value: string }) {
