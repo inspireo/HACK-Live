@@ -37,7 +37,7 @@ export function ProfilePhoto({ url, loading = false, size = 96 }: { url?: string
     })().catch(() => { if (isCurrent()) setPhoto({ url, viewer, state: 'error' }); });
     return () => { generation.current += 1; controller.abort(); if (objectUrl) URL.revokeObjectURL(objectUrl); };
   }, [url, viewer]);
-  const currentPhoto = photo?.url === url && photo.viewer === viewer && viewer === auth.currentUser ? photo : null;
+  const currentPhoto = photo && photo.url === url && photo.viewer === viewer && viewer === auth.currentUser ? photo : null;
   const pending = loading || (!!url && (!currentPhoto || currentPhoto.state === 'loading'));
   const requestGeneration = generation.current;
   return <span className="relative inline-flex shrink-0 items-center justify-center rounded-full bg-zinc-800 align-middle" style={{ width: size, height: size }} aria-busy={pending}>
