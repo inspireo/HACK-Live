@@ -1,38 +1,55 @@
 # Public invitation refinement evidence
 
-The new local recordings show the actual application in Playwright Chromium,
-backed by the real local identity/invitation server and Firebase Auth/Firestore
-emulators (`demo-hack-live`). Accounts, people and events are synthetic fixtures.
-Only OS Web Share and clipboard contracts are substituted. These are not mock UI
-animations, production user data, physical phones or native OS share-sheet captures.
+These two recordings show the actual application on composed immutable source
+`e1cf383f4a1bfb2190b6bdf3e6ea8d4fd55beccb`, using synthetic Firebase Auth/Firestore
+emulators and the real identity/invitation server. Only OS Web Share and clipboard
+adapters are substituted. No physical-phone, native OS share-sheet, live Google
+consent or production deployment claim is made.
 
-Exactly two replacement videos are generated, ignored and left uncommitted for
-native CLI upload after root acceptance:
+Exactly two invitation clips replace the prior account-gated invitation demos.
+The other 21 stack assets and their capture provenance remain unchanged.
 
-- `docs/evidence/pr3-invitation-mobile.webm`: organizer/sender at 1100×900,
-  explicit public fields and action settings, publish/reload of the selected
-  IANA timezone, current seven-day status, synchronous native-share contract,
-  clipboard/manual fallback, quiet cancellation and confirmed soft deletion closing the public link/calendar while retaining the event.
-- `docs/evidence/pr3-invitation-recipient.webm`: fresh mobile context at 390×844,
-  anonymous published event preview and real calendar download, Register CTA,
-  actual Firebase email sign-in, profile creation, existing explicit event form,
-  registration submission and reload reuse.
+| Recording | Viewport | Duration | Original bytes |
+| --- | --- | --- | --- |
+| Organizer and sender (`pr3-invitation-mobile.webm`) | 1100 × 900 | 30.12 seconds | 2,474,461 |
+| Anonymous recipient (`pr3-invitation-recipient.webm`) | 390 × 844 | 22.52 seconds | 988,129 |
 
-`test-results/invitation-media-manifest.json` records immutable source SHA, video
-sizes, SHA256 hashes, dimensions, duration and provenance. Both source videos are
-copied without retiming or synthesized frames. The paced tests insert natural
-2.8-second reading holds. Screenshots of public preview, calendar-only mode,
-manual copy and recipient return remain in ignored `test-results/`.
+The organizer publishes explicit public title, description, venue, viewing link,
+start/end and IANA timezone, selects registration plus calendar, reloads the saved
+publication, shares the current seven-day link, exercises clipboard/manual
+fallback and quiet cancellation, then confirms soft deletion. The final view
+states that participation is closed and records/history are retained; assertions
+verify the old preview and calendar are unavailable while event/publication
+records still exist.
 
-The previously published PR3 clips and tracked screenshots/contract JSON describe
-the superseded account-gated invitation. They are historical evidence, not proof
-of this refinement. No new attachment or PR-body publication is performed here.
-The root integration owns replacing those two assets while preserving the other
-21 stack assets.
+A fresh mobile recipient sees the published preview and both CTAs without an
+account, downloads a real calendar file, chooses Register, signs in through real
+Firebase email authentication, creates a minimal profile, explicitly submits the
+existing event registration form and reloads the same registration. Preview,
+calendar, sign-in and profile creation each assert no accidental registration.
 
-## Reproduce
+Both native WebM files were copied without retiming or synthesized frames, fully
+decoded to PNG output and checked against byte counts/SHA256. Twelve extracted
+frames were inspected, including full selected manual text, published timezone and
+CTA settings, anonymous preview, real sign-in, profile, explicit registration and
+soft-deleted historical view. Native videos remain ignored and uncommitted.
 
-Use Node24, Java21, Playwright Chromium and exclusive free ports
+[Exact sizes, hashes, dimensions and run provenance](pr3-public-invitation-media.json)
+· [share/user-activation contract](pr3-invitation-contract.json)
+· [manual copy](pr3-invitation-manual-copy.png)
+· [anonymous preview](pr3-invitation-public-preview.png)
+· [recipient registration return](pr3-invitation-recipient-return.png)
+· [soft-deleted retained-history view](pr3-invitation-soft-deleted.png).
+
+## Validation and reproduction
+
+The clean composed source passed **165 tests: 37 pure, 93 API/rules and 35
+Chromium browser tests**, with Node 24 typecheck/build. The focused recording run
+passed 2/2. This local composed run does not claim that each lower layer ran the
+same local cumulative suite. Final remote head CI is reported separately in the
+pull requests. Existing large-chunk build advisory remains.
+
+Use Node 24, Java 21, Playwright Chromium and exclusive free ports
 3000/8080/9099/9150. The serial harness resets emulator fixtures.
 
 ```sh
@@ -45,11 +62,6 @@ rtk proxy env INVITATION_DEMO=true INVITATION_RECORD_ONLY=true npm run test:emul
 rtk proxy node scripts/collect-invitation-demo.mjs
 ```
 
-Run the full combined suite first; the record-only mode then repeats only the two invitation journeys. The collector requires passing recording tests and a paced actual-app manifest showing soft deletion.
-Read [schema/API and compatibility](../invitation-pr3.md) for trust boundaries.
-Tests cover all three CTA combinations, no accidental registrations, real
-post-auth expiry/revocation checks, fixed expiry/read-only share preparation,
-renew/unpublish/stale revision handling, field privacy, direct SDK denial,
-replacement-session isolation, calendar time/DST/escaping/folding, native
-activation and copy/manual/cancellation. Inherited member/profile/workshop tests
-remain in the same harness. Build retains its existing large-chunk advisory.
+Run the full combined suite first; record-only mode then repeats exactly the two
+invitation journeys with natural 2.8-second reading holds. No unrelated feature
+rerecording is required. Read [schema, API and lifecycle](../invitation-pr3.md).
