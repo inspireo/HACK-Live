@@ -258,9 +258,9 @@ test('legacy solution aliases clear through member leave and admin removal befor
 });
 
 
-test.describe('compact badge photo recording', () => {
-  test.use({ viewport: { width: 320, height: 740 }, video: { mode: 'on', size: { width: 320, height: 740 } } });
-test('badge reserves compact photo geometry through authenticated loading and late sharing revocation', async ({ page, context, browser }) => {
+test('badge reserves compact photo geometry through authenticated loading and late sharing revocation', async ({ page: fixturePage, context: fixtureContext, browser }) => {
+  const context = reviewRecording ? await browser.newContext({ viewport: { width: 320, height: 740 }, recordVideo: { dir: 'test-results/pr5-photo-real', size: { width: 320, height: 740 } } }) : fixtureContext;
+  const page = reviewRecording ? await context.newPage() : fixturePage;
   await createFixtureUser('badge-photo');
   await createFixtureUser('badge-photo-viewer');
   expect((await fixtureDb.doc('profiles/badge-photo-viewer').get()).data()!.state).toBe('active');
@@ -372,9 +372,7 @@ test('badge reserves compact photo geometry through authenticated loading and la
     await expect(badge).toContainText('Photo badge member');
     await expect(avatar).toHaveCount(0);
     expect(photoRequests).toHaveLength(requestsBeforeReload);
-  } finally { releasePhotos.forEach(release => release()); await viewerContext.close(); await editor.close(); }
-});
-
+  } finally { releasePhotos.forEach(release => release()); await viewerContext.close(); await editor.close(); if (reviewRecording) await context.close(); }
 });
 
 

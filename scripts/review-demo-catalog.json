@@ -133,7 +133,8 @@
       "customDirectory": "pr5-mobile-real-copy",
       "appendTest": {
         "sourceTest": "participation-journey.spec.ts",
-        "titleIncludes": "badge reserves compact"
+        "titleIncludes": "badge reserves compact",
+        "customDirectory": "pr5-photo-real"
       },
       "osSeams": [
         "Desktop Chromium with WebShare feature disabled; no native phone share sheet shown.",

@@ -80,7 +80,8 @@ for (const asset of catalog.assets) {
     const source = await retainSource(asset.customDirectory ? await customVideo(asset.customDirectory) : await primaryVideo(asset));
     cuts.push({ role: asset.logicalId, stage: asset.coverage, start: 0, end: source.durationSeconds, source });
     if (asset.appendTest) {
-      const appended = await retainSource(await primaryVideo(asset.appendTest));
+      testResult(asset.appendTest);
+      const appended = await retainSource(asset.appendTest.customDirectory ? await customVideo(asset.appendTest.customDirectory) : await primaryVideo(asset.appendTest));
       cuts.push({ role: 'compact-badge-photo', stage: 'selected photo loading, decoded image, privacy revocation', start: 0, end: appended.durationSeconds, source: appended });
     }
   }
