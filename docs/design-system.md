@@ -34,3 +34,11 @@ Priority surfaces: profile photo, skills, mobile number, Telegram, WhatsApp, pro
 ## Verification
 
 `tests/browser/contextual-help.spec.ts` exercises the real app with Auth/Firestore emulator fixtures. It covers profile consent/value preservation and no accidental save, mobile/keyboard/outside/Escape/focus behavior, 320/390 px layout, light badge help, and public/admin field help with primary actions preserved. Run together with the complete existing emulator suite via `npm run test:emulators`, plus typecheck and build. Evidence is actual Chromium app UI with synthetic fixtures; no production or physical-device claim. Media recording belongs to the separate recording task after source freeze and acceptance.
+
+### Validated checkpoint (2026-11-17)
+
+Typecheck and production build pass. Full cumulative emulator validation passes **171 tests: 130 unit/API/rules + 41 browser**, including all 165 baseline cases and six new contextual-help cases; no skipped tests. The named QR-image selector replaces a global single-SVG assumption while retaining real pixel decoding and the same exact profile URL assertion. Browser tests also retain the existing 96 px profile and 56 px badge loading/revocation coverage.
+
+Reviewer37 passed committed source `3556e0b4f796ed303d2c5e96c94dbbf38863391e`; final source cleanup removes whitespace from one blank line only. The complete functional parent `072ceb91b08bf8eac42739a78cfbf7b1a6bec114` is merged normally, with no source conflicts. [Verification manifest](evidence/ui8-verification.json) lists exact screenshot paths, hashes and fixture limitations. All nine screenshots were inspected after the final run. Tests shut down the app and emulators, and ports 3000/8080/9099/9150 were confirmed free.
+
+Representative evidence: [320 px profile help](evidence/ui8-profile-mobile-help-320.png), [390 px global sharing](evidence/ui8-profile-sharing-390.png), [connections](evidence/ui8-connections-320.png), [admin field help](evidence/ui8-admin-field-help.png), [light badge](evidence/ui8-light-badge-help-320.png), and [public primary content](evidence/ui8-public-content-320.png). These are actual app screenshots with synthetic test data. Recording all review videos remains a separate task after root acceptance.

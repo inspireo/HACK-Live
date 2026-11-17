@@ -1,0 +1,84 @@
+{
+  "date": "2026-11-17",
+  "functionalParent": "072ceb91b08bf8eac42739a78cfbf7b1a6bec114",
+  "sourceCheckpoint": "3556e0b4f796ed303d2c5e96c94dbbf38863391e",
+  "finalSourceDelta": "Whitespace-only cleanup of an empty profile-details.tsx line, present during the final browser run.",
+  "typecheck": "pass",
+  "build": "pass",
+  "unitApiRulesTests": 130,
+  "browserTests": 41,
+  "total": 171,
+  "baselineTests": 165,
+  "newHelpRegressions": 6,
+  "skipped": 0,
+  "suite": "npm run test:emulators",
+  "mode": "real Chromium app with synthetic Auth/Firestore emulator fixtures",
+  "securityMocks": false,
+  "physicalDevice": false,
+  "production": false,
+  "mediaRecording": "Separate task38; no demo recordings made here. Existing automated test videos are test artifacts only.",
+  "sourceReview": "Reviewer37 static PASS3556e0b; no concrete P1/P2 or schema/API/auth/payload drift.",
+  "selectorChange": "Existing QR decoding workflow now targets the named Member profile QR code image because the page contains decorative info SVGs. Rasterization, pixel decode and exact profile URL assertion remain unchanged.",
+  "portsReleased": [
+    3000,
+    8080,
+    9099,
+    9150
+  ],
+  "screenshots": [
+    {
+      "path": "docs/evidence/ui8-admin-field-help.png",
+      "width": 1100,
+      "height": 760,
+      "sha256": "686d6b3904e91b0f97db342dbd460fd2a4d48b91bdb9178b3e289b8c154f2735"
+    },
+    {
+      "path": "docs/evidence/ui8-connections-320.png",
+      "width": 320,
+      "height": 844,
+      "sha256": "03dff680134ca987f0ff37654c9b39f0ce348c746b25cd8a4312543268cfa8f4"
+    },
+    {
+      "path": "docs/evidence/ui8-connections-390.png",
+      "width": 390,
+      "height": 844,
+      "sha256": "702db392671cb298d73372108845a5094f426f9e1c87ca013a037efa27ccbd77"
+    },
+    {
+      "path": "docs/evidence/ui8-light-badge-help-320.png",
+      "width": 320,
+      "height": 844,
+      "sha256": "32293a932fef4fbb6e3930961d08dded4e2da5ce60e65b79ff36c161453a7495"
+    },
+    {
+      "path": "docs/evidence/ui8-profile-mobile-help-320.png",
+      "width": 320,
+      "height": 844,
+      "sha256": "b61e06bbbb0df8b5695212a8f432901a49cd2f7244df7ee38c61cb8037103240"
+    },
+    {
+      "path": "docs/evidence/ui8-profile-mobile-help-390.png",
+      "width": 390,
+      "height": 844,
+      "sha256": "3eea6454650204ade92690ad988a3b39a0e5c3aa4f955b105de8c32417c907a3"
+    },
+    {
+      "path": "docs/evidence/ui8-profile-sharing-320.png",
+      "width": 320,
+      "height": 844,
+      "sha256": "cfff28b47df0013cf0b47e8ea9f7b9be8c1ac34b18f03c3043c40bb4429452bd"
+    },
+    {
+      "path": "docs/evidence/ui8-profile-sharing-390.png",
+      "width": 390,
+      "height": 844,
+      "sha256": "16856f570cef7ca3ac9eb004cade3e10203ef42075bea941b397f2a6aabdb329"
+    },
+    {
+      "path": "docs/evidence/ui8-public-content-320.png",
+      "width": 320,
+      "height": 844,
+      "sha256": "74913c830642409f3785ff049e98078961de7598c4eb5975a7b8989324fb50ee"
+    }
+  ]
+}
