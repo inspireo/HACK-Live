@@ -71,3 +71,33 @@ test('private contact drafts, linked and separate WhatsApp, normalized Telegram 
   expect((await fixtureDb.doc('memberDetails/contacts-browser').get()).data()).toEqual({});
   expect((await fixtureDb.doc('connectionContacts/contacts-browser').get()).exists).toBe(false);
 });
+
+
+test('explicit country corrections reject destination changes without writing until corrected', async ({ page }) => {
+  await clearFixtures(); await createFixtureUser('country-correction');
+  const sourceRef = fixtureDb.doc('profileDetails/country-correction');
+  await sourceRef.set({ ...emptyDetails(), contacts: { phone: '+9991234567' } });
+  await page.goto('/account');
+  await page.getByLabel('Email', { exact: true }).fill('country-correction@example.test');
+  await page.getByLabel('Password', { exact: true }).fill(password);
+  await page.getByRole('button', { name: 'Sign in with email', exact: true }).click();
+  const mobile = page.getByLabel('Mobile number', { exact: true });
+  const country = page.getByRole('combobox', { name: 'Mobile country code', exact: true });
+  const save = page.getByRole('button', { name: 'Save profile', exact: true });
+  await expect(mobile).toHaveValue('+9991234567'); await expect(country).toHaveValue('');
+  await save.click(); await expect(page.getByRole('status')).toHaveText('Profile saved.');
+  expect((await sourceRef.get()).data()!.contacts.phone).toBe('+9991234567');
+  const unchanged = (await sourceRef.get()).data();
+  await country.selectOption('SG'); await save.click();
+  await expect(page.getByRole('alert')).toContainText('unrecognized international number');
+  expect((await sourceRef.get()).data()).toEqual(unchanged);
+  await mobile.fill('81234567'); await save.click(); await expect(page.getByRole('status')).toHaveText('Profile saved.');
+  expect((await sourceRef.get()).data()!.contacts.phone).toBe('+6581234567');
+  await country.selectOption('GB'); await mobile.fill('0049 30 123456'); await save.click();
+  await expect(page.getByRole('alert')).toContainText('different international calling code');
+  expect((await sourceRef.get()).data()!.contacts.phone).toBe('+6581234567');
+  await mobile.fill('+49 30 123456'); await expect(country).toHaveValue('DE');
+  await save.click(); await expect(page.getByRole('status')).toHaveText('Profile saved.');
+  await page.reload(); await expect(mobile).toHaveValue('30123456'); await expect(country).toHaveValue('DE');
+  expect((await sourceRef.get()).data()!.contacts.phone).toBe('+4930123456');
+});

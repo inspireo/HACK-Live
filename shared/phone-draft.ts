@@ -29,7 +29,10 @@ export function phoneDraftValue(draft: PhoneDraft): string {
   const rawNumber = draft.national.trim();
   if (!rawNumber) return "";
   // Full international input overrides the selector; never prefix it twice.
-  if (rawNumber.startsWith("+")) return normalizeContactPhone(rawNumber);
+  if (rawNumber.startsWith("+")) {
+    if (draft.country && !hydratePhone(rawNumber).country) throw new Error("Correct the unrecognized international number to match your chosen country, paste a full +international number, or clear the field.");
+    return normalizeContactPhone(rawNumber);
+  }
   if (!draft.country) throw new Error("Choose a country code or paste a full +international number, or clear the field.");
   if (!/^[\d ()-]+$/.test(rawNumber)) throw new Error("Correct this phone number or clear the field.");
   if (draft.country.startsWith("+")) return normalizeContactPhone(`${draft.country}${rawNumber}`);
@@ -39,5 +42,6 @@ export function phoneDraftValue(draft: PhoneDraft): string {
   // Parse as national digits, including significant Italian zero and GB trunk zero.
   // Do not require current allocation validity: existing E.164 contacts stay compatible.
   if (!parsed || parsed.ext) throw new Error("Correct this phone number or clear the field.");
+  if (parsed.countryCallingCode !== getCountryCallingCode(draft.country as CountryCode)) throw new Error("This number uses a different international calling code. Paste it with + instead of the international dialing prefix, or enter a national number for your chosen country.");
   return normalizeContactPhone(`+${getCountryCallingCode(draft.country as CountryCode)}${parsed.nationalNumber}`);
 }

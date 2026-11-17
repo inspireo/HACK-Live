@@ -131,3 +131,15 @@ test("country/national drafts normalize trunk prefixes without changing canonica
   assert.equal(result.details.contacts.whatsapp, canonical);
   assert.deepEqual(result.details.connectionFields, ["whatsapp"]);
 });
+
+
+test("explicit country choice cannot silently rewrite IDD destinations or ignore unknown legacy prefixes", async () => {
+  const { hydratePhone, editPhone, phoneDraftValue } = await import("../shared/phone-draft");
+  assert.throws(() => phoneDraftValue({ country: "GB", national: "0049 30 123456" }), /different international calling code/);
+  assert.equal(phoneDraftValue(editPhone({ country: "GB", national: "" }, "+49 30 123456")), "+4930123456");
+  const legacy = hydratePhone("+9991234567");
+  assert.equal(phoneDraftValue(legacy), "+9991234567");
+  assert.throws(() => phoneDraftValue({ ...legacy, country: "SG" }), /unrecognized international number/);
+  assert.equal(phoneDraftValue(editPhone({ ...legacy, country: "SG" }, "81234567")), "+6581234567");
+  assert.equal(phoneDraftValue(editPhone({ ...legacy, country: "SG" }, "+49 30 123456")), "+4930123456");
+});
