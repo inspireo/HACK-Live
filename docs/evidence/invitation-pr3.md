@@ -12,7 +12,7 @@ native CLI upload after root acceptance:
 - `docs/evidence/pr3-invitation-mobile.webm`: organizer/sender at 1100×900,
   explicit public fields and action settings, publish/reload of the selected
   IANA timezone, current seven-day status, synchronous native-share contract,
-  clipboard/manual fallback and quiet cancellation.
+  clipboard/manual fallback, quiet cancellation and confirmed soft deletion closing the public link/calendar while retaining the event.
 - `docs/evidence/pr3-invitation-recipient.webm`: fresh mobile context at 390×844,
   anonymous published event preview and real calendar download, Register CTA,
   actual Firebase email sign-in, profile creation, existing explicit event form,
@@ -41,11 +41,11 @@ rtk proxy npx playwright install chromium
 rtk npm run typecheck
 rtk npm run build
 rtk npm run test:emulators
-rtk proxy env INVITATION_DEMO=true npm run test:emulators
+rtk proxy env INVITATION_DEMO=true INVITATION_RECORD_ONLY=true npm run test:emulators
 rtk proxy node scripts/collect-invitation-demo.mjs
 ```
 
-The collector requires a passing browser suite and paced actual-app manifest.
+Run the full combined suite first; the record-only mode then repeats only the two invitation journeys. The collector requires passing recording tests and a paced actual-app manifest showing soft deletion.
 Read [schema/API and compatibility](../invitation-pr3.md) for trust boundaries.
 Tests cover all three CTA combinations, no accidental registrations, real
 post-auth expiry/revocation checks, fixed expiry/read-only share preparation,
