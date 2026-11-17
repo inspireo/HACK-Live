@@ -1,38 +1,40 @@
 {
-  "source_head": "dc907e980b37731725252a94be5829b14c2ce1ce",
-  "capture_scope": "full cumulative tip; contact implementation matches PR4 source f7ae116d914c045acdd214d8ddd0037134ad50bb",
+  "source_head": "ea1f80648d3b4aa18e19133f5c33d165d072d1c8",
+  "capture_scope": "Current sender captured at full cumulative country-selector tip; original recipient recording retained because accepted-contact display and behavior are unchanged.",
   "mode": "paced-real-emulator-browser",
   "projectId": "demo-hack-live",
   "securityMocks": false,
   "physicalDevice": false,
   "externalNavigationOrMessages": false,
-  "nativeUploadStatus": "published; root verified private bytes and native players",
-  "pureTests": 31,
+  "nativeUploadStatus": "published via official task-local GitHub CLI; private rendered sender bytes and both native players verified",
+  "pureTests": 34,
   "apiRulesTests": 78,
-  "browserTests": 20,
-  "totalTests": 129,
+  "browserTests": 25,
+  "totalTests": 137,
   "protectedCrossAccountTestsUnchanged": true,
   "fullDecodePassed": true,
   "visuallyInspected": [
-    "recipient video 12s showing all four approved contact actions",
-    "sender video 20s showing revoked contacts",
-    "approved contacts screenshot",
-    "real global-selection editor screenshot"
+    "sender10s accepted canonical telephone action",
+    "sender17s/19s readable Mobile Singapore +65 and separate WhatsApp United Kingdom +44 selectors",
+    "sender13s country change preserves national digits",
+    "sender23s/31s revocation and request-state journey",
+    "current real global-selection editor screenshot",
+    "retained recipient12s all four approved safe contact actions (prior verified capture)"
   ],
   "videos": [
     {
       "party": "sender",
-      "bytes": 3188748,
-      "sha256": "4be7eedcf6f1cea796499d2e9ca6a3d8a08721d7189cebb9b0a54238d3efb2a6",
-      "duration": "00:00:37.96",
+      "bytes": 3530857,
+      "sha256": "567135924231ca5e20bb5a85f78145355b0114db404e3f19208d6843c9128d6f",
+      "duration": "00:00:40.68",
       "dimensions": [
         1100,
         760
       ],
-      "decoded_frames": 949,
-      "source_head": "dc907e980b37731725252a94be5829b14c2ce1ce",
+      "decoded_frames": 1017,
+      "source_head": "ea1f80648d3b4aa18e19133f5c33d165d072d1c8",
       "unedited_original": true,
-      "attachmentUrl": "https://github.com/user-attachments/assets/75164547-217f-4561-af40-6790a98a9f29"
+      "attachmentUrl": "https://github.com/user-attachments/assets/c042e2b8-6087-4c1a-8913-0e71883fa95b"
     },
     {
       "party": "recipient",
