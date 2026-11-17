@@ -6,6 +6,9 @@ emulators and the real identity/invitation server. Only OS Web Share and clipboa
 adapters are substituted. No physical-phone, native OS share-sheet, live Google
 consent or production deployment claim is made.
 
+[Organizer and sender recording](https://github.com/user-attachments/assets/0b07d4ac-6601-4ed0-80a9-fe4633f474df) ·
+[Anonymous recipient recording](https://github.com/user-attachments/assets/de5d6aa7-9678-4c3d-83e2-1c10005d76e1)
+
 Exactly two invitation clips replace the prior account-gated invitation demos.
 The other 21 stack assets and their capture provenance remain unchanged.
 
@@ -18,7 +21,9 @@ The organizer publishes explicit public title, description, venue, viewing link,
 start/end and IANA timezone, selects registration plus calendar, reloads the saved
 publication, shares the current seven-day link, exercises clipboard/manual
 fallback and quiet cancellation, then confirms soft deletion. The final view
-states that participation is closed and records/history are retained; assertions
+states that participation is closed and records/history are retained. The
+attendance/award panels visible at the end belong to the later composed history
+features; this invitation slice does not add those panels. Assertions
 verify the old preview and calendar are unavailable while event/publication
 records still exist.
 
