@@ -18,3 +18,8 @@ for (const [source, filename] of [
 for (const filename of ['profile-owner-form.png', 'profile-community-preview.png', 'profile-other-member.png', 'profile-mobile-preview.png']) {
   await copyFile(`test-results/${filename}`, `docs/evidence/pr2-${filename}`);
 }
+
+const contactsFolder = folders.find(entry => entry.startsWith('profile-contacts-'));
+if (!contactsFolder) throw new Error('Missing country selector owner recording');
+await copyFile(`test-results/${contactsFolder}/video.webm`, 'docs/evidence/pr2-profile-country-selectors.webm');
+for (const filename of ['profile-country-selectors.png', 'profile-country-selectors-mobile.png']) await copyFile(`test-results/${filename}`, `docs/evidence/pr2-${filename}`);

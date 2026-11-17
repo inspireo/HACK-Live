@@ -4,7 +4,7 @@ import { editPhone, neutralCallingCodes, phoneCountries, type PhoneDraft } from 
 export function PhoneInput({ label, draft, onChange, disabled, inputClass, helpId }: { label: string; draft: PhoneDraft; onChange: (draft: PhoneDraft) => void; disabled?: boolean; inputClass: string; helpId: string }) {
   return <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 min-w-0">
     <label className="block min-w-0">{label === "Mobile number" ? "Mobile country code" : "WhatsApp country code"}
-      <select className={inputClass} value={draft.country} disabled={disabled} autoComplete="tel-country-code" aria-describedby={helpId} onChange={event => onChange({ ...draft, country: event.target.value })}>
+      <select className={inputClass} value={draft.country} disabled={disabled} autoComplete="tel-country-code" aria-describedby={helpId} onChange={event => onChange({ national: draft.national, country: event.target.value })}>
         <option value="">Choose country code</option>
         {neutralCallingCodes.map(code => <option key={code} value={`+${code}`}>+{code} (country unspecified)</option>)}
         {phoneCountries.map(({ country, code, name }) => <option key={country} value={country}>{name} (+{code})</option>)}
