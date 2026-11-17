@@ -1,3 +1,4 @@
+import { publishFixture } from '../invitation-fixtures';
 import { test, expect, Page } from '@playwright/test';
 import jsQR from 'jsqr';
 import { writeFile } from 'node:fs/promises';
@@ -22,6 +23,7 @@ async function signIn(page: Page, uid: string) {
 test.beforeAll(async () => {
   await clearFixtures(); await seedEvents();
   await createFixtureUser('organizer'); await createFixtureUser('badge-browser');
+  await publishFixture();
   const selectedPhoto = await photoFixture('#32776c');
   const saved = await callIdentity(await signInFixture('badge-browser'), 'save-profile', { name: 'Alex Morgan', ...emptyDetails(), professional: { title: 'Software architect', bio: 'PRIVATE-BADGE-BIO' }, communityFields: ['title', 'avatarUrl'], contacts: { phone: '+6585550199' }, photoUpload: { contentType: selectedPhoto.mimeType, base64: selectedPhoto.buffer.toString('base64') } });
   expect(saved.status).toBe(200);
@@ -60,7 +62,8 @@ test('staff issues roles → mobile member badge → decoded profile destination
     await expect(member.getByRole('dialog', { name: 'Resource details' })).toContainText('Support members without joining a solution team.');
     await member.getByRole('button', { name: 'Close resource details', exact: true }).click();
     await member.getByRole('button', { name: 'Share event', exact: true }).click();
-    expect((await member.evaluate(() => (window as any).__sharedProfile)).url).toBe('http://127.0.0.1:3000/session/event-one');
+    const published = (await fixtureDb.doc('eventPublications/event-one').get()).data()!;
+    expect((await member.evaluate(() => (window as any).__sharedProfile)).url).toBe(`http://127.0.0.1:3000/invite/${published.currentToken}`);
     await evidence(member, 'staff-resources');
     await member.getByRole('link', { name: 'My badge', exact: true }).click();
     await expect(member.getByRole('article', { name: 'Personal event badge' })).toBeVisible();
