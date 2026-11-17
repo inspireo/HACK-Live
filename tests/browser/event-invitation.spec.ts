@@ -2,7 +2,7 @@ import { test, expect, type Page } from '@playwright/test';
 import { writeFile } from 'node:fs/promises';
 import { clearFixtures, createFixtureUser, fixtureDb, password, seedEvents, signInFixture } from '../fixtures';
 import { invitationRequest, publicFields, publishFixture } from '../invitation-fixtures';
-import { denyClipboard, readingHold, readHelp, reviewRecording } from '../review-recording';
+import { readingHold, readHelp, reviewRecording } from '../review-recording';
 
 test.use({ viewport: { width: 1100, height: 900 }, video: { mode: 'on', size: { width: 1100, height: 900 } } });
 const hold = async (page: Page) => { if (process.env.INVITATION_DEMO === 'true') await page.waitForTimeout(2800); };
@@ -90,7 +90,7 @@ test('organizer publication and sender native copy manual cancellation', async (
 });
 
 // A separate recorded path leaves every original OS contract regression above intact.
-test('recording: organizer publishes and uses actual browser clipboard then manual fallback and soft deletion', async ({ page, context }) => {
+test('recording: organizer publishes and uses actual browser clipboard then soft deletion', async ({ page, context }) => {
   test.skip(!reviewRecording, 'Only in the explicitly authorized recording window');
   test.setTimeout(180000);
   await context.grantPermissions(['clipboard-write'], { origin: 'http://127.0.0.1:3000' });
@@ -110,15 +110,9 @@ test('recording: organizer publishes and uses actual browser clipboard then manu
   await expect(share).toBeEnabled(); await share.click();
   await expect(page.getByText('Event invitation copied. Paste it to invite friends.', { exact: true })).toBeVisible();
   await readingHold(page, 'actual-browser-copy');
-  await denyClipboard(page); await share.click();
-  const manual = page.getByRole('textbox', { name: 'Event invitation', exact: true });
-  await expect(manual).toBeVisible();
-  const invitationText = await manual.inputValue(); // App-owned text, never the system clipboard.
-  expect(invitationText).toContain(`/invite/${publication.currentToken}`);
-  expect(invitationText).toContain(publicFields.title); expect(invitationText).not.toMatch(/PRIVATE-|DEMO1|ownerEmail|adminEmails/);
-  await manual.focus();
-  expect(await manual.evaluate((field: HTMLTextAreaElement) => field.selectionEnd - field.selectionStart)).toBe(invitationText.length);
-  await readingHold(page, 'actual-permission-denied-manual-copy');
+  // Native/failed/denied/manual/cancel payload assertions remain in the original
+  // platform-contract regression; recorded footage shows actual successful copy.
+  expect(publication.currentToken).toBeTruthy();
   expect((await fixtureDb.collection('registrations').get()).size).toBe(0);
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
   await page.getByRole('button', { name: 'Delete event', exact: true }).click();

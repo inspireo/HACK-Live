@@ -79,13 +79,13 @@
       "logicalId": "pr3-invitation-mobile",
       "intendedPR": 3,
       "replacesURL": "https://github.com/user-attachments/assets/0b07d4ac-6601-4ed0-80a9-fe4633f474df",
-      "coverage": "organizer publish/reload/share/copy/manual/cancel/soft-delete",
+      "coverage": "organizer publish/reload/actual browser copy/soft-delete; manual/cancellation behavior verified separately in unchanged OS contract regression",
       "output": "pr3-invitation-mobile.webm",
       "sourceTest": "event-invitation.spec.ts",
       "titleIncludes": "recording: organizer publishes",
       "osSeams": [
         "Desktop Chromium with WebShare feature disabled; no native phone share sheet shown.",
-        "Actual browser clipboard-write permission and app success feedback; browser permission denial for fallback. Clipboard content is never read. Original OS contract regressions run separately."
+        "Actual browser clipboard-write permission and app success feedback. Clipboard content is never read. Denied/manual/native OS edges remain in the separate original contract regressions and are not shown here."
       ]
     },
     {
@@ -134,11 +134,12 @@
       "appendTest": {
         "sourceTest": "participation-journey.spec.ts",
         "titleIncludes": "badge reserves compact",
-        "customDirectory": "pr5-photo-real"
+        "customDirectory": "pr5-photo-real",
+        "customPagePolicy": "first-opened-last-closed"
       },
       "osSeams": [
         "Desktop Chromium with WebShare feature disabled; no native phone share sheet shown.",
-        "Actual browser clipboard-write permission and app success feedback; browser permission denial for fallback. Clipboard content is never read. Original OS contract regressions run separately.",
+        "Actual browser clipboard-write permission and app success feedback. Clipboard content is never read. Denied/manual/native OS edges remain in the separate original contract regressions and are not shown here.",
         "Honest cut from real role/QR actor footage to separately recorded real compact badge loading/revocation journey; native speed."
       ]
     },
@@ -176,7 +177,7 @@
       "titleIncludes": "recording: real browser copy role badge",
       "osSeams": [
         "Desktop Chromium with WebShare feature disabled; no native phone share sheet shown.",
-        "Actual browser clipboard-write permission and app success feedback; browser permission denial for fallback. Clipboard content is never read. Original OS contract regressions run separately."
+        "Actual browser clipboard-write permission and app success feedback. Clipboard content is never read. Denied/manual/native OS edges remain in the separate original contract regressions and are not shown here."
       ]
     },
     {

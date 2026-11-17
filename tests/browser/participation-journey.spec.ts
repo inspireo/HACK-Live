@@ -1,6 +1,6 @@
 import { publishFixture } from '../invitation-fixtures';
 import { test, expect, type Page, type Browser } from '@playwright/test';
-import { denyClipboard, readingHold, reviewRecording } from '../review-recording';
+import { readingHold, reviewRecording } from '../review-recording';
 import jsQR from 'jsqr';
 import { writeFile } from 'node:fs/promises';
 import { photoFixture } from '../photo-fixture';
@@ -109,11 +109,7 @@ async function roleBadgeJourney(page: Page, browser: Browser, browserCopy = fals
       await member.getByRole('button', { name: 'Copy profile link', exact: true }).click();
       await expect(member.getByRole('status')).toHaveText('Profile link copied.');
       await readingHold(member, 'real-profile-clipboard');
-      await denyClipboard(member);
-      await member.getByRole('button', { name: 'Copy profile link', exact: true }).click();
-      await expect(member.getByRole('status')).toHaveText('Copy the profile link below.');
       await expect(member.getByRole('link', { name: decoded!.data, exact: true })).toHaveAttribute('href', decoded!.data);
-      await readingHold(member, 'real-permission-denied-profile-fallback');
     } else {
     await member.getByRole('button', { name: 'Share profile', exact: true }).click();
     expect(await member.evaluate(() => (window as any).__sharedProfile)).toEqual({ title: 'My #hack member profile', url: decoded!.data });
