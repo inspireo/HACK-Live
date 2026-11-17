@@ -87,3 +87,24 @@ Chromium browser journeys run in `npm run test:emulators`, using Node24/Java21.
 Typecheck/build are separate. Media is recorded from the actual application with
 synthetic fixture accounts/events; only OS sharing/clipboard is substituted, not
 API/auth/rules/calendar. Native physical-device share sheets are not demonstrated.
+
+
+## Event soft deletion
+
+Events can only be deleted through the verified organizer API:
+`POST /api/identity/events/:sessionId/soft-delete` with `{}`. Current event owner,
+platform administrator, or sessionAccess coadmin authority is required, without a
+social profile dependency. The transaction sets server timestamp `deletedAt` and
+actor UID `deletedBy` once. Repeated authorized requests succeed without changing
+that original marker. Missing/null deletedAt means legacy active; no migration is
+needed. Clients cannot set/remove lifecycle fields or physically delete events.
+
+Deletion retains the original session and every related record/subcollection.
+Active admin/code-join lists exclude the event; direct admin, participant and live
+display routes show unavailable. Every invitation read, calendar, registration
+handoff, publication/renewal, canonical registration/reuse, legacy linking, team
+finalization and normal client workshop write rejects a deleted event. The session
+check shares the invitation transaction, so a concurrent/stale publish cannot
+reopen it. The exact Firestore createTime incarnation guard remains in force for
+out-of-band physical deletion/recreation. Existing authorized historical reads
+retain their rules. There is no purge or restore operation.

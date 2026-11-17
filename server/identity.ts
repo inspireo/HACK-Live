@@ -1,3 +1,4 @@
+import { isEventDeleted } from '../shared/eventLifecycle';
 import { applicationDefault, getApps, initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
@@ -55,7 +56,7 @@ router.post('/register', async (req, res) => {
         transaction.get(registrationRef),
         transaction.get(identityDb.collection('participants').where('sessionId', '==', sessionId).where('uid', '==', uid)),
       ]);
-      if (!session.exists) throw fail(404, 'Event not found.');
+      if (!session.exists || isEventDeleted(session.data())) throw fail(404, 'Event not found.');
       if (profile.data()?.state !== 'active' || !cleanName(profile.data()?.name)) throw fail(409, 'Complete your profile first.');
       if (registration.exists) {
         const linked = await transaction.get(identityDb.doc(`participants/${registration.data()!.participantId}`));
@@ -97,6 +98,7 @@ router.post('/link-legacy', async (req, res) => {
       ]);
       const sessionData = session.data();
       const permitted = sessionData && (sessionData.ownerId === actor || actorRole.data()?.role === 'admin' || res.locals.claims.email === 'xaeltan@gmail.com' || access.data()?.adminEmails?.includes(res.locals.claims.email));
+      if (isEventDeleted(sessionData)) throw fail(404, 'Event not found.');
       if (!permitted) throw fail(403, 'Only an event organizer may link a legacy registration after independently verifying the person.');
       if (participant.data()!.identityState === 'deleted' || participant.data()!.memberId || registration.exists || !existing.empty || targetProfile.data()?.state !== 'active') throw fail(409, 'Link conflict. Resolve registrations with the organizer; no records were merged or overwritten.');
       const { phoneLast4 } = participant.data()!;
@@ -124,6 +126,7 @@ router.post('/remove-registration', async (req, res) => {
         transaction.get(identityDb.collection('registrations').where('participantId', '==', participantId)),
       ]);
       if (!session.exists || !(session.data()!.ownerId === actor || role.data()?.role === 'admin' || res.locals.claims.email === 'xaeltan@gmail.com' || access.data()?.adminEmails?.includes(res.locals.claims.email))) throw fail(403, 'Only an event organizer may remove a registration.');
+      if (isEventDeleted(session.data())) throw fail(404, 'Event not found.');
       if ((participant.exists && participant.data()!.sessionId !== sessionId) || pointers.docs.some(pointer => pointer.data().sessionId !== sessionId)) throw fail(409, 'Event registration conflict.');
       transaction.delete(identityDb.doc(`participants/${participantId}`));
       transaction.delete(identityDb.doc(`legacyParticipantSecrets/${participantId}`));
@@ -150,6 +153,7 @@ router.post('/finalize-team', async (req, res) => {
         transaction.get(identityDb.doc(`sessions/${team.sessionId}`)), transaction.get(identityDb.doc(`profiles/${uid}`)),
       ]);
       if (profile.data()?.state !== 'active' || registration.data()?.participantId !== team.leaderId) throw fail(403, 'Only the registered forming-team leader can finalize it.');
+      if (!session.exists || isEventDeleted(session.data())) throw fail(404, 'Event not found.');
       const sessionData = session.data()!;
       const formationEnabled = discovery ? sessionData.enableParticipantWgFormation ?? sessionData.enableParticipantTeamFormation : sessionData.enableParticipantTeamFormation;
       const phases = discovery ? ['Focus Areas', 'Discovery Team Formation', 'Challenge Drafting', 'Challenge Discovery', 'Challenge Proposing', 'Challenge Voting'] : ['Team Formation'];

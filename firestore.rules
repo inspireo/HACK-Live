@@ -27,6 +27,12 @@ service cloud.firestore {
       );
     }
 
+    // Missing marker is the legacy active state. Reads retain existing history authority.
+    function isActiveSession(sessionId) {
+      return exists(/databases/$(database)/documents/sessions/$(sessionId)) &&
+        get(/databases/$(database)/documents/sessions/$(sessionId)).data.get('deletedAt', null) == null;
+    }
+
     function hasActiveProfile() {
       return isAuthenticated() && get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.state == 'active';
     }
@@ -98,27 +104,29 @@ service cloud.firestore {
 
     match /sessionAccess/{sessionId} {
       allow read: if hasAdminAccess(sessionId);
-      allow create, update: if hasAdminAccess(sessionId) && request.resource.data.keys().hasOnly(['ownerEmail', 'adminEmails']) && request.resource.data.adminEmails is list && request.resource.data.ownerEmail is string;
-      allow delete: if isSessionOwner(sessionId) || isAdmin();
+      allow create, update: if isActiveSession(sessionId) && hasAdminAccess(sessionId) && request.resource.data.keys().hasOnly(['ownerEmail', 'adminEmails']) && request.resource.data.adminEmails is list && request.resource.data.ownerEmail is string;
+      allow delete: if isActiveSession(sessionId) && (isSessionOwner(sessionId) || isAdmin());
     }
 
     match /sessions/{sessionId} {
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && request.resource.data.ownerId == request.auth.uid && !request.resource.data.keys().hasAny(['ownerEmail', 'adminEmails', 'email', 'emailAddress', 'phone', 'phoneNumber', 'phoneLast4', 'passcode']);
-      allow update: if hasAdminAccess(sessionId) && !request.resource.data.keys().hasAny(['ownerEmail', 'adminEmails', 'email', 'emailAddress', 'phone', 'phoneNumber', 'phoneLast4', 'passcode']) && request.resource.data.ownerId == resource.data.ownerId;
-      allow delete: if isAuthenticated() && (resource.data.ownerId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && request.resource.data.ownerId == request.auth.uid && !request.resource.data.keys().hasAny(['ownerEmail', 'adminEmails', 'email', 'emailAddress', 'phone', 'phoneNumber', 'phoneLast4', 'passcode', 'deletedAt', 'deletedBy']);
+      allow update: if isActiveSession(sessionId) && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['deletedAt', 'deletedBy']) && hasAdminAccess(sessionId) && !request.resource.data.keys().hasAny(['ownerEmail', 'adminEmails', 'email', 'emailAddress', 'phone', 'phoneNumber', 'phoneLast4', 'passcode']) && request.resource.data.ownerId == resource.data.ownerId;
+      allow delete: if false; // Events can only be soft-deleted by the trusted server.
     }
 
     match /challenges/{challengeId} {
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && (hasAdminAccess(request.resource.data.sessionId));
-      allow update, delete: if isAuthenticated() && (hasAdminAccess(resource.data.sessionId));
+      allow create: if isActiveSession(request.resource.data.sessionId) && (isAuthenticated() && (hasAdminAccess(request.resource.data.sessionId)));
+      allow update: if isActiveSession(resource.data.sessionId) && isActiveSession(request.resource.data.sessionId) && (isAuthenticated() && (hasAdminAccess(resource.data.sessionId)));
+      allow delete: if isActiveSession(resource.data.sessionId) && (isAuthenticated() && (hasAdminAccess(resource.data.sessionId)));
     }
 
     match /resources/{resourceId} {
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && (hasAdminAccess(request.resource.data.sessionId));
-      allow update, delete: if isAuthenticated() && (hasAdminAccess(resource.data.sessionId));
+      allow create: if isActiveSession(request.resource.data.sessionId) && (isAuthenticated() && (hasAdminAccess(request.resource.data.sessionId)));
+      allow update: if isActiveSession(resource.data.sessionId) && isActiveSession(request.resource.data.sessionId) && (isAuthenticated() && (hasAdminAccess(resource.data.sessionId)));
+      allow delete: if isActiveSession(resource.data.sessionId) && (isAuthenticated() && (hasAdminAccess(resource.data.sessionId)));
     }
 
     function allocationEligibleData(member) {
@@ -138,7 +146,7 @@ service cloud.firestore {
       allow read: if isAuthenticated();
       // Only the trusted registration transaction creates or links participants.
       allow create: if false;
-      allow update: if isAuthenticated() && validAllocationChange() && (
+      allow update: if isActiveSession(resource.data.sessionId) && isActiveSession(request.resource.data.sessionId) && isAuthenticated() && validAllocationChange() && (
         ((isAdmin() || hasAdminAccess(resource.data.sessionId)) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'adjective', 'designThinkingProficiency', 'teamId', 'isAssigned', 'selectedChallengeId', 'discoveryTeamId', 'discovery_team_id', 'solutioning_team_id', 'interestedFocusAreaId', 'interestedFocusAreaIds', 'archetypeScores', 'primaryArchetype', 'secondaryArchetype', 'persistedAnswers'])) ||
         (
           (resource.data.uid == request.auth.uid && resource.data.memberId == request.auth.uid && get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.state == 'active') &&
@@ -204,21 +212,21 @@ service cloud.firestore {
     }
     match /formingTeams/{teamId} {
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && canCreateForming();
-      allow update: if isAuthenticated() && (canStaffManageForming() || canUpdateForming());
-      allow delete: if isAuthenticated() && (hasAdminAccess(resource.data.sessionId) || resource.data.leaderId == registeredParticipant(resource.data.sessionId));
+      allow create: if isActiveSession(request.resource.data.sessionId) && isAuthenticated() && canCreateForming();
+      allow update: if isActiveSession(resource.data.sessionId) && isActiveSession(request.resource.data.sessionId) && isAuthenticated() && (canStaffManageForming() || canUpdateForming());
+      allow delete: if isActiveSession(resource.data.sessionId) && isAuthenticated() && (hasAdminAccess(resource.data.sessionId) || resource.data.leaderId == registeredParticipant(resource.data.sessionId));
     }
     match /formingDiscoveryTeams/{teamId} {
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && canCreateForming();
-      allow update: if isAuthenticated() && (canStaffManageForming() || canUpdateForming());
-      allow delete: if isAuthenticated() && (hasAdminAccess(resource.data.sessionId) || resource.data.leaderId == registeredParticipant(resource.data.sessionId));
+      allow create: if isActiveSession(request.resource.data.sessionId) && isAuthenticated() && canCreateForming();
+      allow update: if isActiveSession(resource.data.sessionId) && isActiveSession(request.resource.data.sessionId) && isAuthenticated() && (canStaffManageForming() || canUpdateForming());
+      allow delete: if isActiveSession(resource.data.sessionId) && isAuthenticated() && (hasAdminAccess(resource.data.sessionId) || resource.data.leaderId == registeredParticipant(resource.data.sessionId));
     }
 
     match /discoveryTeams/{teamId} {
       allow read: if isAuthenticated();
-      allow create: if hasAdminAccess(request.resource.data.sessionId) && !request.resource.data.keys().hasAny(['leaderId']);
-      allow update: if isAuthenticated() && request.resource.data.get('leaderId', null) == resource.data.get('leaderId', null) && request.resource.data.sessionId == resource.data.sessionId && (
+      allow create: if isActiveSession(request.resource.data.sessionId) && hasAdminAccess(request.resource.data.sessionId) && !request.resource.data.keys().hasAny(['leaderId']);
+      allow update: if isActiveSession(resource.data.sessionId) && isActiveSession(request.resource.data.sessionId) && isAuthenticated() && request.resource.data.get('leaderId', null) == resource.data.get('leaderId', null) && request.resource.data.sessionId == resource.data.sessionId && (
         hasAdminAccess(resource.data.sessionId) || (
           hasActiveProfile() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name']) &&
           allocationEligibleData(get(/databases/$(database)/documents/participants/$(registeredParticipant(resource.data.sessionId))).data) && (
@@ -227,13 +235,13 @@ service cloud.firestore {
           )
         )
       );
-      allow delete: if isAuthenticated() && (hasAdminAccess(resource.data.sessionId));
+      allow delete: if isActiveSession(resource.data.sessionId) && isAuthenticated() && (hasAdminAccess(resource.data.sessionId));
     }
 
     match /teams/{teamId} {
       allow read: if isAuthenticated();
-      allow create: if hasAdminAccess(request.resource.data.sessionId) && !request.resource.data.keys().hasAny(['leaderId']);
-      allow update: if isAuthenticated() && request.resource.data.get('leaderId', null) == resource.data.get('leaderId', null) && request.resource.data.sessionId == resource.data.sessionId && (
+      allow create: if isActiveSession(request.resource.data.sessionId) && hasAdminAccess(request.resource.data.sessionId) && !request.resource.data.keys().hasAny(['leaderId']);
+      allow update: if isActiveSession(resource.data.sessionId) && isActiveSession(request.resource.data.sessionId) && isAuthenticated() && request.resource.data.get('leaderId', null) == resource.data.get('leaderId', null) && request.resource.data.sessionId == resource.data.sessionId && (
         isAdmin() ||
         hasAdminAccess(resource.data.sessionId) ||
         (
@@ -242,39 +250,41 @@ service cloud.firestore {
           get(/databases/$(database)/documents/participants/$(get(/databases/$(database)/documents/registrations/$(resource.data.sessionId + '~' + request.auth.uid)).data.participantId)).data.teamId == teamId
         )
       );
-      allow delete: if isAuthenticated() && (hasAdminAccess(resource.data.sessionId));
+      allow delete: if isActiveSession(resource.data.sessionId) && (isAuthenticated() && (hasAdminAccess(resource.data.sessionId)));
     }
 
     match /welcomeResponses/{responseId} {
       allow read: if isAuthenticated();
-      allow create: if hasActiveProfile() && request.resource.data.uid == request.auth.uid && request.resource.data.participantId == registeredParticipant(request.resource.data.sessionId);
-      allow update: if isAdmin() || hasAdminAccess(resource.data.sessionId) ||
+      allow create: if isActiveSession(request.resource.data.sessionId) && (hasActiveProfile() && request.resource.data.uid == request.auth.uid && request.resource.data.participantId == registeredParticipant(request.resource.data.sessionId));
+      allow update: if isActiveSession(resource.data.sessionId) && isActiveSession(request.resource.data.sessionId) && (isAdmin() || hasAdminAccess(resource.data.sessionId) ||
         (isAuthenticated() && (
           (hasActiveProfile() && resource.data.participantId == registeredParticipant(resource.data.sessionId) && request.resource.data.uid == resource.data.uid && request.resource.data.participantId == resource.data.participantId && request.resource.data.sessionId == resource.data.sessionId)
-        ));
-      allow delete: if isAdmin() || hasAdminAccess(resource.data.sessionId) || (hasActiveProfile() && resource.data.participantId == registeredParticipant(resource.data.sessionId));
+        )));
+      allow delete: if isActiveSession(resource.data.sessionId) && (isAdmin() || hasAdminAccess(resource.data.sessionId) || (hasActiveProfile() && resource.data.participantId == registeredParticipant(resource.data.sessionId)));
     }
 
     match /focusAreas/{focusAreaId} {
       allow read: if isAuthenticated();
-      allow create, update, delete: if isAuthenticated() && (hasAdminAccess(request.resource.data.sessionId) || (resource != null && hasAdminAccess(resource.data.sessionId)));
+      allow create: if isActiveSession(request.resource.data.sessionId) && isAuthenticated() && hasAdminAccess(request.resource.data.sessionId);
+      allow update: if isActiveSession(resource.data.sessionId) && isActiveSession(request.resource.data.sessionId) && isAuthenticated() && hasAdminAccess(resource.data.sessionId);
+      allow delete: if isActiveSession(resource.data.sessionId) && isAuthenticated() && hasAdminAccess(resource.data.sessionId);
     }
 
     match /proposedChallenges/{proposedChallengeId} {
       allow read: if isAuthenticated();
-      allow create: if hasActiveProfile() && request.resource.data.uid == request.auth.uid && request.resource.data.submitterParticipantId == registeredParticipant(request.resource.data.sessionId);
-      allow update: if isAuthenticated() && (
+      allow create: if isActiveSession(request.resource.data.sessionId) && (hasActiveProfile() && request.resource.data.uid == request.auth.uid && request.resource.data.submitterParticipantId == registeredParticipant(request.resource.data.sessionId));
+      allow update: if isActiveSession(resource.data.sessionId) && isActiveSession(request.resource.data.sessionId) && isAuthenticated() && (
         isAdmin() ||
         hasAdminAccess(resource.data.sessionId) ||
         (hasActiveProfile() && resource.data.uid == request.auth.uid && request.resource.data.uid == resource.data.uid && request.resource.data.sessionId == resource.data.sessionId && resource.data.submitterParticipantId == registeredParticipant(resource.data.sessionId) && request.resource.data.submitterParticipantId == resource.data.submitterParticipantId)
       );
-      allow delete: if isAuthenticated() && (isAdmin() || hasAdminAccess(resource.data.sessionId));
+      allow delete: if isActiveSession(resource.data.sessionId) && (isAuthenticated() && (isAdmin() || hasAdminAccess(resource.data.sessionId)));
     }
 
     match /proposedChallengeVotes/{voteId} {
       allow read: if isAuthenticated();
-      allow create: if hasActiveProfile() && request.resource.data.uid == request.auth.uid;
-      allow delete: if isAuthenticated() && resource.data.uid == request.auth.uid;
+      allow create: if isActiveSession(request.resource.data.sessionId) && (hasActiveProfile() && request.resource.data.uid == request.auth.uid);
+      allow delete: if isActiveSession(resource.data.sessionId) && (isAuthenticated() && resource.data.uid == request.auth.uid);
     }
   }
 }

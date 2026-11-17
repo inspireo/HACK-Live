@@ -1,3 +1,4 @@
+import { isEventDeleted } from '../../../shared/eventLifecycle';
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { collection, query, where, onSnapshot, addDoc, serverTimestamp, doc, getDoc, setDoc } from 'firebase/firestore';
@@ -41,7 +42,7 @@ export default function AdminDashboard() {
         const isPlatformOwner = user.email === 'xaeltan@gmail.com' || role.data()?.role === 'admin';
         const isOwner = session.ownerId === user.uid;
         const isCoAdmin = session.adminEmails && session.adminEmails.includes(user.email);
-        return isPlatformOwner || isOwner || isCoAdmin;
+        return !isEventDeleted(session) && (isPlatformOwner || isOwner || isCoAdmin);
       });
 
       setSessions(filtered);
