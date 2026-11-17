@@ -68,6 +68,19 @@ test('two members request accept see global contact changes unfriend decline can
     await page.getByLabel('Share Contact email with all approved connections', { exact: true }).check();
     if (pacedDemo) {
       const sharing = page.getByRole('group', { name: 'Contact details and sharing', exact: true });
+      const mobileCountry = page.getByRole('combobox', { name: 'Mobile country code', exact: true });
+      const mobileNumber = page.getByLabel('Mobile number', { exact: true });
+      await mobileCountry.evaluate(element => element.scrollIntoView({ block: 'start' }));
+      await expect(mobileCountry).toHaveValue('SG');
+      await expect(mobileNumber).toHaveValue('81234567');
+      await mobileCountry.selectOption('GB');
+      await expect(mobileNumber).toHaveValue('81234567');
+      await page.waitForTimeout(1500);
+      await mobileCountry.selectOption('SG');
+      const whatsappCountry = page.getByRole('combobox', { name: 'WhatsApp country code', exact: true });
+      await whatsappCountry.selectOption('GB');
+      await expect(page.getByLabel('WhatsApp number', { exact: true })).toHaveValue('7700900123');
+      await page.waitForTimeout(2000);
       await sharing.screenshot({ path: 'test-results/connections-global-selection.png' });
       await page.waitForTimeout(3500);
     }
