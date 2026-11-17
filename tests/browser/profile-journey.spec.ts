@@ -63,12 +63,16 @@ test('real Firebase profile edits, community preview, other-member privacy, revo
   await page.getByLabel('Bio', { exact: true }).scrollIntoViewIfNeeded();
   await reviewerHold(page);
   await page.getByLabel('Contact email', { exact: true }).fill('private-contact@example.test');
-  await page.getByLabel('Mobile number', { exact: true }).fill('+65 1234 5678');
+  await page.getByRole('combobox', { name: 'Mobile country code', exact: true }).selectOption('GB');
+  await page.getByLabel('Mobile number', { exact: true }).fill('1234 5678');
+  await reviewerHold(page);
+  await page.getByRole('combobox', { name: 'Mobile country code', exact: true }).selectOption('SG');
+  await expect(page.getByLabel('Mobile number', { exact: true })).toHaveValue('1234 5678');
   await page.getByLabel('Telegram username or link', { exact: true }).fill('https://t.me/synthetic_member');
   await expect(page.getByRole('link', { name: '@synthetic_member', exact: true })).toHaveAttribute('href', 'https://t.me/synthetic_member');
   await expect(page.getByLabel('Use my mobile number for WhatsApp', { exact: true })).not.toBeChecked();
   await page.getByLabel('Use my mobile number for WhatsApp', { exact: true }).check();
-  await expect(page.getByLabel('WhatsApp number', { exact: true })).toHaveValue('+65 1234 5678');
+  await expect(page.getByLabel('WhatsApp number', { exact: true })).toHaveValue('1234 5678');
   await page.getByRole('group', { name: 'Private contact details' }).scrollIntoViewIfNeeded();
   await reviewerHold(page);
   await page.getByLabel('Show Professional title or role to members', { exact: true }).check();

@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { doc, getDoc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from './firebase';
 import { profileEditorDetails, normalizeTelegram, communityProjection, contactFields, emptyDetails, fieldLabels, professionalFields, isManagedPhotoUrl, maxPhotoUploadBytes, safeProfileUrl, validateProfileEdit, type ProfessionalValues, type ProfileDetails } from '../shared/profile';
+import { PhoneInput } from './phone-input';
+import { hydratePhone, phoneDraftValue, type PhoneDraft } from '../shared/phone-draft';
 import { SkillsCombobox } from './skills-combobox';
 
 export function ProfilePhoto({ url }: { url: string }) {
@@ -54,6 +56,7 @@ export function MemberDetails({ memberId }: { memberId: string }) {
 
 export function ProfileEditor({ uid, name, onNameChange, save, onSaved }: { uid: string; name: string; onNameChange: (name: string) => void; save: (payload: object) => Promise<unknown>; onSaved: (message: string) => void }) {
   const [details, setDetails] = useState<ProfileDetails>(emptyDetails);
+  const [phones, setPhones] = useState<{ phone: PhoneDraft; whatsapp: PhoneDraft }>({ phone: hydratePhone(), whatsapp: hydratePhone() });
   const [ready, setReady] = useState(false);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -70,7 +73,7 @@ export function ProfileEditor({ uid, name, onNameChange, save, onSaved }: { uid:
   useEffect(() => {
     let current = true;
     setReady(false); setError(''); setPhotoFile(null); setRemovePhoto(false); setPhotoError('');
-    getDoc(doc(db, 'profileDetails', uid)).then(snapshot => { if (current) { setDetails(snapshot.exists() ? profileEditorDetails(snapshot.data() as ProfileDetails) : emptyDetails()); setReady(true); } }).catch(issue => { if (current) setError(issue.message); });
+    getDoc(doc(db, 'profileDetails', uid)).then(snapshot => { if (current) { const loaded = snapshot.exists() ? profileEditorDetails(snapshot.data() as ProfileDetails) : emptyDetails(); setDetails(loaded); setPhones({ phone: hydratePhone(loaded.contacts.phone), whatsapp: hydratePhone(loaded.contacts.whatsapp) }); setReady(true); } }).catch(issue => { if (current) setError(issue.message); });
     return () => { current = false; };
   }, [uid]);
   const inputClass = 'block w-full p-3 bg-zinc-900 border border-zinc-600 rounded-lg';
@@ -78,14 +81,14 @@ export function ProfileEditor({ uid, name, onNameChange, save, onSaved }: { uid:
   return <><form className="space-y-5" onSubmit={async event => {
     event.preventDefault(); setBusy(true); setError('');
     try {
-      const validated = validateProfileEdit({ name, ...details });
+      const validated = validateProfileEdit({ name, ...details, contacts: { ...details.contacts, phone: phoneDraftValue(phones.phone), whatsapp: phoneDraftValue(details.whatsappUsesMobile ? phones.phone : phones.whatsapp) } });
       let photoUpload: { contentType: string; base64: string } | null | undefined;
       if (photoFile) {
         const encoded = await new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve((reader.result as string).split(',')[1]); reader.onerror = () => reject(new Error('Photo could not be read. Choose it again.')); reader.readAsDataURL(photoFile); });
         photoUpload = { contentType: photoFile.type, base64: encoded };
       } else if (removePhoto) photoUpload = null;
       const result = await save({ name: validated.name, ...validated.details, ...(photoUpload !== undefined ? { photoUpload } : {}) }) as { details?: ProfileDetails };
-      setDetails(result?.details || validated.details); setPhotoFile(null); setRemovePhoto(false); setPhotoError(''); onSaved('Profile saved.');
+      const savedDetails = result?.details || validated.details; setDetails(savedDetails); setPhotoFile(null); setRemovePhoto(false); setPhotoError(''); onSaved('Profile saved.');
     }
     catch (issue) { setError((issue as Error).message); } finally { setBusy(false); }
   }}>
@@ -114,9 +117,9 @@ export function ProfileEditor({ uid, name, onNameChange, save, onSaved }: { uid:
       <p>All contacts are visible only to you in this release. Contact email is separate from your sign-in email.</p>
       <p>Choose one global selection for all future accepted connections. Sharing activates after the next connection release; these selections share nothing today.</p>
       {contactFields.map(field => <div key={field} className="space-y-2">
-        {field === 'whatsapp' && <><label><input type="checkbox" checked={details.whatsappUsesMobile === true} onChange={event => setDetails(previous => ({ ...previous, whatsappUsesMobile: event.target.checked, contacts: { ...previous.contacts, whatsapp: event.target.checked ? previous.contacts.phone || '' : previous.contacts.whatsapp || '' } }))} /> Use my mobile number for WhatsApp</label><p id="whatsapp-help">Optional. Choose this only if your WhatsApp uses this mobile number. You can enter a different number instead. Sharing WhatsApp also exposes its registered phone number.</p></>}
-        <label className="block">{fieldLabels[field]}<input className={inputClass} type={field === 'contactEmail' ? 'email' : field === 'telegram' ? 'text' : 'tel'} autoComplete={field === 'contactEmail' ? 'email' : field === 'phone' ? 'tel' : 'off'} inputMode={field === 'contactEmail' ? 'email' : field === 'telegram' ? 'text' : 'tel'} aria-describedby={field === 'telegram' ? 'telegram-help' : field === 'whatsapp' ? 'whatsapp-help' : field === 'phone' ? 'mobile-help' : undefined} disabled={field === 'whatsapp' && details.whatsappUsesMobile === true} value={field === 'whatsapp' && details.whatsappUsesMobile ? details.contacts.phone || '' : details.contacts[field] || ''} maxLength={500} onChange={event => setDetails(previous => ({ ...previous, contacts: { ...previous.contacts, [field]: event.target.value, ...(field === 'phone' && previous.whatsappUsesMobile ? { whatsapp: event.target.value } : {}) } }))} /></label>
-        {field === 'phone' && <p id="mobile-help">Include + and your country code. All contact fields are optional; clear an old value to remove it.</p>}
+        {field === 'whatsapp' && <><label><input type="checkbox" checked={details.whatsappUsesMobile === true} onChange={event => { if (!event.target.checked) setPhones(previous => ({ ...previous, whatsapp: { ...previous.phone } })); setDetails(previous => ({ ...previous, whatsappUsesMobile: event.target.checked })); }} /> Use my mobile number for WhatsApp</label><p id="whatsapp-help">Optional. Choose this only if your WhatsApp uses this mobile number. You can enter a different number instead. Sharing WhatsApp also exposes its registered phone number.</p></>}
+        {field === 'phone' || field === 'whatsapp' ? <PhoneInput label={fieldLabels[field]} draft={field === 'whatsapp' && details.whatsappUsesMobile ? phones.phone : phones[field]} disabled={field === 'whatsapp' && details.whatsappUsesMobile === true} inputClass={inputClass} helpId={field === 'phone' ? 'mobile-help' : 'whatsapp-help'} onChange={draft => setPhones(previous => ({ ...previous, [field]: draft }))} /> : <label className="block">{fieldLabels[field]}<input className={inputClass} type={field === 'contactEmail' ? 'email' : 'text'} autoComplete={field === 'contactEmail' ? 'email' : 'off'} inputMode={field === 'contactEmail' ? 'email' : 'text'} aria-describedby={field === 'telegram' ? 'telegram-help' : undefined} value={details.contacts[field] || ''} maxLength={500} onChange={event => setDetails(previous => ({ ...previous, contacts: { ...previous.contacts, [field]: event.target.value } }))} /></label>}
+        {field === 'phone' && <p id="mobile-help">Optional. Choose a country code and enter your national number, or paste a full +international number. No country is selected by default. Clear the number to remove it. Shared calling codes may reload with country unspecified.</p>}
         {field === 'telegram' && <><p id="telegram-help">Type or paste your @username or https://t.me/username. This does not verify ownership. Clear an old value to remove it.</p><TelegramPreview value={details.contacts.telegram || ''} /></>}
         <label><input type="checkbox" checked={details.connectionFields.includes(field)} onChange={event => setDetails(previous => ({ ...previous, connectionFields: event.target.checked ? [...previous.connectionFields, field] : previous.connectionFields.filter(value => value !== field) }))} /> Share {fieldLabels[field]} with all future accepted connections</label></div>)}
     </fieldset>
