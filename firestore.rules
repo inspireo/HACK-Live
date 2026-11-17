@@ -99,6 +99,14 @@ service cloud.firestore {
     match /eventInvitations/{token} { allow read, write: if false; }
     match /profileDeletionJobs/{memberId} { allow read, write: if false; }
 
+    // Server-only sources, projections and audit. Verified audiences and profile
+    // visibility are checked by the award API, never by a client-supplied role.
+    match /eventResults/{eventId} { allow read, write: if false; }
+    match /eventAwardCategories/{categoryId} { allow read, write: if false; }
+    match /awardResults/{resultId} { allow read, write: if false; }
+    match /awardAudits/{auditId} { allow read, write: if false; }
+    match /memberAchievements/{memberId}/{document=**} { allow read, write: if false; }
+
     match /users/{userId} {
       allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
       allow create: if isAuthenticated() && request.auth.uid == userId && request.resource.data.role == 'user';

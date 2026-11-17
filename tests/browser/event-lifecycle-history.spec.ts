@@ -1,0 +1,52 @@
+import { test, expect } from '@playwright/test';
+import { callIdentity, fixtureDb, password } from '../fixtures';
+import { seedLifecycle } from '../event-lifecycle-fixtures';
+import { seedLifecycleAwards } from '../event-lifecycle-award-fixtures';
+
+test('deleted admin route retains real historical attendance and award corrections without new activity controls', async ({ page }) => {
+  const { tokens, participantId } = await seedLifecycle();
+  const awards = await seedLifecycleAwards(tokens.organizer, participantId);
+  const verified = await callIdentity(tokens.organizer, 'attendance', { sessionId: 'event-one', memberUid: 'member', requestId: crypto.randomUUID() });
+  expect(verified.status).toBe(200);
+  await callIdentity(tokens.member, 'history-visibility', { sessionId: 'event-one', visible: true });
+  await callIdentity(tokens.member, 'awards/visibility', { resultId: awards.resultId, visibleOnProfile: true });
+  await page.goto('/admin/event-one');
+  await page.getByLabel('Email', { exact: true }).fill('organizer@example.test');
+  await page.getByLabel('Password', { exact: true }).fill(password);
+  await page.getByRole('button', { name: 'Sign in with email', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Session Settings', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Delete event', exact: true }).click();
+  await page.getByRole('button', { name: 'Confirm delete event', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Event deleted', exact: true })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'Event deleted', exact: true })).toBeVisible();
+  for (const name of ['Verify member attendance', 'Create category', 'Save draft award', 'Publish award', 'Finalize results', 'Reopen results', 'Delete event']) {
+    await expect(page.getByRole('button', { name, exact: true })).toHaveCount(0);
+  }
+  await page.getByText('Correct historical attendance', { exact: true }).click();
+  await page.getByRole('combobox', { name: 'Attendance member', exact: true }).selectOption('member');
+  await expect(page.getByRole('combobox', { name: 'Attendance action', exact: true })).toHaveValue('correct');
+  await expect(page.getByRole('combobox', { name: 'Attendance action', exact: true }).getByRole('option', { name: 'Check in', exact: true })).toHaveCount(0);
+  await page.getByRole('combobox', { name: 'Corrected attendance', exact: true }).selectOption('removed');
+  await page.getByLabel('Correction reason', { exact: true }).fill('Historical UI correction');
+  await page.getByLabel('Actual attendance date and time (your local timezone)', { exact: true }).fill('2026-01-01T10:00');
+  await page.getByLabel('Attendance evidence', { exact: true }).fill('Retained signed attendance register');
+  await page.getByRole('button', { name: 'Save attendance correction', exact: true }).click();
+  await expect(page.getByText('Attendance corrected.', { exact: true })).toBeVisible();
+  await expect.poll(async () => (await fixtureDb.doc('attendance/event-one~member').get()).data()!.revision).toBe(2);
+  await page.getByLabel('Private audit reason', { exact: true }).fill('Historical category correction');
+  await page.getByRole('combobox', { name: 'Correction category', exact: true }).selectOption(awards.correctedCategoryId);
+  const result = page.getByTestId(`award-${awards.resultId}`);
+  await result.getByRole('button', { name: 'Correct category', exact: true }).click();
+  await expect(result.getByRole('heading', { name: 'Corrected historical achievement · published', exact: true })).toBeVisible();
+  await expect.poll(async () => (await fixtureDb.doc(`awardResults/${awards.resultId}`).get()).data()!.snapshot.categoryName).toBe('Corrected historical achievement');
+  expect((await callIdentity(tokens.member, 'awards/member')).data.awards).toHaveLength(1);
+  await page.getByLabel('Private audit reason', { exact: true }).fill('Historical UI revocation');
+  await result.getByRole('button', { name: 'Revoke award', exact: true }).click();
+  await expect(result.getByRole('heading', { name: 'Corrected historical achievement · revoked', exact: true })).toBeVisible();
+  await expect.poll(async () => (await fixtureDb.doc(`awardResults/${awards.resultId}`).get()).data()!.status).toBe('revoked');
+  expect((await fixtureDb.doc(`participants/${participantId}`).get()).exists).toBe(true);
+  expect((await fixtureDb.doc('registrations/event-one~member').get()).exists).toBe(true);
+  expect((await fixtureDb.doc('sessions/event-one').get()).data()!.deletedAt).toBeTruthy();
+  expect((await callIdentity(tokens.member, 'member-history')).data.entries).toHaveLength(1);
+});

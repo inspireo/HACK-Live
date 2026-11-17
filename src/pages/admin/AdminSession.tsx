@@ -16,6 +16,7 @@ import ParticipantsTab from './ParticipantsTab';
 import TeamsTab from './TeamsTab';
 import RandomiserTab from './RandomiserTab';
 import DiscoveryTab from './DiscoveryTab';
+import AwardsTab from './AwardsTab';
 import { Folder, ArrowUp, ArrowDown, Lightbulb, Flame, Globe, HelpCircle, Compass, Network, Shuffle } from 'lucide-react';
 
 const getAdminStatusLabel = (status: string) => {
@@ -143,6 +144,7 @@ export default function AdminSession() {
       discovery: 'Challenge Discovery',
       challenges: 'Challenges',
       resources: 'Resources',
+      awards: 'Official Awards',
       participants: 'Participants',
       teams: 'Collaboration',
       display: 'Display Mode'
@@ -306,6 +308,7 @@ export default function AdminSession() {
     <h1 className="text-2xl font-bold">Event deleted</h1><p>Participation is closed. Event records and history are retained.</p>
     <button onClick={() => navigate('/admin')}>Back to Sessions List</button>
     <AttendanceEditor key={`${sessionId}:history`} sessionId={sessionId!} participants={participants} historicalOnly />
+    <AwardsTab key={`${sessionId}:history`} sessionId={sessionId!} historicalOnly />
   </div>;
 
   const sessionSteps = getStepsForSession(session?.enableChallengeDiscovery || false);
@@ -457,6 +460,7 @@ export default function AdminSession() {
                 ...(session?.enableChallengeDiscovery ? [{ id: 'discovery', label: 'Challenge Discovery', icon: Compass }] : []),
                 { id: 'challenges', label: 'Challenges', icon: Target },
                 { id: 'resources', label: 'Resources', icon: FileText },
+                { id: 'awards', label: 'Official Awards', icon: Award },
               ]
             },
             {
@@ -1530,6 +1534,7 @@ export default function AdminSession() {
               proposedChallenges={proposedChallenges}
             />
           )}
+          {activeTab === 'awards' && <AwardsTab key={sessionId} sessionId={sessionId!} />}
           {activeTab === 'resources' && <ResourcesTab sessionId={sessionId!} resources={resources} />}
           {activeTab === 'participants' && (
             <ParticipantsTab 

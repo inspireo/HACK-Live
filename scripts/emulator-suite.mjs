@@ -15,9 +15,11 @@ try {
     await new Promise(resolve => setTimeout(resolve, 200));
   }
   if (!healthy) throw new Error('App did not start');
-  // Run only the two final invitation recordings after the full combined suite passes.
+  // Evidence-only modes retain the same real app/emulator lifecycle.
   if (process.env.INVITATION_DEMO === 'true' && process.env.INVITATION_RECORD_ONLY === 'true') {
     await run('npx', ['playwright', 'test', 'tests/browser/event-invitation.spec.ts', '--grep', 'organizer publication|anonymous recipient']);
+  } else if (process.env.AWARDS_DEMO === 'true' && process.env.AWARDS_RECORD_ONLY === 'true') {
+    await run('npx', ['playwright', 'test', 'tests/browser/awards-journey.spec.ts']);
   } else {
   await run('node', ['--import', 'tsx', '--test', 'tests/profile-pure.test.ts']);
   await run('node', ['--import', 'tsx', '--test', 'tests/eventInvitation.test.ts']);
@@ -29,6 +31,9 @@ try {
   await run('node', ['--import', 'tsx', '--test', 'tests/attendance.test.ts']);
   await run('node', ['--import', 'tsx', '--test', 'tests/event-lifecycle-attendance.test.ts']);
   await run('node', ['--import', 'tsx', '--test', 'tests/shared-cleanup.test.ts']);
+  await run('node', ['--import', 'tsx', '--test', 'tests/awards-pure.test.ts']);
+  await run('node', ['--import', 'tsx', '--test', 'tests/awards.test.ts']);
+  await run('node', ['--import', 'tsx', '--test', 'tests/event-lifecycle-awards.test.ts']);
   await run('node', ['--import', 'tsx', '--test', 'tests/event-lifecycle-participation.test.ts']);
   await run('node', ['--import', 'tsx', '--test', 'tests/profile-api.test.ts']);
   await run('node', ['--import', 'tsx', '--test', 'tests/invitation-api.test.ts']);

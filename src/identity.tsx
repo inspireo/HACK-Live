@@ -6,6 +6,7 @@ import { Link, useLocation, useParams } from 'react-router-dom';
 import { auth, db } from './firebase';
 import { ConnectionIndicator, ConnectionPanel } from './connections';
 import { MemberDetails, ProfileEditor } from './profile-details';
+import { Achievements } from './components/Achievements';
 
 export const isRegisteredMember = (user: User | null) => !!user && !user.isAnonymous && user.emailVerified;
 type Profile = { name: string; state: string };
@@ -119,7 +120,7 @@ function ProfileForm({ profile }: { profile?: Profile }) {
       try { await setDoc(doc(db, 'profiles', auth.currentUser!.uid), { name: name.trim(), state: 'active' }); setMessage('Profile saved.'); } catch (issue: any) { setMessage(issue.message); } finally { setBusy(false); }
     }}><label>Name<input className={inputClass} value={name} onChange={event => setName(event.target.value)} required maxLength={100} /></label><button disabled={busy || !name.trim()} className={buttonClass}>Save profile</button></form>}
     <p role="status">{message}</p>
-    {profile && <><Link className="block underline" to="/badge">My badge</Link><Link to="/">Find an event</Link><button className="block" onClick={() => signOut(auth)}>Sign out</button>
+    {profile && <><Achievements /><Link className="block underline" to="/badge">My badge</Link><Link to="/">Find an event</Link><button className="block" onClick={() => signOut(auth)}>Sign out</button>
       <p>Deleting removes your social profile and reusable details. Workshop contributions retain a deleted-member label. Your sign-in and event administrator permissions remain. You can create a new social profile later.</p>
       <p className="text-xs">Account ID for organizer-assisted legacy linking: <code>{auth.currentUser?.uid}</code></p>
       <button className="text-red-400" disabled={busy} onClick={async () => {
@@ -139,7 +140,7 @@ export function MemberProfile() {
     setMember(snapshot.exists() && snapshot.data().state === 'active' ? snapshot.data() as Profile : null);
     setMessage('Member unavailable.');
   }, () => { setMember(null); setMessage('Member unavailable.'); }), [memberId]);
-  return <Panel>{member ? <><MemberDetails key={memberId} memberId={memberId!} name={member.name} /><ConnectionPanel key={memberId} peerUid={memberId!} /><MemberHistory key={memberId} memberUid={memberId} /></> : <p>{message}</p>}<Link to="/members">Community members</Link></Panel>;
+  return <Panel>{member ? <><MemberDetails key={memberId} memberId={memberId!} name={member.name} /><ConnectionPanel key={memberId} peerUid={memberId!} /><MemberHistory key={memberId} memberUid={memberId} /><Achievements key={memberId} memberId={memberId} /></> : <p>{message}</p>}<Link to="/members">Community members</Link></Panel>;
 }
 export function Members() {
   const [members, setMembers] = useState<{ memberId: string; name: string }[]>([]);
