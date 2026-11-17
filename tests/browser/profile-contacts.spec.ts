@@ -91,20 +91,26 @@ test('explicit country corrections reject destination changes without writing un
   const mobile = page.getByLabel('Mobile number', { exact: true });
   const country = page.getByRole('combobox', { name: 'Mobile country code', exact: true });
   const save = page.getByRole('button', { name: 'Save profile', exact: true });
+  async function saveCorrectedProfile() {
+    const responsePromise = page.waitForResponse(response => response.url().endsWith('/api/identity/save-profile') && response.request().method() === 'POST');
+    await save.click();
+    expect((await responsePromise).status()).toBe(200);
+    await expect(page.getByRole('status')).toHaveText('Profile saved.');
+  }
   await expect(mobile).toHaveValue('+9991234567'); await expect(country).toHaveValue('');
-  await save.click(); await expect(page.getByRole('status')).toHaveText('Profile saved.');
+  await saveCorrectedProfile();
   expect((await sourceRef.get()).data()!.contacts.phone).toBe('+9991234567');
   const unchanged = (await sourceRef.get()).data();
   await country.selectOption('SG'); await save.click();
   await expect(page.getByRole('alert')).toContainText('unrecognized international number');
   expect((await sourceRef.get()).data()).toEqual(unchanged);
-  await mobile.fill('81234567'); await save.click(); await expect(page.getByRole('status')).toHaveText('Profile saved.');
+  await mobile.fill('81234567'); await saveCorrectedProfile();
   expect((await sourceRef.get()).data()!.contacts.phone).toBe('+6581234567');
   await country.selectOption('GB'); await mobile.fill('0049 30 123456'); await save.click();
   await expect(page.getByRole('alert')).toContainText('different international calling code');
   expect((await sourceRef.get()).data()!.contacts.phone).toBe('+6581234567');
   await mobile.fill('+49 30 123456'); await expect(country).toHaveValue('DE');
-  await save.click(); await expect(page.getByRole('status')).toHaveText('Profile saved.');
+  await saveCorrectedProfile();
   await page.reload(); await expect(mobile).toHaveValue('30123456'); await expect(country).toHaveValue('DE');
   expect((await sourceRef.get()).data()!.contacts.phone).toBe('+4930123456');
 });
