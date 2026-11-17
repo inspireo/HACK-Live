@@ -1,0 +1,18 @@
+{
+  "mode": "paced-emulator-browser",
+  "shared": {
+    "payload": {
+      "title": "Community Design Day",
+      "text": "Join me at Community Design Day! 3 Dec 2026, 09:30 (Asia/Singapore). Come collaborate with us on #HACK Live.",
+      "url": "http://127.0.0.1:3000/invite/op3LX9b2vr6jFNCwxbozWz3ksnkzWhqsxSVE1UI7JEY"
+    },
+    "active": true
+  },
+  "osContractsMocked": true,
+  "physicalDevice": false,
+  "actualApp": true,
+  "softDeletionShown": true,
+  "fixtures": "synthetic",
+  "sourceSha": "e1cf383f4a1bfb2190b6bdf3e6ea8d4fd55beccb",
+  "fullText": "Join me at Community Design Day! 3 Dec 2026, 09:30 (Asia/Singapore). Come collaborate with us on #HACK Live.\nhttp://127.0.0.1:3000/invite/op3LX9b2vr6jFNCwxbozWz3ksnkzWhqsxSVE1UI7JEY"
+}

@@ -1,0 +1,45 @@
+{
+  "sourceSha": "e1cf383f4a1bfb2190b6bdf3e6ea8d4fd55beccb",
+  "normalCombinedSuite": {
+    "pure": 37,
+    "apiRules": 93,
+    "browser": 35,
+    "total": 165,
+    "result": "passed"
+  },
+  "focusedRecordingTests": {
+    "passed": 2,
+    "failed": 0
+  },
+  "recordedAt": "2026-11-17T11:43:07.754Z",
+  "actualApp": true,
+  "syntheticFirebaseEmulators": true,
+  "osShareAndClipboardSubstituted": true,
+  "physicalDevice": false,
+  "noRetimingOrSynthesizedFrames": true,
+  "inspectedFrameCount": 12,
+  "artifacts": [
+    {
+      "path": "docs/evidence/pr3-invitation-mobile.webm",
+      "bytes": 2474461,
+      "sha256": "61c5df81165d0eeb1e67665ff781e14397354fd23a27f181e5ed3f3cff330f8f",
+      "durationSeconds": 30.12,
+      "width": 1100,
+      "height": 900,
+      "fullDecodeVerified": true,
+      "visualFramesInspected": true,
+      "attachmentUrl": "https://github.com/user-attachments/assets/0b07d4ac-6601-4ed0-80a9-fe4633f474df"
+    },
+    {
+      "path": "docs/evidence/pr3-invitation-recipient.webm",
+      "bytes": 988129,
+      "sha256": "a9b0e580b1475619804904a51ba457345a6cfd62858a093fd6eeb694d6e293ef",
+      "durationSeconds": 22.52,
+      "width": 390,
+      "height": 844,
+      "fullDecodeVerified": true,
+      "visualFramesInspected": true,
+      "attachmentUrl": "https://github.com/user-attachments/assets/de5d6aa7-9678-4c3d-83e2-1c10005d76e1"
+    }
+  ]
+}
