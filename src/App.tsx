@@ -8,9 +8,13 @@ import AdminSession from './pages/admin/AdminSession';
 import ParticipantDashboard from './pages/participant/ParticipantDashboard';
 import DisplayMode from './pages/display/DisplayMode';
 import { MemberGate, Account, Members, MemberProfile } from './identity';
+import PublicInvitation, { InvitationRegistration } from './pages/PublicInvitation';
 
 export default function App() {
-  return <BrowserRouter><MemberGate><Routes>
+  return <BrowserRouter><Routes>
+    <Route path="/invite/:token" element={<PublicInvitation />} />
+    <Route path="*" element={<MemberGate><Routes>
+    <Route path="/invite/:token/register" element={<InvitationRegistration />} />
     <Route path="/" element={<Home />} />
     <Route path="/connections" element={<ConnectionsPage />} />
     <Route path="/badge" element={<MyBadge />} />
@@ -23,5 +27,6 @@ export default function App() {
     <Route path="/session/:sessionId" element={<ParticipantDashboard />} />
     <Route path="/display/:sessionId" element={<DisplayMode />} />
     <Route path="*" element={<Home />} />
-  </Routes></MemberGate></BrowserRouter>;
+  </Routes></MemberGate>} />
+  </Routes></BrowserRouter>;
 }

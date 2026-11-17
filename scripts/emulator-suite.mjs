@@ -22,6 +22,7 @@ try {
   } else {
   await run('node', ['--import', 'tsx', '--test', 'tests/profile-pure.test.ts']);
   await run('node', ['--import', 'tsx', '--test', 'tests/eventInvitation.test.ts']);
+  await run('node', ['--import', 'tsx', '--test', 'tests/public-invitation-pure.test.ts']);
   await run('node', ['--import', 'tsx', '--test', 'tests/connections-pure.test.ts']);
   await run('node', ['--import', 'tsx', '--test', 'tests/participation-pure.test.ts']);
   await run('node', ['--import', 'tsx', '--test', '--test-concurrency=1', 'tests/identity.test.ts', 'tests/connections.test.ts', 'tests/participation.test.ts']);
@@ -31,6 +32,7 @@ try {
   await run('node', ['--import', 'tsx', '--test', 'tests/awards-pure.test.ts']);
   await run('node', ['--import', 'tsx', '--test', 'tests/awards.test.ts']);
   await run('node', ['--import', 'tsx', '--test', 'tests/profile-api.test.ts']);
+  await run('node', ['--import', 'tsx', '--test', 'tests/invitation-api.test.ts']);
   await run('npx', ['playwright', 'test']);
   }
 } catch (issue) { console.error(issue); process.exitCode = 1; }

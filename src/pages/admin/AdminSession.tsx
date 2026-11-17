@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import EventPublicationPanel from '../../components/EventPublicationPanel';
 import { useParams, useNavigate } from 'react-router-dom';
 import { doc, onSnapshot, updateDoc, collection, query, where, getDoc, getDocs, addDoc, deleteDoc, writeBatch } from 'firebase/firestore';
 import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
@@ -429,6 +430,7 @@ export default function AdminSession() {
               title: 'System & Admin',
               tabs: [
                 { id: 'settings', label: 'Settings', icon: Settings },
+                { id: 'invitation', label: 'Public invitation', icon: Eye },
                 { id: 'admins', label: 'Admins', icon: Shield },
               ]
             },
@@ -561,6 +563,7 @@ export default function AdminSession() {
             </div>
           </div>
 
+          {activeTab === 'invitation' && <EventPublicationPanel sessionId={sessionId!} />}
           {activeTab === 'admins' && (
             <div className="space-y-6">
               <div className="flex flex-col gap-1">
