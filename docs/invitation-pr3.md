@@ -100,11 +100,18 @@ that original marker. Missing/null deletedAt means legacy active; no migration i
 needed. Clients cannot set/remove lifecycle fields or physically delete events.
 
 Deletion retains the original session and every related record/subcollection.
-Active admin/code-join lists exclude the event; direct admin, participant and live
-display routes show unavailable. Every invitation read, calendar, registration
+Active admin/code-join lists exclude the event; direct participant and live
+display routes show unavailable. The direct admin route closes participation. In
+the composed attendance/award layers it retains authorized historical read,
+attendance correction and award correction/revocation controls, with new
+check-in, role/team activity and award issuance closed. Every invitation read, calendar, registration
 handoff, publication/renewal, canonical registration/reuse, legacy linking, team
 finalization and normal client workshop write rejects a deleted event. The session
 check shares the invitation transaction, so a concurrent/stale publish cannot
 reopen it. The exact Firestore createTime incarnation guard remains in force for
 out-of-band physical deletion/recreation. Existing authorized historical reads
 retain their rules. There is no purge or restore operation.
+
+## Final composed verification
+
+The immutable composed source `e1cf383f4a1bfb2190b6bdf3e6ea8d4fd55beccb` passed Node24 typecheck/build and **165 tests (37 pure, 93 API/rules, 35 Chromium browser)**. The two focused paced recordings passed2/2 on that same source. Product bytes match the independently audited invitation, soft-deletion and downstream guard implementation; subsequent documentation/evidence and parent merges do not claim lower-layer local full-suite execution. Each final remote head has its own CI result. [Current recording provenance, hashes and actual UI screenshots](evidence/invitation-pr3.md) describe only the two invitation replacements; the other21 feature recordings remain at their original capture provenance.
