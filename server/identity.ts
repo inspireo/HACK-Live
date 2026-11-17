@@ -3,6 +3,8 @@ import { applicationDefault, getApps, initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 import { Router } from 'express';
+import { allocationEligible } from '../shared/participation';
+import { installParticipationRoutes } from './participation';
 import { connectionsRouter, queueConnectionCleanup } from './connections';
 import { contactProjection } from '../shared/connections';
 import { randomUUID } from 'node:crypto';
@@ -39,6 +41,7 @@ router.use(async (req, res, next) => {
 });
 
 router.use(connectionsRouter(identityDb));
+installParticipationRoutes(router, identityDb, identityAuth);
 
 router.post('/register', async (req, res) => {
   try {
@@ -65,7 +68,7 @@ router.post('/register', async (req, res) => {
       if (!legacy.empty) throw fail(409, 'Legacy registration needs organizer-assisted linking. Do not create a second registration.');
       const participantRef = identityDb.collection('participants').doc();
       if ((await transaction.get(participantRef)).exists) throw fail(409, 'Registration conflict. Contact the event organizer.');
-      transaction.create(participantRef, { sessionId, uid, memberId: uid, name: profile.data()!.name, adjective: adjective.trim(), designThinkingProficiency, teamId: null, isAssigned: false });
+      transaction.create(participantRef, { sessionId, uid, memberId: uid, name: profile.data()!.name, adjective: adjective.trim(), designThinkingProficiency, teamId: null, solutioning_team_id: null, isAssigned: false });
       transaction.create(registrationRef, { uid, sessionId, participantId: participantRef.id });
       transaction.set(identityDb.doc(`registrationDefaults/${uid}`), { adjective: adjective.trim(), designThinkingProficiency });
       return participantRef.id;
@@ -161,11 +164,17 @@ router.post('/finalize-team', async (req, res) => {
       const participants = await Promise.all(team.memberIds.map((participantId: string) => transaction.get(identityDb.doc(`participants/${participantId}`))));
       for (const participant of participants) {
         const member = participant.data();
-        if (!member?.memberId || member.memberId !== member.uid || member.sessionId !== team.sessionId || (!discovery && member.selectedChallengeId !== team.challengeId)) throw fail(409, 'All team members must have linked registrations for this event and challenge.');
-        if (discovery ? member.discoveryTeamId || member.discovery_team_id : member.teamId || member.isAssigned) throw fail(409, 'A member is already assigned to another team. Refresh and resolve the stale forming team.');
+        if (!member || !allocationEligible(member) || !member.memberId || member.memberId !== member.uid || member.sessionId !== team.sessionId || (!discovery && member.selectedChallengeId !== team.challengeId)) throw fail(409, 'All team members must have linked registrations for this event and challenge.');
+        if (discovery ? member.discoveryTeamId || member.discovery_team_id : member.teamId || member.solutioning_team_id || member.isAssigned) throw fail(409, 'A member is already assigned to another team. Refresh and resolve the stale forming team.');
       }
-      transaction.create(teamRef, { sessionId: team.sessionId, name: discovery ? `Discovery Team ${formingId}` : '', code: formingId, isOpenToMore: team.isOpenToMore, isParticipantCreated: true, createdAt: Date.now(), ...(discovery ? { leaderId: team.leaderId } : { challengeId: team.challengeId }) });
-      for (const participant of participants) transaction.update(participant.ref, discovery ? { discoveryTeamId: teamRef.id, discovery_team_id: teamRef.id } : { teamId: teamRef.id, isAssigned: true });
+      transaction.create(teamRef, { sessionId: team.sessionId, name: discovery ? `Discovery Team ${formingId}` : '', code: formingId, isOpenToMore: team.isOpenToMore, isParticipantCreated: true, createdAt: Date.now(), leaderId: team.leaderId, ...(!discovery ? { challengeId: team.challengeId } : {}) });
+      for (const participant of participants) {
+        const labels = { ...participant.data()?.teamRoleLabels };
+        const formingKey = `${discovery ? 'formingDiscoveryTeams' : 'formingTeams'}~${formingId}`;
+        if (labels[formingKey]) labels[`${discovery ? 'discoveryTeams' : 'teams'}~${teamRef.id}`] = labels[formingKey];
+        delete labels[formingKey];
+        transaction.update(participant.ref, { ...(discovery ? { discoveryTeamId: teamRef.id, discovery_team_id: teamRef.id } : { teamId: teamRef.id, solutioning_team_id: teamRef.id, isAssigned: true }), teamRoleLabels: labels });
+      }
       transaction.delete(formingRef);
     });
     res.json({ teamId: teamRef.id });
@@ -242,7 +251,7 @@ router.post('/delete-profile', async (_req, res) => {
     cleanup = writer;
     await queueConnectionCleanup(identityDb, uid, writer);
     for (const participant of ownedParticipants) {
-      if (participant.exists) writer.update(participant.ref, { uid: null, memberId: null, identityState: 'deleted', name: 'Deleted member', adjective: '', designThinkingProficiency: FieldValue.delete(), phone: FieldValue.delete(), phoneNumber: FieldValue.delete(), email: FieldValue.delete(), emailAddress: FieldValue.delete(), phoneLast4: FieldValue.delete(), passcode: FieldValue.delete(), persistedAnswers: FieldValue.delete(), archetypeScores: FieldValue.delete(), primaryArchetype: FieldValue.delete(), secondaryArchetype: FieldValue.delete(), teamId: null, isAssigned: false, discoveryTeamId: null, discovery_team_id: null, solutioning_team_id: null });
+      if (participant.exists) writer.update(participant.ref, { uid: null, memberId: null, identityState: 'deleted', officialRoles: FieldValue.delete(), roleChallengeId: FieldValue.delete(), participationState: 'inactive', teamRoleLabels: FieldValue.delete(), name: 'Deleted member', adjective: '', designThinkingProficiency: FieldValue.delete(), phone: FieldValue.delete(), phoneNumber: FieldValue.delete(), email: FieldValue.delete(), emailAddress: FieldValue.delete(), phoneLast4: FieldValue.delete(), passcode: FieldValue.delete(), persistedAnswers: FieldValue.delete(), archetypeScores: FieldValue.delete(), primaryArchetype: FieldValue.delete(), secondaryArchetype: FieldValue.delete(), teamId: null, solutioning_team_id: null, isAssigned: false, discoveryTeamId: null, discovery_team_id: null });
       writer.delete(identityDb.doc(`legacyParticipantSecrets/${participant.id}`));
       const responses = await identityDb.collection('welcomeResponses').where('participantId', '==', participant.id).get();
       for (const response of responses.docs) writer.delete(response.ref);

@@ -1,3 +1,4 @@
+import MyBadge from './Badge';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { ConnectionsPage } from './connections';
 import Home from './pages/Home';
@@ -15,6 +16,7 @@ export default function App() {
     <Route path="/invite/:token/register" element={<InvitationRegistration />} />
     <Route path="/" element={<Home />} />
     <Route path="/connections" element={<ConnectionsPage />} />
+    <Route path="/badge" element={<MyBadge />} />
     <Route path="/account" element={<Account />} />
     <Route path="/members" element={<Members />} />
     <Route path="/members/:memberId" element={<MemberProfile />} />

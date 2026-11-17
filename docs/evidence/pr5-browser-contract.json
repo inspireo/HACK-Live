@@ -1,0 +1,16 @@
+{
+  "mode": "paced-real-emulator-browser",
+  "securityMocks": false,
+  "physicalDevice": false,
+  "shareAndClipboardAdaptersMocked": true,
+  "viewport": {
+    "width": 320,
+    "height": 740
+  },
+  "qrDecoded": "http://127.0.0.1:3000/members/badge-browser",
+  "sourceRevision": "6c73699b633e42acdc1ebe65c4cdfee732f2795c",
+  "parentHead": "37fca8cc9907add4ce39227535b4b49f2325757b",
+  "nodeVersion": "v24.22.2",
+  "browserVersion": "158.0.8127.18",
+  "journey": "staff-role-issue/resources/badge/selector/profile-signin/revocation/deletion"
+}

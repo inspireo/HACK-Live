@@ -1,3 +1,5 @@
+import TeamRoleEditor from '../../components/TeamRoleEditor';
+import { allocationEligible, solutionTeamId } from '../../../shared/participation';
 import { isEventDeleted } from '../../../shared/eventLifecycle';
 import React, { useState, useEffect } from 'react';
 import { signOut } from 'firebase/auth';
@@ -433,6 +435,7 @@ export default function ParticipantDashboard() {
   useEffect(() => {
     if (!sessionId || !auth.currentUser) return;
 
+    let activeSolutionId: string | null = null;
     const subscriptions: (() => void)[] = [];
     const subscribe: typeof onSnapshot = ((...snapshotArgs: any[]) => {
       const unsubscribe = (onSnapshot as any)(...snapshotArgs);
@@ -495,16 +498,18 @@ export default function ParticipantDashboard() {
     if (localParticipantId) {
       const unsubParticipant = subscribe(doc(db, 'participants', localParticipantId), (docSnap) => {
         if (docSnap.exists()) {
-          const pData = { id: docSnap.id, ...docSnap.data() } as any;
+          const pData = { id: docSnap.id, ...docSnap.data(), teamId: solutionTeamId(docSnap.data()) } as any;
           if (pData.uid !== auth.currentUser?.uid || pData.memberId !== auth.currentUser?.uid || pData.sessionId !== sessionId) { setJoinError('Registration conflict. Contact the organizer.'); setLoading(false); return; }
           setParticipant(pData);
           setName(pData.name || '');
           setAdjective(pData.adjective || '');
           setProficiency(pData.designThinkingProficiency || 'New to it');
 
+          activeSolutionId = pData.teamId;
           if (pData.teamId) {
             // Fetch team
             subscribe(doc(db, 'teams', pData.teamId), (teamSnap) => {
+              if (activeSolutionId !== pData.teamId) return;
               if (teamSnap.exists()) {
                 setTeam({ id: teamSnap.id, ...teamSnap.data() });
                 setTeamName(teamSnap.data().name || '');
@@ -513,12 +518,14 @@ export default function ParticipantDashboard() {
               console.error('Team listener error:', error);
             });
             // Fetch teammates
-            subscribe(query(collection(db, 'participants'), where('teamId', '==', pData.teamId)), (matesSnap) => {
-              setTeammates(matesSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+            subscribe(query(collection(db, 'participants'), where('sessionId', '==', sessionId)), (matesSnap) => {
+              if (activeSolutionId !== pData.teamId) return;
+              setTeammates(matesSnap.docs.map(d => ({ id: d.id, ...d.data() } as any)).filter(member => solutionTeamId(member) === pData.teamId));
             }, (error) => {
               console.error('Teammates listener error:', error);
             });
           } else {
+            setTeam(null); setTeammates([]); setTeamName('');
             // Fetch forming team if any
             subscribe(query(collection(db, 'formingTeams'), where('memberIds', 'array-contains', localParticipantId)), (formingSnap) => {
               if (!formingSnap.empty) {
@@ -725,6 +732,7 @@ export default function ParticipantDashboard() {
   };
 
   const handleJoinTeam = async (e: React.FormEvent) => {
+    if (!allocationEligible(participant)) return;
     e.preventDefault();
     setTeamJoinError('');
     if (!enableParticipantTeamFormation) {
@@ -764,9 +772,9 @@ export default function ParticipantDashboard() {
         }
         
         // Check size
-        const membersQ = query(collection(db, 'participants'), where('teamId', '==', teamSnap.docs[0].id));
+        const membersQ = query(collection(db, 'participants'), where('sessionId', '==', sessionId));
         const membersSnap = await getDocs(membersQ);
-        if (session.maxTeamSize && membersSnap.size >= session.maxTeamSize) {
+        if (session.maxTeamSize && membersSnap.docs.filter(member => solutionTeamId(member.data()) === teamSnap.docs[0].id).length >= session.maxTeamSize) {
           setTeamJoinError('Team is full');
           setIsJoining(false);
           return;
@@ -775,6 +783,7 @@ export default function ParticipantDashboard() {
         // Join existing team
         await updateDoc(doc(db, 'participants', participant.id), {
           teamId: teamSnap.docs[0].id,
+          solutioning_team_id: teamSnap.docs[0].id,
           isAssigned: true
         });
         
@@ -812,15 +821,16 @@ export default function ParticipantDashboard() {
 
   const handleLeaveTeam = async () => {
     if (!participant) return;
-    if (participant.teamId && !enableParticipantTeamFormation) {
+    if (solutionTeamId(participant) && !enableParticipantTeamFormation) {
       showToast('Error', 'Participant-led team changes are currently disabled by the facilitator.', 'error');
       return;
     }
     setIsCancellingTeam(true);
     try {
-      if (participant.teamId) {
+      if (solutionTeamId(participant)) {
         await updateDoc(doc(db, 'participants', participant.id), {
           teamId: null,
+          solutioning_team_id: null,
           isAssigned: false
         });
         showToast('Success', 'Left the team.', 'success');
@@ -847,6 +857,7 @@ export default function ParticipantDashboard() {
   };
 
   const handleCreateTeam = async () => {
+    if (!allocationEligible(participant)) return;
     if (!formingTeam || formingTeam.leaderId !== participant.id) return;
     if (!enableParticipantTeamFormation) {
       showToast('Error', 'Participant-led team formation is currently disabled by the facilitator.', 'error');
@@ -1164,7 +1175,7 @@ export default function ParticipantDashboard() {
     );
   }
 
-  if (session.status === 'Opening') {
+  if (session.status === 'Opening' && allocationEligible(participant)) {
     // 1. Resolve enabled question packs and questions
     const enabledPackIds = session.enabledQuestionPacks || ['welcome_icebreakers', 'collaboration_archetypes'];
     const packOrder = session.questionPackOrder || QUESTION_PACKS.map(p => p.id);
@@ -1692,11 +1703,118 @@ export default function ParticipantDashboard() {
     </>
   );
 
+  const resourceModal = selectedResource && (
+        <div role="dialog" aria-modal="true" aria-label="Resource details" className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl">
+            <div className="p-6 border-b border-zinc-800 flex justify-between items-start sticky top-0 bg-zinc-900/95 backdrop-blur z-10 rounded-t-2xl">
+              <div className="flex-1 pr-4">
+                <h2 className="text-2xl font-bold text-blue-400">{selectedResource.title}</h2>
+                
+                {(() => {
+                  if (!resourceSummaryText) return null;
+                  const isLong = resourceSummaryText.length > 100;
+                  return (
+                    <div className="mt-2 text-sm text-zinc-400">
+                      <span>
+                        {(!isResourceSummaryExpanded && isLong) 
+                          ? resourceSummaryText.substring(0, 100) + '...' 
+                          : resourceSummaryText}
+                      </span>
+                      {isLong && (
+                        <button 
+                          onClick={() => setIsResourceSummaryExpanded(!isResourceSummaryExpanded)}
+                          className="text-blue-400 hover:text-blue-300 transition-colors font-medium ml-1 inline-block"
+                        >
+                          {isResourceSummaryExpanded ? "Show less" : "Read more"}
+                        </button>
+                      )}
+                    </div>
+                  );
+                })()}
+
+                {selectedResource.category && (
+                  <span className="inline-block mt-3 px-2.5 py-1 text-xs font-medium rounded-md bg-zinc-800 text-zinc-300">
+                    {selectedResource.category}
+                  </span>
+                )}
+              </div>
+              <button 
+                aria-label="Close resource details"
+                onClick={() => setSelectedResource(null)}
+                className="p-2 text-zinc-400 hover:text-white bg-zinc-800/50 hover:bg-zinc-800 rounded-full transition-colors shrink-0"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto custom-scrollbar">
+              <div className="text-zinc-300 text-base leading-relaxed">
+                <SafeHtml html={selectedResource.summary} />
+              </div>
+            </div>
+            
+            <div className="p-6 border-t border-zinc-800 bg-zinc-900/95 rounded-b-2xl flex justify-between items-center gap-3">
+              <div>
+                {selectedResource.category === 'Prompt' && (
+                  <button 
+                    onClick={handleCopyResourcePrompt}
+                    className={`px-6 py-2.5 rounded-xl transition-colors font-medium flex items-center gap-2 ${
+                      promptCopied 
+                        ? 'bg-emerald-950/30 border border-emerald-900/50 text-emerald-400' 
+                        : 'bg-zinc-800 hover:bg-zinc-700 text-white'
+                    }`}
+                  >
+                    {promptCopied ? (
+                      <>
+                        <CheckCircle2 size={18} />
+                        Copied to clipboard
+                      </>
+                    ) : (
+                      <>
+                        <Copy size={18} />
+                        Copy Prompt
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
+              <div className="flex items-center gap-3">
+                <button 
+                  onClick={() => setSelectedResource(null)}
+                  className="px-6 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl transition-colors font-medium"
+                >
+                  Close
+                </button>
+                {selectedResource.sheetLink && (
+                  <a 
+                    href={selectedResource.sheetLink} 
+                    target="_blank" 
+                    rel="noreferrer" 
+                    className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl transition-colors font-medium flex items-center gap-2"
+                  >
+                    {getExternalLinkButtonLabel(selectedResource)} &rarr;
+                  </a>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+  );
+
+  if (!allocationEligible(participant)) return <div className="min-h-screen bg-zinc-950 text-white px-4 py-6"><main className="max-w-md mx-auto space-y-5">
+    <h1 className="text-2xl font-bold break-words">{session.title || 'Event'}</h1>
+    {participant.participationState === 'inactive' ? <p>Your event participation is inactive. Contact an organizer to restore access to your badge.</p> : <>
+      <p>Your official roles do not include discovery or solution team allocation. You can use the event resources and share an invitation. Contact an organizer to change your official roles.</p>
+      <a className="inline-block underline" href={`/badge?event=${sessionId}`}>My badge</a>
+      <ShareEventButton sessionId={sessionId!} />
+      {resourcesContent}
+    </>}
+  </main>{resourceModal}</div>;
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 pb-20">
       <header className="bg-zinc-900 border-b border-zinc-800 py-3 px-4 sticky top-0 z-10">
         <div className="max-w-md mx-auto flex flex-col gap-1.5">
-          <h1 className="text-base font-bold text-white truncate leading-snug">{session.title}</h1>
+          <h1 className="text-base font-bold text-white truncate leading-snug">{session.title}</h1><a className="text-sm underline" href={`/badge?event=${sessionId}`}>My badge</a>
           <div className="flex items-center">
             <span className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 bg-zinc-850 text-zinc-300 rounded-full border border-zinc-800">
               <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
@@ -1708,6 +1826,10 @@ export default function ParticipantDashboard() {
 
       <main className="p-4 space-y-6 max-w-md mx-auto">
         <ShareEventButton sessionId={sessionId!} />
+        {team && <TeamRoleEditor collectionName="teams" teamId={team.id} members={teammates} />}
+        {discTeam && <TeamRoleEditor collectionName="discoveryTeams" teamId={discTeam.id} members={discTeammates} />}
+        {formingTeam && <TeamRoleEditor collectionName="formingTeams" teamId={formingTeam.id} members={formingMembers} />}
+        {formingDiscTeam && <TeamRoleEditor collectionName="formingDiscoveryTeams" teamId={formingDiscTeam.id} members={formingDiscMembers} />}
         {/* Resources Section (First if ResourcesOnly) */}
         {session.status === 'ResourcesOnly' && resourcesContent}
 
@@ -2829,103 +2951,7 @@ export default function ParticipantDashboard() {
           </>
         )}
       </main>
-      {/* Resource Modal */}
-      {selectedResource && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl">
-            <div className="p-6 border-b border-zinc-800 flex justify-between items-start sticky top-0 bg-zinc-900/95 backdrop-blur z-10 rounded-t-2xl">
-              <div className="flex-1 pr-4">
-                <h2 className="text-2xl font-bold text-blue-400">{selectedResource.title}</h2>
-                
-                {(() => {
-                  if (!resourceSummaryText) return null;
-                  const isLong = resourceSummaryText.length > 100;
-                  return (
-                    <div className="mt-2 text-sm text-zinc-400">
-                      <span>
-                        {(!isResourceSummaryExpanded && isLong) 
-                          ? resourceSummaryText.substring(0, 100) + '...' 
-                          : resourceSummaryText}
-                      </span>
-                      {isLong && (
-                        <button 
-                          onClick={() => setIsResourceSummaryExpanded(!isResourceSummaryExpanded)}
-                          className="text-blue-400 hover:text-blue-300 transition-colors font-medium ml-1 inline-block"
-                        >
-                          {isResourceSummaryExpanded ? "Show less" : "Read more"}
-                        </button>
-                      )}
-                    </div>
-                  );
-                })()}
-
-                {selectedResource.category && (
-                  <span className="inline-block mt-3 px-2.5 py-1 text-xs font-medium rounded-md bg-zinc-800 text-zinc-300">
-                    {selectedResource.category}
-                  </span>
-                )}
-              </div>
-              <button 
-                onClick={() => setSelectedResource(null)}
-                className="p-2 text-zinc-400 hover:text-white bg-zinc-800/50 hover:bg-zinc-800 rounded-full transition-colors shrink-0"
-              >
-                <X size={20} />
-              </button>
-            </div>
-            
-            <div className="p-6 overflow-y-auto custom-scrollbar">
-              <div className="text-zinc-300 text-base leading-relaxed">
-                <SafeHtml html={selectedResource.summary} />
-              </div>
-            </div>
-            
-            <div className="p-6 border-t border-zinc-800 bg-zinc-900/95 rounded-b-2xl flex justify-between items-center gap-3">
-              <div>
-                {selectedResource.category === 'Prompt' && (
-                  <button 
-                    onClick={handleCopyResourcePrompt}
-                    className={`px-6 py-2.5 rounded-xl transition-colors font-medium flex items-center gap-2 ${
-                      promptCopied 
-                        ? 'bg-emerald-950/30 border border-emerald-900/50 text-emerald-400' 
-                        : 'bg-zinc-800 hover:bg-zinc-700 text-white'
-                    }`}
-                  >
-                    {promptCopied ? (
-                      <>
-                        <CheckCircle2 size={18} />
-                        Copied to clipboard
-                      </>
-                    ) : (
-                      <>
-                        <Copy size={18} />
-                        Copy Prompt
-                      </>
-                    )}
-                  </button>
-                )}
-              </div>
-              <div className="flex items-center gap-3">
-                <button 
-                  onClick={() => setSelectedResource(null)}
-                  className="px-6 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl transition-colors font-medium"
-                >
-                  Close
-                </button>
-                {selectedResource.sheetLink && (
-                  <a 
-                    href={selectedResource.sheetLink} 
-                    target="_blank" 
-                    rel="noreferrer" 
-                    className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl transition-colors font-medium flex items-center gap-2"
-                  >
-                    {getExternalLinkButtonLabel(selectedResource)} &rarr;
-                  </a>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {resourceModal}
 
       {/* Challenge Confirmation Modal */}
       {confirmChallengeId && (

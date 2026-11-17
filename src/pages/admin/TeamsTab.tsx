@@ -1,3 +1,5 @@
+import TeamRoleEditor from '../../components/TeamRoleEditor';
+import { allocationEligible, solutionTeamId } from '../../../shared/participation';
 import { useState, useEffect, useMemo } from 'react';
 import { collection, addDoc, updateDoc, doc, writeBatch, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '../../firebase';
@@ -218,11 +220,11 @@ export default function TeamsTab({
   }, [isGroupMode, discoveryTeams, teams, focusAreas, challenges]);
 
   const unassignedParticipants = useMemo(() => {
-    return participants.filter(p => isGroupMode ? (!p.discoveryTeamId && !p.discovery_team_id) : !p.teamId);
+    return participants.filter(p => allocationEligible(p) && (isGroupMode ? (!p.discoveryTeamId && !p.discovery_team_id) : !solutionTeamId(p)));
   }, [isGroupMode, participants]);
 
   const assignedParticipants = useMemo(() => {
-    return participants.filter(p => isGroupMode ? (p.discoveryTeamId || p.discovery_team_id) : p.teamId);
+    return participants.filter(p => isGroupMode ? (p.discoveryTeamId || p.discovery_team_id) : solutionTeamId(p));
   }, [isGroupMode, participants]);
 
   const clearMessages = () => {
@@ -502,7 +504,7 @@ export default function TeamsTab({
       const openTeams = existingTeams.filter(t => t.challengeId === challengeId && t.isOpenToMore !== false);
       
       const activeOpenTeams = openTeams.map(t => {
-        const currentMembers = allParticipants.filter(p => p.teamId === t.id);
+        const currentMembers = allParticipants.filter(p => solutionTeamId(p) === t.id);
         return {
           teamId: t.id,
           participantIds: [] as string[],
@@ -604,7 +606,7 @@ export default function TeamsTab({
       // Post-balancing check: swap to cover Design Thinking if possible
       const getFullTeamMembers = (team: typeof challengeTeams[0]) => {
         const existingMemberIds = team.teamId 
-          ? allParticipants.filter(p => p.teamId === team.teamId).map(p => p.id)
+          ? allParticipants.filter(p => solutionTeamId(p) === team.teamId).map(p => p.id)
           : [];
         return [...existingMemberIds, ...team.participantIds];
       };
@@ -912,6 +914,7 @@ export default function TeamsTab({
           const pRef = doc(db, 'participants', pid);
           batch.update(pRef, {
             teamId: finalTeamId,
+            solutioning_team_id: finalTeamId,
             isAssigned: true
           });
         }
@@ -1036,7 +1039,7 @@ export default function TeamsTab({
         // --- Solution Teams AI Promo Execution ---
         const openTeams = teams.filter(t => t.isOpenToMore !== false && !t.isDraft);
         const openTeamSlots = openTeams.map(t => {
-          const currentMembers = participants.filter(p => p.teamId === t.id).length;
+          const currentMembers = participants.filter(p => solutionTeamId(p) === t.id).length;
           return {
             teamId: t.id,
             challengeId: t.challengeId,
@@ -1165,10 +1168,11 @@ export default function TeamsTab({
         }
       } else {
         batch.delete(doc(db, 'teams', deletingTeamId));
-        const teamMembers = participants.filter(p => p.teamId === deletingTeamId);
+        const teamMembers = participants.filter(p => solutionTeamId(p) === deletingTeamId);
         for (const p of teamMembers) {
           batch.update(doc(db, 'participants', p.id), {
             teamId: null,
+            solutioning_team_id: null,
             isAssigned: false
           });
         }
@@ -1235,6 +1239,7 @@ export default function TeamsTab({
       } else {
         await updateDoc(doc(db, 'participants', participantId), {
           teamId: null,
+          solutioning_team_id: null,
           isAssigned: false
         });
         setSuccessMessage('Participant removed from Solution Team.');
@@ -1269,6 +1274,7 @@ export default function TeamsTab({
   // Filtering list
   const filteredParticipants = useMemo(() => {
     return participants.filter(p => {
+      if (!allocationEligible(p)) return false;
       if (searchQuery && !p.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
       
       if (isGroupMode) {
@@ -1281,8 +1287,8 @@ export default function TeamsTab({
       } else {
         if (filterChallenge && p.selectedChallengeId !== filterChallenge) return false;
         if (filterProficiency && p.designThinkingProficiency !== filterProficiency) return false;
-        if (filterStatus === 'Assigned' && !p.teamId) return false;
-        if (filterStatus === 'Unassigned' && p.teamId) return false;
+        if (filterStatus === 'Assigned' && !solutionTeamId(p)) return false;
+        if (filterStatus === 'Unassigned' && solutionTeamId(p)) return false;
       }
       
       return true;
@@ -1353,7 +1359,7 @@ export default function TeamsTab({
 
       teams.forEach(t => {
         const challenge = challenges.find(c => c.id === t.challengeId);
-        const members = filteredParticipants.filter(p => p.teamId === t.id);
+        const members = filteredParticipants.filter(p => solutionTeamId(p) === t.id);
 
         members.forEach(p => {
           let pArch = 'None';
@@ -1615,7 +1621,7 @@ export default function TeamsTab({
                   } else {
                     const c = challenges.find(ch => ch.id === p.selectedChallengeId);
                     alignmentNode = <span className="text-xs text-zinc-400">{c?.title || 'None selected'}</span>;
-                    const team = teams.find(t => t.id === p.teamId);
+                    const team = teams.find(t => t.id === solutionTeamId(p));
                     isAssignedToCurrentMode = !!team;
                     if (team) {
                       unitName = team.name;
@@ -1696,7 +1702,7 @@ export default function TeamsTab({
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {activeUnits.map(unit => {
-              const members = participants.filter(p => isGroupMode ? (p.discoveryTeamId === unit.id || p.discovery_team_id === unit.id) : p.teamId === unit.id);
+              const members = participants.filter(p => isGroupMode ? (p.discoveryTeamId === unit.id || p.discovery_team_id === unit.id) : solutionTeamId(p) === unit.id);
               
               // Team identifier format parsers
               const nameMatch = unit.name?.match(/^((?:Team|Working Group|Challenge Workgroup|Group)\s*#?\s*\d+)(?:\s*[-–:]\s*(.*))?$/i);
@@ -1724,6 +1730,7 @@ export default function TeamsTab({
 
               return (
                 <div key={unit.id} className="bg-zinc-900 border border-zinc-800 rounded-2xl flex flex-col min-h-[340px] shadow-sm hover:shadow-md transition-shadow overflow-hidden">
+                   <TeamRoleEditor collectionName={isGroupMode ? 'discoveryTeams' : 'teams'} teamId={unit.id} members={members} />
                    {/* Card Main Properties Header */}
                   <div className={`p-5 border-b border-zinc-800/50 space-y-3 relative group ${isGroupMode ? 'bg-blue-950/5' : 'bg-emerald-950/5'}`}>
                     <div className="flex justify-between items-start pr-12">
@@ -2022,6 +2029,7 @@ export default function TeamsTab({
                         } else {
                           await updateDoc(doc(db, 'participants', movingParticipantId), {
                             teamId: t.id,
+                            solutioning_team_id: t.id,
                             isAssigned: true
                           });
                           setSuccessMessage('Participant moved successfully.');
@@ -2091,6 +2099,7 @@ export default function TeamsTab({
                         } else {
                           await updateDoc(doc(db, 'participants', addingToTeamId), {
                             teamId: t.id,
+                            solutioning_team_id: t.id,
                             isAssigned: true
                           });
                           setSuccessMessage('Participant assigned to team.');
@@ -2127,14 +2136,14 @@ export default function TeamsTab({
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 max-w-md w-full space-y-4 shadow-2xl">
             <h3 className="text-xl font-bold text-red-400 flex items-center gap-2">
               <AlertCircle size={24} />
-              {participants.filter(p => isGroupMode ? (p.discoveryTeamId === deletingTeamId || p.discovery_team_id === deletingTeamId) : p.teamId === deletingTeamId).length === 0 
+              {participants.filter(p => isGroupMode ? (p.discoveryTeamId === deletingTeamId || p.discovery_team_id === deletingTeamId) : solutionTeamId(p) === deletingTeamId).length === 0
                 ? `Delete this empty ${isGroupMode ? 'challenge workgroup' : 'solution team'}?` 
                 : `Delete this ${isGroupMode ? 'challenge workgroup' : 'solution team'}?`
               }
             </h3>
             <div className="text-zinc-300 space-y-2">
               <p>This will delete the {isGroupMode ? 'challenge workgroup' : 'solution team'} container from the directory, but participant accounts are preserved.</p>
-              {participants.filter(p => isGroupMode ? (p.discoveryTeamId === deletingTeamId || p.discovery_team_id === deletingTeamId) : p.teamId === deletingTeamId).length > 0 && (
+              {participants.filter(p => isGroupMode ? (p.discoveryTeamId === deletingTeamId || p.discovery_team_id === deletingTeamId) : solutionTeamId(p) === deletingTeamId).length > 0 && (
                 <p>All members currently inside will be moved back to unassigned status for this mode.</p>
               )}
             </div>

@@ -56,7 +56,7 @@ export function MemberGate({ children }: { children: React.ReactNode }) {
     try { await identityRequest('delete-profile'); } catch (issue: any) { setDeletionMessage(issue.message); } finally { setDeletionBusy(false); }
   }}>Retry deletion</button><p role="status">{deletionMessage}</p><button onClick={() => signOut(auth)}>Sign out</button></Panel>;
   if (!profile || profile.state === 'deleted') return <ProfileForm />;
-  return <ProfileContext.Provider value={profile}><div className="bg-zinc-900 text-white px-5 py-2 flex justify-between"><Link to="/">#HACK Live</Link><ConnectionIndicator /><Link to="/account">Account · {profile.name}</Link></div>{children}</ProfileContext.Provider>;
+  return <ProfileContext.Provider value={profile}><div className="bg-zinc-900 text-white px-5 py-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-2"><Link to="/">#HACK Live</Link><ConnectionIndicator /><Link className="min-w-0 max-w-full [overflow-wrap:anywhere]" to="/account">Account · {profile.name}</Link></div>{children}</ProfileContext.Provider>;
 }
 
 function SignIn({ user }: { user: User | null }) {
@@ -118,7 +118,7 @@ function ProfileForm({ profile }: { profile?: Profile }) {
       try { await setDoc(doc(db, 'profiles', auth.currentUser!.uid), { name: name.trim(), state: 'active' }); setMessage('Profile saved.'); } catch (issue: any) { setMessage(issue.message); } finally { setBusy(false); }
     }}><label>Name<input className={inputClass} value={name} onChange={event => setName(event.target.value)} required maxLength={100} /></label><button disabled={busy || !name.trim()} className={buttonClass}>Save profile</button></form>}
     <p role="status">{message}</p>
-    {profile && <><Link to="/">Find an event</Link><button className="block" onClick={() => signOut(auth)}>Sign out</button>
+    {profile && <><Link className="block underline" to="/badge">My badge</Link><Link to="/">Find an event</Link><button className="block" onClick={() => signOut(auth)}>Sign out</button>
       <p>Deleting removes your social profile and reusable details. Workshop contributions retain a deleted-member label. Your sign-in and event administrator permissions remain. You can create a new social profile later.</p>
       <p className="text-xs">Account ID for organizer-assisted legacy linking: <code>{auth.currentUser?.uid}</code></p>
       <button className="text-red-400" disabled={busy} onClick={async () => {
